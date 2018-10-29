@@ -1,0 +1,21 @@
+version: 2
+jobs:
+  build:
+    docker:
+    - image: circleci/golang:1
+    working_directory: /go/src/github.com/Ridecell/ridecell-operator
+
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - v1-vendor-{{ checksum "Gopkg.lock" }}
+        - v1-vendor
+
+    - run: dep ensure
+    - run: make test
+
+    - save_cache:
+        key: v1-vendor-{{ checksum "Gopkg.lock" }}
+        paths:
+        - vendor/
