@@ -28,7 +28,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -39,7 +38,6 @@ const timeout = time.Second * 5
 
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	var c client.Client
 	var stopChannel chan struct{}
 	var requests chan reconcile.Request
 
@@ -48,8 +46,7 @@ var _ = Describe("Summon controller", func() {
 		// channel when it is finished.
 		mgr, err := manager.New(testHelpers.Cfg, manager.Options{})
 		Expect(err).NotTo(HaveOccurred())
-		c = mgr.GetClient()
-		helpers = testHelpers.SetupTest(c)
+		helpers = testHelpers.SetupTest(mgr.GetClient())
 
 		var recFn reconcile.Reconciler
 		recFn, requests = SetupTestReconcile(newReconciler(mgr))
@@ -65,6 +62,7 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	It("works", func() {
+		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
 		expectedRequest := reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: helpers.Namespace}}
 		depKey := types.NamespacedName{Name: "foo-deployment", Namespace: helpers.Namespace}
