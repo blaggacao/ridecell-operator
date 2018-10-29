@@ -12,14 +12,11 @@ jobs:
         - v1-vendor-{{ checksum "Gopkg.lock" }}
         - v1-vendor
 
-    - run: mkdir kubebuilder-assets/
-    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_darwin_amd64.tar.gz | tar -zxv --strip-components=1 -C kubebuilder-assets/
+    - run: sudo mkdir /usr/local/kubebuilder/
+    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
     - run: go get -u github.com/onsi/ginkgo/ginkgo
     - run: dep ensure
-    - run:
-        command: make test
-        environment:
-          KUBEBUILDER_ASSETS: kubebuilder-assets/bin/
+    - run: make test
 
     - save_cache:
         key: v1-vendor-{{ checksum "Gopkg.lock" }}
