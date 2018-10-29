@@ -1,0 +1,9 @@
+apiVersion: summon.ridecell.io/v1beta1
+kind: Summon
+metadata:
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: summon-sample
+spec:
+  # Add fields here
+  foo: bar
