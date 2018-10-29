@@ -31,46 +31,46 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	// "github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
-
-var c client.Client
-
-var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: "default"}
 
 const timeout = time.Second * 5
 
 var _ = Describe("Summon controller", func() {
-	// var helpers *test_helpers.PerTestHelpers
-	// var mgr manager.Manager
+	var helpers *test_helpers.PerTestHelpers
+	var c client.Client
+	var stopChannel chan struct{}
+	var requests chan reconcile.Request
 
 	BeforeEach(func() {
-		// mgr, err := manager.New(testHelpers.Cfg, manager.Options{})
-		// Expect(err).NotTo(HaveOccurred())
-		// helpers = testHelpers.SetupTest(mgr.GetClient())
-	})
-
-	AfterEach(func() {
-		// helpers.TeardownTest()
-	})
-
-	It("works", func() {
-		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
-
 		// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 		// channel when it is finished.
 		mgr, err := manager.New(testHelpers.Cfg, manager.Options{})
 		Expect(err).NotTo(HaveOccurred())
 		c = mgr.GetClient()
+		helpers = testHelpers.SetupTest(c)
 
-		recFn, requests := SetupTestReconcile(newReconciler(mgr))
+		var recFn reconcile.Reconciler
+		recFn, requests = SetupTestReconcile(newReconciler(mgr))
 		err = add(mgr, recFn)
 		Expect(err).NotTo(HaveOccurred())
-		defer close(StartTestManager(mgr))
+
+		stopChannel = StartTestManager(mgr)
+	})
+
+	AfterEach(func() {
+		close(stopChannel)
+		helpers.TeardownTest()
+	})
+
+	It("works", func() {
+		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
+		expectedRequest := reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: helpers.Namespace}}
+		depKey := types.NamespacedName{Name: "foo-deployment", Namespace: helpers.Namespace}
 
 		// Create the Summon object and expect the Reconcile and Deployment to be created
-		err = c.Create(context.TODO(), instance)
+		err := c.Create(context.TODO(), instance)
 		// The instance object may not be a valid object because it might be missing some required fields.
 		// Please modify the instance object by adding required fields and then remove the following if statement.
 		if apierrors.IsInvalid(err) {
@@ -87,8 +87,5 @@ var _ = Describe("Summon controller", func() {
 		Expect(c.Delete(context.TODO(), deploy)).NotTo(HaveOccurred())
 		Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 		Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).Should(Succeed())
-
-		// Manually delete Deployment since GC isn't enabled in the test control plane
-		Expect(c.Delete(context.TODO(), deploy)).To(Succeed())
 	})
 })
