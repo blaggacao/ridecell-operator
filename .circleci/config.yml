@@ -12,6 +12,8 @@ jobs:
         - v1-vendor-{{ checksum "Gopkg.lock" }}
         - v1-vendor
 
+    - run: mkdir /usr/local/kubebuilder
+    - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_darwin_amd64.tar.gz | tar -zxv --strip-components=1 -C /usr/local/kubebuilder
     - run: go get -u github.com/onsi/ginkgo/ginkgo
     - run: dep ensure
     - run: make test
