@@ -12,6 +12,7 @@ jobs:
         - v1-vendor-{{ checksum "Gopkg.lock" }}
         - v1-vendor
 
+    - run: go get -u github.com/onsi/ginkgo/ginkgo
     - run: dep ensure
     - run: make test
 
