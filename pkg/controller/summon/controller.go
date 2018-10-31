@@ -18,6 +18,7 @@ package summon
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"reflect"
 
@@ -40,11 +41,6 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/service"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
 // Add creates a new Summon Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 // USER ACTION REQUIRED: update cmd/manager/main.go to call this summon.Add(mgr) to install this Controller
@@ -57,6 +53,9 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	// return &ReconcileSummon{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
 	return components.NewController(mgr, reflect.TypeOf(summonv1beta1.SummonPlatform{}), Templates, []components.Component{
 		service.New("web/service.yml.tpl"),
+	}, []runtime.Object{
+		&appsv1.Deployment{},
+		&corev1.Service{},
 	})
 }
 
@@ -74,22 +73,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create
-	// Uncomment watch a Deployment created by Summon - change this for objects you create
-	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &summonv1beta1.SummonPlatform{},
-	})
-	if err != nil {
-		return err
-	}
-
-	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &summonv1beta1.SummonPlatform{},
-	})
-	if err != nil {
-		return err
+	for _, watchObj := range r.(*components.ComponentController).WatchTypes {
+		err = c.Watch(&source.Kind{Type: watchObj}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &summonv1beta1.SummonPlatform{},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

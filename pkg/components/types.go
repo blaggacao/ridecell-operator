@@ -33,6 +33,7 @@ type ComponentController struct {
 	TopType    reflect.Type
 	Templates  http.FileSystem
 	Components []Component
+	WatchTypes []runtime.Object
 }
 
 // A ComponentContext is the state for a single reconcile request to the controller.

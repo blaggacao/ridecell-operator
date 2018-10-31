@@ -29,13 +29,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func NewController(mgr manager.Manager, topType reflect.Type, templates http.FileSystem, components []Component) *ComponentController {
+func NewController(mgr manager.Manager, topType reflect.Type, templates http.FileSystem, components []Component, watchTypes []runtime.Object) *ComponentController {
 	return &ComponentController{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		TopType:    topType,
 		Templates:  templates,
 		Components: components,
+		WatchTypes: watchTypes,
 	}
 }
 

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package summon
+package summon_test
 
 import (
 	"fmt"
@@ -30,8 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -40,7 +40,6 @@ const timeout = time.Second * 5
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var stopChannel chan struct{}
-	var requests chan reconcile.Request
 
 	BeforeEach(func() {
 		// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
@@ -49,9 +48,7 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 		helpers = testHelpers.SetupTest(mgr.GetClient())
 
-		var recFn reconcile.Reconciler
-		recFn, requests = SetupTestReconcile(newReconciler(mgr))
-		err = add(mgr, recFn)
+		err = summon.Add(mgr)
 		Expect(err).NotTo(HaveOccurred())
 
 		stopChannel = StartTestManager(mgr)
@@ -65,7 +62,6 @@ var _ = Describe("Summon controller", func() {
 	It("works", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
-		expectedRequest := reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: helpers.Namespace}}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
 		// Create the Summon object and expect the Reconcile and Deployment to be created
@@ -76,15 +72,12 @@ var _ = Describe("Summon controller", func() {
 			Fail(fmt.Sprintf("failed to create object, got an invalid object error: %v", err))
 		}
 		Expect(err).NotTo(HaveOccurred())
-		defer c.Delete(context.TODO(), instance)
-		Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
 		service := &corev1.Service{}
 		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 
-		// Delete the Deployment and expect Reconcile to be called for Deployment deletion
+		// Delete the Service and expect Reconcile to be called for Deployment deletion
 		Expect(c.Delete(context.TODO(), service)).NotTo(HaveOccurred())
-		Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 	})
 })
