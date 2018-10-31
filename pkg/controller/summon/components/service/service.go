@@ -46,20 +46,14 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	summon, ok := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if !ok {
-		panic("Top object was not a SummonPlatform")
-	}
+	summon := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	serviceObj, err := templates.Get(ctx.Templates, comp.templatePath, struct{ Instance *summonv1beta1.SummonPlatform }{Instance: summon})
 	if err != nil {
 		return reconcile.Result{}, nil
 	}
 
-	service, ok := serviceObj.(*corev1.Service)
-	if !ok {
-		return reconcile.Result{}, fmt.Errorf("Template %s is not a Service", comp.templatePath)
-	}
+	service := serviceObj.(*corev1.Service)
 
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, service.DeepCopyObject(), func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Service)
