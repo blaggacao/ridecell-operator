@@ -24,7 +24,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
-	appsv1 "k8s.io/api/apps/v1"
+	// appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -65,7 +66,7 @@ var _ = Describe("Summon controller", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
 		expectedRequest := reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: helpers.Namespace}}
-		depKey := types.NamespacedName{Name: "foo-deployment", Namespace: helpers.Namespace}
+		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
 		// Create the Summon object and expect the Reconcile and Deployment to be created
 		err := c.Create(context.TODO(), instance)
@@ -78,12 +79,12 @@ var _ = Describe("Summon controller", func() {
 		defer c.Delete(context.TODO(), instance)
 		Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
 
-		deploy := &appsv1.Deployment{}
-		Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).Should(Succeed())
+		service := &corev1.Service{}
+		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 
 		// Delete the Deployment and expect Reconcile to be called for Deployment deletion
-		Expect(c.Delete(context.TODO(), deploy)).NotTo(HaveOccurred())
+		Expect(c.Delete(context.TODO(), service)).NotTo(HaveOccurred())
 		Eventually(requests, timeout).Should(Receive(Equal(expectedRequest)))
-		Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).Should(Succeed())
+		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 	})
 })

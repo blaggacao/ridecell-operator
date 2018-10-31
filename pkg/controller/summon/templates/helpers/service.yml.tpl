@@ -3,6 +3,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: {{ block "componentName" . }}{{ end }}
     app.kubernetes.io/instance: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}

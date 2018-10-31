@@ -36,9 +36,13 @@ spec:
           type: object
         status:
           properties:
+            message:
+              type: string
             migrateVersion:
               type: string
             postgresStatus:
+              type: string
+            status:
               type: string
           type: object
   version: v1beta1

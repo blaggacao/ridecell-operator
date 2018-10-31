@@ -21,6 +21,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	StatusPostgresInitializing     = "PostgresInitializing"
+	StatusPostgresDatabaseCreating = "PostgresDatabaseCreating"
+	StatusRabbitVhostCreating      = "RabbitVhostCreating"
+	StatusMigrating                = "Migrating"
+	StatusDeploying                = "Deploying"
+	StatusReady                    = "Ready"
+	StatusError                    = "Error"
+)
+
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
@@ -54,8 +64,11 @@ type SummonPlatformSpec struct {
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
 type SummonPlatformStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Overall object status
+	Status string `json:"status,omitempty"`
+
+	// Message related to the current status.
+	Message string `json:"message,omitempty"`
 
 	// Current Postgresql status if one exists.
 	PostgresStatus *postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`

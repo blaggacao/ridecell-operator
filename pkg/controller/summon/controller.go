@@ -35,6 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/service"
 )
 
 /**
@@ -51,7 +54,10 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileSummon{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	// return &ReconcileSummon{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return components.NewController(mgr, reflect.TypeOf(summonv1beta1.SummonPlatform{}), Templates, []components.Component{
+		service.New("web/service.yml.tpl"),
+	})
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -71,6 +77,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// TODO(user): Modify this to be the types you create
 	// Uncomment watch a Deployment created by Summon - change this for objects you create
 	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &summonv1beta1.SummonPlatform{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &summonv1beta1.SummonPlatform{},
 	})
@@ -109,6 +123,8 @@ func (r *ReconcileSummon) Reconcile(request reconcile.Request) (reconcile.Result
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
+	// components.ReconcileComponents(instance, Templates, []components.Component{service.New("web/service.yml.tpl")})
 
 	// TODO(user): Change this to be the object type created by your controller
 	// Define the desired Deployment object
