@@ -18,7 +18,6 @@ package summon
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"reflect"
 
