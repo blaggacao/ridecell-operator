@@ -50,7 +50,7 @@ func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (recon
 
 	serviceObj, err := templates.Get(ctx.Templates, comp.templatePath, struct{ Instance *summonv1beta1.SummonPlatform }{Instance: summon})
 	if err != nil {
-		return reconcile.Result{}, nil
+		return reconcile.Result{}, err
 	}
 
 	service := serviceObj.(*corev1.Service)
