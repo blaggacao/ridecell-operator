@@ -19,12 +19,9 @@ package service
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/templates"
 )
 
 type serviceComponent struct {
@@ -41,34 +38,14 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	summon := ctx.Top.(*summonv1beta1.SummonPlatform)
-
-	serviceObj, err := templates.Get(ctx.Templates, comp.templatePath, struct{ Instance *summonv1beta1.SummonPlatform }{Instance: summon})
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	service := serviceObj.(*corev1.Service)
-
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, service.DeepCopyObject(), func(existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*corev1.Service)
 		existing := existingObj.(*corev1.Service)
-		// Set owner ref.
-		err := controllerutil.SetControllerReference(summon, existing, ctx.Scheme)
-		if err != nil {
-			return err
-		}
 		// Special case: Services mutate the ClusterIP value in the Spec and it should be preserved.
-		service.Spec.ClusterIP = existing.Spec.ClusterIP
+		goal.Spec.ClusterIP = existing.Spec.ClusterIP
 		// Copy the Spec over.
-		existing.Spec = service.Spec
-		// Sync the metadata.
-		components.ReconcileMeta(&service.ObjectMeta, &existing.ObjectMeta)
-
+		existing.Spec = goal.Spec
 		return nil
 	})
-	if err != nil {
-		return reconcile.Result{Requeue: true}, err
-	}
-
-	return reconcile.Result{}, nil
+	return res, err
 }

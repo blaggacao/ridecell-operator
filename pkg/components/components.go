@@ -25,8 +25,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/Ridecell/ridecell-operator/pkg/templates"
 )
 
 func NewController(mgr manager.Manager, topType reflect.Type, templates http.FileSystem, components []Component, watchTypes []runtime.Object) *ComponentController {
@@ -112,4 +115,37 @@ func ReconcileMeta(target, existing *metav1.ObjectMeta) error {
 		}
 	}
 	return nil
+}
+
+func (ctx *ComponentContext) GetTemplate(path string) (runtime.Object, error) {
+	return templates.Get(ctx.Templates, path, struct{ Instance runtime.Object }{Instance: ctx.Top})
+}
+
+func (ctx *ComponentContext) CreateOrUpdate(path string, mutateFn func(runtime.Object, runtime.Object) error) (reconcile.Result, controllerutil.OperationResult, error) {
+	target, err := ctx.GetTemplate(path)
+	if err != nil {
+		return reconcile.Result{}, controllerutil.OperationResultNone, err
+	}
+
+	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existing runtime.Object) error {
+		// Set owner ref.
+		err := controllerutil.SetControllerReference(ctx.Top.(metav1.Object), existing.(metav1.Object), ctx.Scheme)
+		if err != nil {
+			return err
+		}
+		// Run the component-level mutator.
+		err = mutateFn(target, existing)
+		if err != nil {
+			return err
+		}
+		// Sync the metadata fields.
+		targetMeta := target.(metav1.ObjectMetaAccessor).GetObjectMeta().(*metav1.ObjectMeta)
+		existingMeta := existing.(metav1.ObjectMetaAccessor).GetObjectMeta().(*metav1.ObjectMeta)
+		return ReconcileMeta(targetMeta, existingMeta)
+	})
+	if err != nil {
+		return reconcile.Result{Requeue: true}, op, err
+	}
+
+	return reconcile.Result{}, op, nil
 }
