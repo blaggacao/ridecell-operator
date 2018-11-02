@@ -2,6 +2,7 @@ apiVersion: acid.zalan.do/v1
 kind: postgresql
 metadata:
   name: {{ .Instance.Name }}-database
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: database
     app.kubernetes.io/instance: {{ .Instance.Name }}-database

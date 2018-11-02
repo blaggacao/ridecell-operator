@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ .Instance.Name }}-celerybeat
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: celerybeat
     app.kubernetes.io/instance: {{ .Instance.Name }}-celerybeat

@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Instance.Name }}-redis
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: redis
     app.kubernetes.io/instance: {{ .Instance.Name }}-redis

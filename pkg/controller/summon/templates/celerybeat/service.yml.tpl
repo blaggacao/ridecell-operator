@@ -2,6 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: {{ .Instance.Name }}-celerybeat
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: celerybeat
     app.kubernetes.io/instance: {{ .Instance.Name }}-celerybeat

@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .Instance.Name }}-config
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: config
     app.kubernetes.io/instance: {{ .Instance.Name }}-config

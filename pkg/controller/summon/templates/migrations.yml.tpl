@@ -2,6 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: {{ .Instance.Name }}-migrations
+  namespace: {{ .Instance.Namespace }}
   labels:
     app.kubernetes.io/name: migrations
     app.kubernetes.io/instance: {{ .Instance.Name }}-migrations
