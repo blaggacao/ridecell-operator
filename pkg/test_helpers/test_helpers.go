@@ -24,8 +24,10 @@ import (
 	"runtime"
 
 	"github.com/onsi/gomega"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
+	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -55,6 +57,7 @@ func New() (*TestHelpers, error) {
 	crdPath := filepath.Join(callerLine, "..", "..", "..", "config", "crds")
 	helpers.Environment = &envtest.Environment{
 		CRDDirectoryPaths: []string{crdPath},
+		CRDs:              []*apiextv1beta1.CustomResourceDefinition{postgresv1.PostgresCRD()},
 	}
 	apis.AddToScheme(scheme.Scheme)
 
