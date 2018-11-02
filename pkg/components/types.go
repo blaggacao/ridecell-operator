@@ -19,7 +19,6 @@ package components
 import (
 	"context"
 	"net/http"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,10 +29,9 @@ import (
 type ComponentController struct {
 	client.Client
 	Scheme     *runtime.Scheme
-	TopType    reflect.Type
+	Top        runtime.Object
 	Templates  http.FileSystem
 	Components []Component
-	WatchTypes []runtime.Object
 }
 
 // A ComponentContext is the state for a single reconcile request to the controller.
@@ -45,6 +43,7 @@ type ComponentContext struct {
 
 // A component is a Promise Theory actor inside a controller.
 type Component interface {
+	WatchTypes() []runtime.Object
 	IsReconcilable(*ComponentContext) bool
 	Reconcile(*ComponentContext) (reconcile.Result, error)
 }

@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/deployment"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/service"
 )
 
@@ -50,11 +51,9 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	// return &ReconcileSummon{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
-	return components.NewController(mgr, reflect.TypeOf(summonv1beta1.SummonPlatform{}), Templates, []components.Component{
+	return components.NewController(mgr, &summonv1beta1.SummonPlatform{}, Templates, []components.Component{
+		deployment.New("web/deployment.yml.tpl", true),
 		service.New("web/service.yml.tpl"),
-	}, []runtime.Object{
-		&appsv1.Deployment{},
-		&corev1.Service{},
 	})
 }
 
@@ -72,7 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	for _, watchObj := range r.(*components.ComponentController).WatchTypes {
+	for _, watchObj := range r.(*components.ComponentController).WatchTypes() {
 		err = c.Watch(&source.Kind{Type: watchObj}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &summonv1beta1.SummonPlatform{},

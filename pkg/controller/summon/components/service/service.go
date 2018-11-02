@@ -32,6 +32,12 @@ func New(templatePath string) *serviceComponent {
 	return &serviceComponent{templatePath: templatePath}
 }
 
+func (comp *serviceComponent) WatchTypes() []runtime.Object {
+	return []runtime.Object{
+		&corev1.Service{},
+	}
+}
+
 func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	// Services have no dependencies, always reconcile.
 	return true

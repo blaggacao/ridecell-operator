@@ -20,7 +20,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,23 +31,18 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/templates"
 )
 
-func NewController(mgr manager.Manager, topType reflect.Type, templates http.FileSystem, components []Component, watchTypes []runtime.Object) *ComponentController {
+func NewController(mgr manager.Manager, top runtime.Object, templates http.FileSystem, components []Component) *ComponentController {
 	return &ComponentController{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
-		TopType:    topType,
+		Top:        top,
 		Templates:  templates,
 		Components: components,
-		WatchTypes: watchTypes,
 	}
 }
 
 func (controller *ComponentController) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	top, ok := reflect.New(controller.TopType).Interface().(runtime.Object)
-	if !ok {
-		panic("Unable to create new top object")
-	}
-
+	top := controller.Top.DeepCopyObject()
 	err := controller.Get(context.TODO(), request.NamespacedName, top)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -70,6 +64,14 @@ func (controller *ComponentController) Reconcile(request reconcile.Request) (rec
 		log.Printf("ERROR! %s\n", err.Error())
 	}
 	return result, err
+}
+
+func (controller *ComponentController) WatchTypes() []runtime.Object {
+	types := []runtime.Object{}
+	for _, component := range controller.Components {
+		types = append(types, component.WatchTypes()...)
+	}
+	return types
 }
 
 func ReconcileComponents(ctx *ComponentContext, components []Component) (reconcile.Result, error) {
