@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -70,6 +71,10 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (rec
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: job.Name, Namespace: job.Namespace}, existing)
 	if err != nil && errors.IsNotFound(err) {
 		glog.Infof("Creating migration Job %s/%s\n", job.Namespace, job.Name)
+		err = controllerutil.SetControllerReference(instance, job, ctx.Scheme)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 		err = ctx.Create(ctx.Context, job)
 		if err != nil {
 			// If this fails, someone else might have started one between the Get and here, so just try again.
