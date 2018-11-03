@@ -47,3 +47,11 @@ type Component interface {
 	IsReconcilable(*ComponentContext) bool
 	Reconcile(*ComponentContext) (reconcile.Result, error)
 }
+
+type Status interface{}
+
+type Statuser interface {
+	GetStatus() Status
+	SetStatus(Status)
+	SetErrorStatus(string)
+}

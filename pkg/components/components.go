@@ -20,6 +20,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,6 +54,7 @@ func (controller *ComponentController) Reconcile(request reconcile.Request) (rec
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	originalTop := top.DeepCopyObject()
 	ctx := &ComponentContext{
 		ComponentController: controller,
 		Context:             context.TODO(),
@@ -62,6 +64,37 @@ func (controller *ComponentController) Reconcile(request reconcile.Request) (rec
 	result, err := ReconcileComponents(ctx, controller.Components)
 	if err != nil {
 		log.Printf("ERROR! %s\n", err.Error())
+		top.(Statuser).SetErrorStatus(err.Error())
+	}
+	if !reflect.DeepEqual(top.(Statuser).GetStatus(), originalTop.(Statuser).GetStatus()) {
+		// Update the top object status.
+		log.Printf("Updating status\n")
+		err = controller.Status().Update(ctx.Context, top)
+		if err != nil {
+			// Something went wrong, we definitely want to rerun, unless ...
+			oldRequeue := result.Requeue
+			result.Requeue = true
+			if errors.IsNotFound(err) {
+				// Older Kubernetes which doesn't support status subobjects, so use a GET+UPDATE
+				// because the controller-runtime client doesn't support PATCH calls.
+				freshTop := controller.Top.DeepCopyObject()
+				err = controller.Get(ctx.Context, request.NamespacedName, freshTop)
+				if err != nil {
+					// What?
+					return result, err
+				}
+				freshTop.(Statuser).SetStatus(top.(Statuser).GetStatus())
+				err = controller.Update(ctx.Context, freshTop)
+				if err != nil {
+					// Update failed, probably another update got there first.
+					return result, err
+				} else {
+					// Update worked, so no error for the final return.
+					result.Requeue = oldRequeue
+					err = nil
+				}
+			}
+		}
 	}
 	return result, err
 }
