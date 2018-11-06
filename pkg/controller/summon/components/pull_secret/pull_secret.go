@@ -56,7 +56,8 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 
 	operatorNamespace := os.Getenv("NAMESPACE")
 	if operatorNamespace == "" {
-		operatorNamespace, err := getInClusterNamespace()
+		var err error
+		operatorNamespace, err = getInClusterNamespace()
 		if err != nil {
 			instance.Status.PullSecretStatus = summonv1beta1.StatusError
 			return reconcile.Result{}, err
