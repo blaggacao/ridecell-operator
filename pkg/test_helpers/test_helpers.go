@@ -20,6 +20,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"os"
 	"path/filepath"
 	"runtime"
 
@@ -44,8 +45,9 @@ type TestHelpers struct {
 
 type PerTestHelpers struct {
 	*TestHelpers
-	Namespace string
-	Client    client.Client
+	Namespace         string
+	OperatorNamespace string
+	Client            client.Client
 }
 
 func New() (*TestHelpers, error) {
@@ -94,13 +96,9 @@ func (helpers *TestHelpers) Client() client.Client {
 func (helpers *TestHelpers) SetupTest(client client.Client) *PerTestHelpers {
 	newHelpers := &PerTestHelpers{TestHelpers: helpers, Client: client}
 
-	namespaceNameBytes := make([]byte, 10)
-	rand.Read(namespaceNameBytes)
-	namespaceName := "test-" + hex.EncodeToString(namespaceNameBytes)
-	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
-	err := client.Create(context.TODO(), namespace)
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	newHelpers.Namespace = namespaceName
+	newHelpers.Namespace = createRandomNamespace(client)
+	newHelpers.OperatorNamespace = createRandomNamespace(client)
+	os.Setenv("NAMESPACE", newHelpers.OperatorNamespace)
 
 	return newHelpers
 }
@@ -109,4 +107,16 @@ func (helpers *TestHelpers) SetupTest(client client.Client) *PerTestHelpers {
 func (helpers *PerTestHelpers) TeardownTest() {
 	err := helpers.Client.Delete(context.TODO(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: helpers.Namespace}})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	err = helpers.Client.Delete(context.TODO(), &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: helpers.OperatorNamespace}})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+}
+
+func createRandomNamespace(client client.Client) string {
+	namespaceNameBytes := make([]byte, 10)
+	rand.Read(namespaceNameBytes)
+	namespaceName := "test-" + hex.EncodeToString(namespaceNameBytes)
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
+	err := client.Create(context.TODO(), namespace)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	return namespaceName
 }

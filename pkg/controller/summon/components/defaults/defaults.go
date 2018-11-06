@@ -47,6 +47,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		defaultHostname := instance.Name + ".ridecell.us"
 		instance.Spec.Hostname = &defaultHostname
 	}
+	if instance.Spec.PullSecret == nil {
+		defaultPullSecret := "pull-secret"
+		instance.Spec.PullSecret = &defaultPullSecret
+	}
 	defaultReplicas := int32(1)
 	if instance.Spec.WebReplicas == nil {
 		instance.Spec.WebReplicas = &defaultReplicas

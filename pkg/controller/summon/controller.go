@@ -31,6 +31,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/ingress"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/migrations"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/postgres"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/pull_secret"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/service"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/statefulset"
 )
@@ -50,6 +51,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		defaults.New(),
 
 		// Top-level components.
+		pull_secret.New(),
 		postgres.New("postgres.yml.tpl"),
 		configmap.New("configmap.yml.tpl"),
 		migrations.New("migrations.yml.tpl"),

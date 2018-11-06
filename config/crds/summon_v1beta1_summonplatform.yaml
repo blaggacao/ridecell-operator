@@ -26,6 +26,8 @@ spec:
           properties:
             hostname:
               type: string
+            pullSecret:
+              type: string
             secret:
               type: string
             version:
@@ -41,6 +43,8 @@ spec:
             migrateVersion:
               type: string
             postgresStatus:
+              type: string
+            pullSecretStatus:
               type: string
             status:
               type: string

@@ -29,6 +29,7 @@ const (
 	StatusDeploying                = "Deploying"
 	StatusReady                    = "Ready"
 	StatusError                    = "Error"
+	StatusErrorSecretNotFound      = "Error: Secret not found"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -44,6 +45,9 @@ type SummonPlatformSpec struct {
 	Version string `json:"version"`
 	// Name of the secret to use for secret values.
 	Secret string `json:"secret"`
+	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
+	// +optional
+	PullSecret *string `json:"pullSecret,omitempty"`
 
 	// Number of gunicorn pods to run. Defaults to 1.
 	// +optional
@@ -69,6 +73,9 @@ type SummonPlatformStatus struct {
 
 	// Message related to the current status.
 	Message string `json:"message,omitempty"`
+
+	// Status of the pull secret.
+	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
 
 	// Current Postgresql status if one exists.
 	PostgresStatus *postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`

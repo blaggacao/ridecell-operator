@@ -56,6 +56,10 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		stopChannel = StartTestManager(mgr)
+
+		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
+		err = helpers.Client.Create(context.TODO(), pullSecret)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
