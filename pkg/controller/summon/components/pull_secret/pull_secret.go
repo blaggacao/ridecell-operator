@@ -75,7 +75,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	fetchTarget := target.DeepCopyObject()
+	fetchTarget := target.DeepCopy()
 	fetchTarget.Namespace = instance.Namespace
 
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
