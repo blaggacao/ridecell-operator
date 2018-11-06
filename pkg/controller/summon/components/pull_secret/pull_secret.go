@@ -75,7 +75,10 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existingObj runtime.Object) error {
+	fetchTarget := target.DeepCopyObject()
+	fetchTarget.Namespace = instance.Namespace
+
+	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Set owner ref.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
