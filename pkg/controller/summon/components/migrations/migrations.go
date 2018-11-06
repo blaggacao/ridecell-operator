@@ -52,6 +52,10 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Database not ready yet.
 		return false
 	}
+	if instance.Status.PullSecretStatus != summonv1beta1.StatusReady {
+		// Pull secret not ready yet.
+		return false
+	}
 	if instance.Spec.Version == instance.Status.MigrateVersion {
 		// Already migrated.
 		return false

@@ -42,9 +42,13 @@ func (comp *deploymentComponent) WatchTypes() []runtime.Object {
 }
 
 func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	// Check on the pull secret. Not technically needed in some cases, but just wait.
+	if instance.Status.PullSecretStatus != summonv1beta1.StatusReady {
+		return false
+	}
 	// If we need the database, make sure that exists. Otherwise, always ready.
 	if comp.waitForDatabase {
-		instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 		return instance.Status.PostgresStatus != nil && *instance.Status.PostgresStatus == postgresv1.ClusterStatusRunning && instance.Spec.Version == instance.Status.MigrateVersion
 	} else {
 		return true
