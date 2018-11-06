@@ -49,7 +49,7 @@ jobs:
     - run: echo ${GCP_SERVICE_ACCOUNT_SANDBOX} > gcp-key.json
     - run: gcloud auth activate-service-account --key-file gcp-key.json
     - run: gcloud --quiet config set project ridecell-sandbox
-    - run: gcloud container clusters get-credentials noah-test --zone=us-west1-b
+    - run: gcloud container clusters get-credentials noah-test --region=us-west1
     - run: helm upgrade --install --namespace ridecell-operator --set tag=$(cat workspace/tag) ridecell-operator ./helm
 
 workflows:
