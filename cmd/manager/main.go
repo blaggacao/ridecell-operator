@@ -35,7 +35,7 @@ func main() {
 	}
 
 	// Create a new Cmd to provide shared dependencies and start components
-	mgr, err := manager.New(cfg, manager.Options{})
+	mgr, err := manager.New(cfg, manager.Options{LeaderElection: true})
 	if err != nil {
 		log.Fatal(err)
 	}
