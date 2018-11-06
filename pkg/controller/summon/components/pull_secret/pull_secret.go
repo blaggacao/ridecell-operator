@@ -23,6 +23,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -75,9 +76,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	fetchTarget := target.DeepCopy()
-	fetchTarget.Namespace = instance.Namespace
-
+	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: *instance.Spec.PullSecret, Namespace: instance.Namespace}}
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Set owner ref.
