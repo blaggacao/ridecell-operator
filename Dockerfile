@@ -8,6 +8,7 @@ WORKDIR /go/src/github.com/Ridecell/ridecell-operator
 # Build
 RUN curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh && \
   dep ensure && \
+  make generate && \
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager -tags release github.com/Ridecell/ridecell-operator/cmd/manager
 
 # Copy the controller-manager into a thin image
