@@ -16,6 +16,8 @@ limitations under the License.
 
 package pull_secret
 
+// TODO: This whole thing should probably be its own custom resource.
+
 import (
 	"fmt"
 	"io/ioutil"

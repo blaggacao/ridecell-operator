@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"reflect"
 
+	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -108,9 +109,12 @@ func (controller *ComponentController) WatchTypes() []runtime.Object {
 }
 
 func ReconcileComponents(ctx *ComponentContext, components []Component) (reconcile.Result, error) {
+	instance := ctx.Top.(metav1.Object)
 	ready := []Component{}
 	for _, component := range components {
+		glog.V(10).Infof("[%s/%s] ReconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
 		if component.IsReconcilable(ctx) {
+			glog.V(3).Infof("[%s/%s] ReconcileComponents: %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
 			ready = append(ready, component)
 		}
 	}

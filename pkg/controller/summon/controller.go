@@ -34,6 +34,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/pull_secret"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/service"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/statefulset"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/superuser"
 )
 
 // Add creates a new Summon Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
@@ -55,6 +56,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		postgres.New("postgres.yml.tpl"),
 		configmap.New("configmap.yml.tpl"),
 		migrations.New("migrations.yml.tpl"),
+		superuser.New(),
 
 		// Redis components.
 		deployment.New("redis/deployment.yml.tpl", false),

@@ -17,6 +17,7 @@ limitations under the License.
 package summon_test
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -26,6 +27,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
+	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -44,6 +47,8 @@ const timeout = time.Second * 5
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var stopChannel chan struct{}
+	var dbMock sqlmock.Sqlmock
+	var db *sql.DB
 
 	BeforeEach(func() {
 		// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
@@ -60,22 +65,33 @@ var _ = Describe("Summon controller", func() {
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		err = helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
+
+		db, dbMock, err = sqlmock.New()
+		Expect(err).NotTo(HaveOccurred())
+		dbpool.Dbs.Store("postgres host=foo-database dbname=summon user=summon password='secretdbpass' sslmode=verify-full", db)
 	})
 
 	AfterEach(func() {
 		close(stopChannel)
 		helpers.TeardownTest()
+		db.Close()
+		dbpool.Dbs.Delete("postgres host=foo-database dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
+
+		// Check for any unmet expectations.
+		err := dbMock.ExpectationsWereMet()
+		if err != nil {
+			Fail(fmt.Sprintf("there were unfulfilled database expectations: %s", err))
+		}
 	})
 
-	It("works", func() {
+	// Minimal test, service component has no deps so it should always immediately get created.
+	It("creates a service", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
-		// Create the Summon object and expect the Reconcile and Deployment to be created
+		// Create the Summon object and expect the Reconcile and Service to be created
 		err := c.Create(context.TODO(), instance)
-		// The instance object may not be a valid object because it might be missing some required fields.
-		// Please modify the instance object by adding required fields and then remove the following if statement.
 		if apierrors.IsInvalid(err) {
 			Fail(fmt.Sprintf("failed to create object, got an invalid object error: %v", err))
 		}
@@ -84,12 +100,17 @@ var _ = Describe("Summon controller", func() {
 		service := &corev1.Service{}
 		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 
-		// Delete the Service and expect Reconcile to be called for Deployment deletion
+		// Delete the Service and expect Reconcile to be called for Service deletion
 		Expect(c.Delete(context.TODO(), service)).NotTo(HaveOccurred())
 		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 	})
 
 	It("runs a basic reconcile", func() {
+		// Set up expected Postgres queries.
+		rows := sqlmock.NewRows([]string{"version"}).
+			AddRow("1.2.3")
+		dbMock.ExpectQuery("SELECT version\\(\\)").WillReturnRows(rows)
+
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
@@ -109,6 +130,16 @@ var _ = Describe("Summon controller", func() {
 		}, timeout).
 			Should(Succeed())
 		Expect(postgres.Spec.Databases["summon"]).To(Equal("ridecell-admin"))
+
+		// Create a fake credentials secret.
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
@@ -162,6 +193,11 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	It("reconciles labels", func() {
+		// Set up expected Postgres queries.
+		rows := sqlmock.NewRows([]string{"version"}).
+			AddRow("1.2.3")
+		dbMock.ExpectQuery("SELECT version\\(\\).*").WillReturnRows(rows).AnyNumberOfTimes()
+
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
@@ -174,6 +210,16 @@ var _ = Describe("Summon controller", func() {
 		err := c.Create(context.TODO(), instance)
 		Expect(err).NotTo(HaveOccurred())
 		err = c.Status().Update(context.TODO(), instance)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create a fake credentials secret.
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		err = c.Create(context.TODO(), dbSecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of the DB to ready.
