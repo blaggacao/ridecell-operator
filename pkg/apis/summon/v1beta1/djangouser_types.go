@@ -23,14 +23,14 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// DjangoSuperuserSpec defines the desired state of DjangoSuperuser
-type DjangoSuperuserSpec struct {
+// DjangoUserSpec defines the desired state of DjangoUser
+type DjangoUserSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// DjangoSuperuserStatus defines the observed state of DjangoSuperuser
-type DjangoSuperuserStatus struct {
+// DjangoUserStatus defines the observed state of DjangoUser
+type DjangoUserStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
@@ -38,25 +38,25 @@ type DjangoSuperuserStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DjangoSuperuser is the Schema for the djangosuperusers API
+// DjangoUser is the Schema for the djangousers API
 // +k8s:openapi-gen=true
-type DjangoSuperuser struct {
+type DjangoUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   DjangoSuperuserSpec   `json:"spec,omitempty"`
-	Status DjangoSuperuserStatus `json:"status,omitempty"`
+	Spec   DjangoUserSpec   `json:"spec,omitempty"`
+	Status DjangoUserStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// DjangoSuperuserList contains a list of DjangoSuperuser
-type DjangoSuperuserList struct {
+// DjangoUserList contains a list of DjangoUser
+type DjangoUserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []DjangoSuperuser `json:"items"`
+	Items           []DjangoUser `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&DjangoSuperuser{}, &DjangoSuperuserList{})
+	SchemeBuilder.Register(&DjangoUser{}, &DjangoUserList{})
 }

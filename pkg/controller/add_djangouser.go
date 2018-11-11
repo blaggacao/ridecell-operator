@@ -17,10 +17,10 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/controller/djangosuperuser"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/djangouser"
 )
 
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, djangosuperuser.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, djangouser.Add)
 }
