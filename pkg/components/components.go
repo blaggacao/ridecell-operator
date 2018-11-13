@@ -114,7 +114,7 @@ func ReconcileComponents(ctx *ComponentContext, components []Component) (reconci
 	for _, component := range components {
 		glog.V(10).Infof("[%s/%s] ReconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
 		if component.IsReconcilable(ctx) {
-			glog.V(3).Infof("[%s/%s] ReconcileComponents: %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
+			glog.V(9).Infof("[%s/%s] ReconcileComponents: %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
 			ready = append(ready, component)
 		}
 	}
