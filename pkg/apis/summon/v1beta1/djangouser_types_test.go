@@ -48,7 +48,13 @@ var _ = Describe("DjangoUser types", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: helpers.Namespace,
-			}}
+			},
+			Spec: summonv1beta1.DjangoUserSpec{
+				Database: &summonv1beta1.DatabaseConnection{
+					PasswordSecretRef: &summonv1beta1.SecretRef{},
+				},
+			},
+		}
 		fetched := &summonv1beta1.DjangoUser{}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
@@ -69,7 +75,13 @@ var _ = Describe("DjangoUser types", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: helpers.Namespace,
-			}}
+			},
+			Spec: summonv1beta1.DjangoUserSpec{
+				Database: &summonv1beta1.DatabaseConnection{
+					PasswordSecretRef: &summonv1beta1.SecretRef{},
+				},
+			},
+		}
 		fetched := &summonv1beta1.DjangoUser{}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
