@@ -40,14 +40,14 @@ type SummonPlatformSpec struct {
 
 	// Hostname to use for the instance. Defaults to $NAME.ridecell.us.
 	// +optional
-	Hostname *string `json:"hostname,omitempty"`
+	Hostname string `json:"hostname,omitempty"`
 	// Summon image version to deploy.
 	Version string `json:"version"`
 	// Name of the secret to use for secret values.
 	Secret string `json:"secret"`
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
-	PullSecret *string `json:"pullSecret,omitempty"`
+	PullSecret string `json:"pullSecret,omitempty"`
 
 	// Number of gunicorn pods to run. Defaults to 1.
 	// +optional

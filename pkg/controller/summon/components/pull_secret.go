@@ -68,7 +68,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 	}
 
 	target := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: *instance.Spec.PullSecret, Namespace: operatorNamespace}, target)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: operatorNamespace}, target)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			instance.Status.PullSecretStatus = summonv1beta1.StatusErrorSecretNotFound
@@ -78,7 +78,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: *instance.Spec.PullSecret, Namespace: instance.Namespace}}
+	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecret, Namespace: instance.Namespace}}
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Set owner ref.
