@@ -20,19 +20,32 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type SecretRef struct {
+	Name string `json:"name"`
+	Key  string `json:"key"`
+}
+
+type DatabaseConnection struct {
+	Host              string     `json:"host"`
+	Port              int        `json:"port,omitempty"`
+	Username          string     `json:"username"`
+	PasswordSecretRef *SecretRef `json:"passwordSecretRef"`
+	Database          string     `json:"database,omitempty"`
+}
 
 // DjangoUserSpec defines the desired state of DjangoUser
 type DjangoUserSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Username       string              `json:"username"`
+	PasswordSecret string              `json:"passwordSecret,omitempty"`
+	Database       *DatabaseConnection `json:"database"`
+	Staff          bool                `json:"staff"`
+	Superuser      bool                `json:"superuser"`
 }
 
 // DjangoUserStatus defines the observed state of DjangoUser
 type DjangoUserStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // +genclient
