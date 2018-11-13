@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/configmap"
+	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/defaults"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/deployment"
 	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/ingress"
@@ -54,7 +54,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		// Top-level components.
 		pull_secret.New(),
 		postgres.New("postgres.yml.tpl"),
-		configmap.New("configmap.yml.tpl"),
+		spcomponents.NewConfigMap("configmap.yml.tpl"),
 		migrations.New("migrations.yml.tpl"),
 		superuser.New(),
 

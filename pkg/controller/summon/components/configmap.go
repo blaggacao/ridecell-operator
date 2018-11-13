@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package configmap
+package components
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +28,7 @@ type configmapComponent struct {
 	templatePath string
 }
 
-func New(templatePath string) *configmapComponent {
+func NewConfigMap(templatePath string) *configmapComponent {
 	return &configmapComponent{templatePath: templatePath}
 }
 
