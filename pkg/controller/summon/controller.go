@@ -25,16 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	spcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/defaults"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/deployment"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/ingress"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/migrations"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/postgres"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/pull_secret"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/service"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/statefulset"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon/components/superuser"
+	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 )
 
 // Add creates a new Summon Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
@@ -49,43 +40,43 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	// return &ReconcileSummon{Client: mgr.GetClient(), scheme: mgr.GetScheme()}
 	return components.NewController(mgr, &summonv1beta1.SummonPlatform{}, Templates, []components.Component{
 		// Set default values.
-		defaults.New(),
+		summoncomponents.NewDefaults(),
 
 		// Top-level components.
-		pull_secret.New(),
-		postgres.New("postgres.yml.tpl"),
-		spcomponents.NewConfigMap("configmap.yml.tpl"),
-		migrations.New("migrations.yml.tpl"),
-		superuser.New(),
+		summoncomponents.NewPullSecret(),
+		summoncomponents.NewPostgres("postgres.yml.tpl"),
+		summoncomponents.NewConfigMap("configmap.yml.tpl"),
+		summoncomponents.NewMigrations("migrations.yml.tpl"),
+		summoncomponents.NewSuperuser(),
 
 		// Redis components.
-		deployment.New("redis/deployment.yml.tpl", false),
-		service.New("redis/service.yml.tpl"),
+		summoncomponents.NewDeployment("redis/deployment.yml.tpl", false),
+		summoncomponents.NewService("redis/service.yml.tpl"),
 
 		// Web components.
-		deployment.New("web/deployment.yml.tpl", true),
-		service.New("web/service.yml.tpl"),
-		ingress.New("web/ingress.yml.tpl"),
+		summoncomponents.NewDeployment("web/deployment.yml.tpl", true),
+		summoncomponents.NewService("web/service.yml.tpl"),
+		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
-		deployment.New("daphne/deployment.yml.tpl", true),
-		service.New("daphne/service.yml.tpl"),
-		ingress.New("daphne/ingress.yml.tpl"),
+		summoncomponents.NewDeployment("daphne/deployment.yml.tpl", true),
+		summoncomponents.NewService("daphne/service.yml.tpl"),
+		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
 
 		// Static file components.
-		deployment.New("static/deployment.yml.tpl", true),
-		service.New("static/service.yml.tpl"),
-		ingress.New("static/ingress.yml.tpl"),
+		summoncomponents.NewDeployment("static/deployment.yml.tpl", true),
+		summoncomponents.NewService("static/service.yml.tpl"),
+		summoncomponents.NewIngress("static/ingress.yml.tpl"),
 
 		// Celery components.
-		deployment.New("celeryd/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", true),
 
 		// Celerybeat components.
-		statefulset.New("celerybeat/statefulset.yml.tpl", true),
-		service.New("celerybeat/service.yml.tpl"),
+		summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true),
+		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.
-		deployment.New("channelworker/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", true),
 	})
 }
 

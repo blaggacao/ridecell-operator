@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package superuser
+package components
+
+// TODO: This whole thing should probably be its own custom resource.
 
 import (
 	"database/sql"
@@ -35,7 +37,7 @@ import (
 
 type superuserComponent struct{}
 
-func New() *superuserComponent {
+func NewSuperuser() *superuserComponent {
 	return &superuserComponent{}
 }
 

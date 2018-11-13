@@ -14,42 +14,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package postgres
+package components
 
 import (
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-type postgresComponent struct {
+type ingressComponent struct {
 	templatePath string
 }
 
-func New(templatePath string) *postgresComponent {
-	return &postgresComponent{templatePath: templatePath}
+func NewIngress(templatePath string) *ingressComponent {
+	return &ingressComponent{templatePath: templatePath}
 }
 
-func (comp *postgresComponent) WatchTypes() []runtime.Object {
+func (comp *ingressComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&postgresv1.Postgresql{},
+		&extv1beta1.Ingress{},
 	}
 }
 
-func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool {
+func (_ *ingressComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*postgresv1.Postgresql)
-		existing := existingObj.(*postgresv1.Postgresql)
-		// Store the postgres status.
-		instance.Status.PostgresStatus = &existing.Status
+		goal := goalObj.(*extv1beta1.Ingress)
+		existing := existingObj.(*extv1beta1.Ingress)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

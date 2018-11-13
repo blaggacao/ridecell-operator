@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package migrations
+package components
 
 import (
 	"github.com/golang/glog"
@@ -36,7 +36,7 @@ type migrationComponent struct {
 	templatePath string
 }
 
-func New(templatePath string) *migrationComponent {
+func NewMigrations(templatePath string) *migrationComponent {
 	return &migrationComponent{templatePath: templatePath}
 }
 

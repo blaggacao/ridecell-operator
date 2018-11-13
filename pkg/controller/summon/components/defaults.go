@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package defaults
+package components
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,7 +27,7 @@ import (
 type defaultsComponent struct {
 }
 
-func New() *defaultsComponent {
+func NewDefaults() *defaultsComponent {
 	return &defaultsComponent{}
 }
 

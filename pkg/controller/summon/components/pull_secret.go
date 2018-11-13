@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package pull_secret
+package components
 
 // TODO: This whole thing should probably be its own custom resource.
 
@@ -39,7 +39,7 @@ const inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/na
 
 type pullSecretComponent struct{}
 
-func New() *pullSecretComponent {
+func NewPullSecret() *pullSecretComponent {
 	return &pullSecretComponent{}
 }
 
