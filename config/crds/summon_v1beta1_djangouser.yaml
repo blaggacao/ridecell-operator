@@ -11,6 +11,8 @@ spec:
     kind: DjangoUser
     plural: djangousers
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       properties:
@@ -21,8 +23,56 @@ spec:
         metadata:
           type: object
         spec:
+          properties:
+            database:
+              properties:
+                database:
+                  type: string
+                host:
+                  type: string
+                passwordSecretRef:
+                  properties:
+                    key:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - name
+                  - key
+                  type: object
+                port:
+                  format: int64
+                  type: integer
+                username:
+                  type: string
+              required:
+              - host
+              - username
+              - passwordSecretRef
+              type: object
+            passwordSecret:
+              type: string
+            staff:
+              type: boolean
+            superuser:
+              type: boolean
+            username:
+              type: string
+          required:
+          - username
+          - database
+          - staff
+          - superuser
           type: object
         status:
+          properties:
+            message:
+              type: string
+            status:
+              type: string
+          required:
+          - status
+          - message
           type: object
   version: v1beta1
 status:
