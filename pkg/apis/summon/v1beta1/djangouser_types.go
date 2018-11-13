@@ -40,6 +40,7 @@ type DjangoUserStatus struct {
 
 // DjangoUser is the Schema for the djangousers API
 // +k8s:openapi-gen=true
+// +kubebuilder:subresource:status
 type DjangoUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

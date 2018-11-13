@@ -27,7 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = Describe("Summon types", func() {
+var _ = Describe("SummonPlatform types", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
