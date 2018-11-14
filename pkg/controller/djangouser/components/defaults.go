@@ -26,8 +26,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-type defaultsComponent struct {
-}
+type defaultsComponent struct{}
 
 func NewDefaults() *defaultsComponent {
 	return &defaultsComponent{}
@@ -52,6 +51,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	if instance.Spec.PasswordSecret == "" {
 		// Reverse the transform used for the default Username and add `-credentials`.
 		instance.Spec.PasswordSecret = strings.Replace(instance.Spec.Username, "@", ".", 1) + "-credentials"
+	}
+	if instance.Spec.Database.Port == 0 {
+		// Default Postgres port.
+		instance.Spec.Database.Port = 5432
 	}
 	if instance.Spec.Database.PasswordSecretRef.Key == "" {
 		// Use "password" as the default key.

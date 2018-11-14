@@ -33,6 +33,9 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 			Spec: summonv1beta1.DjangoUserSpec{
 				Username:       "foo@bar.com",
 				PasswordSecret: "foo-credentials",
+				Database: &summonv1beta1.DatabaseConnection{
+					PasswordSecretRef: &summonv1beta1.SecretRef{},
+				},
 			},
 		}
 		ctx := &components.ComponentContext{Top: instance}
@@ -49,6 +52,9 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
 			Spec: summonv1beta1.DjangoUserSpec{
 				Username: "foo@bar.com",
+				Database: &summonv1beta1.DatabaseConnection{
+					PasswordSecretRef: &summonv1beta1.SecretRef{},
+				},
 			},
 		}
 		ctx := &components.ComponentContext{Top: instance}
@@ -65,6 +71,9 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
 			Spec: summonv1beta1.DjangoUserSpec{
 				PasswordSecret: "foo-credentials",
+				Database: &summonv1beta1.DatabaseConnection{
+					PasswordSecretRef: &summonv1beta1.SecretRef{},
+				},
 			},
 		}
 		ctx := &components.ComponentContext{Top: instance}
@@ -79,6 +88,11 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 	It("sets a default username and password secret", func() {
 		instance := &summonv1beta1.DjangoUser{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
+			Spec: summonv1beta1.DjangoUserSpec{
+				Database: &summonv1beta1.DatabaseConnection{
+					PasswordSecretRef: &summonv1beta1.SecretRef{},
+				},
+			},
 		}
 		ctx := &components.ComponentContext{Top: instance}
 
