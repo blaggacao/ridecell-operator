@@ -21,9 +21,13 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes/scheme"
+
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
 )
 
 func TestTemplates(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "DjangoUser Components Suite")
 }
