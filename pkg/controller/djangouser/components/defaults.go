@@ -53,6 +53,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		// Reverse the transform used for the default Username and add `-credentials`.
 		instance.Spec.PasswordSecret = strings.Replace(instance.Spec.Username, "@", ".", 1) + "-credentials"
 	}
+	if instance.Spec.Database.PasswordSecretRef.Key == "" {
+		// Use "password" as the default key.
+		instance.Spec.Database.PasswordSecretRef.Key = "password"
+	}
 
 	return reconcile.Result{}, nil
 }

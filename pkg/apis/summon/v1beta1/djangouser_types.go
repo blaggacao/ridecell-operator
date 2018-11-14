@@ -22,7 +22,7 @@ import (
 
 type SecretRef struct {
 	Name string `json:"name"`
-	Key  string `json:"key"`
+	Key  string `json:"key,omitempty"`
 }
 
 type DatabaseConnection struct {
