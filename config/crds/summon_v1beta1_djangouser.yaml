@@ -41,8 +41,7 @@ spec:
                   - key
                   type: object
                 port:
-                  format: int64
-                  type: integer
+                  type: uint16
                 username:
                   type: string
               required:

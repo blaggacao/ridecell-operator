@@ -27,7 +27,7 @@ type SecretRef struct {
 
 type DatabaseConnection struct {
 	Host              string     `json:"host"`
-	Port              int        `json:"port,omitempty"`
+	Port              uint16     `json:"port,omitempty"`
 	Username          string     `json:"username"`
 	PasswordSecretRef *SecretRef `json:"passwordSecretRef"`
 	Database          string     `json:"database,omitempty"`
