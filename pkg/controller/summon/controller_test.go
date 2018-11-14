@@ -35,9 +35,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
@@ -46,24 +44,14 @@ const timeout = time.Second * 5
 
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	var stopChannel chan struct{}
 	var dbMock sqlmock.Sqlmock
 	var db *sql.DB
 
 	BeforeEach(func() {
-		// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-		// channel when it is finished.
-		mgr, err := manager.New(testHelpers.Cfg, manager.Options{})
-		Expect(err).NotTo(HaveOccurred())
-		helpers = testHelpers.SetupTest(mgr.GetClient())
-
-		err = summon.Add(mgr)
-		Expect(err).NotTo(HaveOccurred())
-
-		stopChannel = StartTestManager(mgr)
+		helpers = testHelpers.SetupTest()
 
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
-		err = helpers.Client.Create(context.TODO(), pullSecret)
+		err := helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		db, dbMock, err = sqlmock.New()
@@ -72,7 +60,6 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	AfterEach(func() {
-		close(stopChannel)
 		helpers.TeardownTest()
 		db.Close()
 		dbpool.Dbs.Delete("postgres host=foo-database dbname=summon user=summon password='secretdbpass' sslmode=verify-full")

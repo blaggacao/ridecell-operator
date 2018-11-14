@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 )
@@ -41,13 +42,15 @@ import (
 type TestHelpers struct {
 	Environment *envtest.Environment
 	Cfg         *rest.Config
+	Manager     manager.Manager
+	ManagerStop chan struct{}
+	Client      client.Client
 }
 
 type PerTestHelpers struct {
 	*TestHelpers
 	Namespace         string
 	OperatorNamespace string
-	Client            client.Client
 }
 
 func New() (*TestHelpers, error) {
@@ -63,41 +66,60 @@ func New() (*TestHelpers, error) {
 	}
 	apis.AddToScheme(scheme.Scheme)
 
-	cfg, err := helpers.Environment.Start()
-	if err != nil {
-		return nil, err
-	}
-	helpers.Cfg = cfg
-
 	return helpers, nil
 }
 
 // Start up the test environment. Call from BeforeSuite().
-func Start() *TestHelpers {
+func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 	helpers, err := New()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	// Start the test environment.
+	cfg, err := helpers.Environment.Start()
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	helpers.Cfg = cfg
+
+	// Create a manager.
+	mgr, err := manager.New(helpers.Cfg, manager.Options{})
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	helpers.Manager = mgr
+
+	// Add the requested controller(s).
+	if adder != nil {
+		err = adder(helpers.Manager)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	}
+
+	// Grab the test client.
+	if cacheClient {
+		helpers.Client = helpers.Manager.GetClient()
+	} else {
+		helpers.Client, err = client.New(helpers.Cfg, client.Options{Scheme: scheme.Scheme})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	}
+
+	// Start the manager.
+	helpers.ManagerStop = make(chan struct{})
+	go func() {
+		err := mgr.Start(helpers.ManagerStop)
+		gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	}()
+
 	return helpers
 }
 
 // Shut down the test environment. Call from AfterSuite().
 func (helpers *TestHelpers) Stop() {
+	close(helpers.ManagerStop)
 	helpers.Environment.Stop()
 }
 
-// Client returns a controller-runtime REST client. Only use this for non-controller
-// tests. In controller tests, use manager.GetClient() instead.
-func (helpers *TestHelpers) Client() client.Client {
-	client, err := client.New(helpers.Cfg, client.Options{Scheme: scheme.Scheme})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	return client
-}
-
 // Set up any needed per test values. Call from BeforeEach().
-func (helpers *TestHelpers) SetupTest(client client.Client) *PerTestHelpers {
-	newHelpers := &PerTestHelpers{TestHelpers: helpers, Client: client}
+func (helpers *TestHelpers) SetupTest() *PerTestHelpers {
+	newHelpers := &PerTestHelpers{TestHelpers: helpers}
 
-	newHelpers.Namespace = createRandomNamespace(client)
-	newHelpers.OperatorNamespace = createRandomNamespace(client)
+	newHelpers.Namespace = createRandomNamespace(helpers.Client)
+	newHelpers.OperatorNamespace = createRandomNamespace(helpers.Client)
 	os.Setenv("NAMESPACE", newHelpers.OperatorNamespace)
 
 	return newHelpers

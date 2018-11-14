@@ -31,7 +31,7 @@ var _ = Describe("DjangoUser types", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
-		helpers = testHelpers.SetupTest(testHelpers.Client())
+		helpers = testHelpers.SetupTest()
 	})
 
 	AfterEach(func() {
@@ -61,7 +61,7 @@ var _ = Describe("DjangoUser types", func() {
 
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fetched).To(Equal(created))
+		Expect(fetched.Spec).To(Equal(created.Spec))
 	})
 
 	It("can update a DjangoUser object", func() {
@@ -92,6 +92,6 @@ var _ = Describe("DjangoUser types", func() {
 
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fetched).To(Equal(created))
+		Expect(fetched.Labels).To(Equal(created.Labels))
 	})
 })

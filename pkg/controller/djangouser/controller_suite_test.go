@@ -21,8 +21,8 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/Ridecell/ridecell-operator/pkg/controller/djangouser"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -34,19 +34,9 @@ func TestTemplates(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start()
+	testHelpers = test_helpers.Start(djangouser.Add, true)
 })
 
 var _ = ginkgo.AfterSuite(func() {
 	testHelpers.Stop()
 })
-
-// StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager) chan struct{} {
-	stop := make(chan struct{})
-	go func() {
-		err := mgr.Start(stop)
-		gomega.Expect(err).NotTo(gomega.HaveOccurred())
-	}()
-	return stop
-}
