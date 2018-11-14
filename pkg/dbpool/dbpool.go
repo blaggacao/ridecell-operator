@@ -19,10 +19,19 @@ package dbpool
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"sync"
+
+	"github.com/golang/glog"
 )
 
 var Dbs sync.Map
+
+var passwordRe *regexp.Regexp
+
+func init() {
+	passwordRe = regexp.MustCompile("(password='[^']*')|(password=\\S+)")
+}
 
 func Open(driverName, dataSourceName string) (*sql.DB, error) {
 	key := fmt.Sprintf("%s %s", driverName, dataSourceName)
@@ -32,6 +41,11 @@ func Open(driverName, dataSourceName string) (*sql.DB, error) {
 		// Connection already present.
 		return mapVal.(*sql.DB), nil
 	}
+
+	// Don't log passwords.
+	dataSourceNameForLogging := passwordRe.ReplaceAllString(dataSourceName, "password='[redacted]'")
+	glog.V(3).Infof("dbpool: opening database connection: %s %s", driverName, dataSourceNameForLogging)
+
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		// Welp, we tried.
