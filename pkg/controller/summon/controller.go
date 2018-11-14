@@ -18,11 +18,7 @@ package summon
 
 import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	// "sigs.k8s.io/controller-runtime/pkg/controller"
-	// "sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	// "sigs.k8s.io/controller-runtime/pkg/reconcile"
-	// "sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
@@ -73,74 +69,3 @@ func Add(mgr manager.Manager) error {
 	})
 	return err
 }
-
-// // newReconciler returns a new reconcile.Reconciler
-// func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-// 	return components.NewReconciler(mgr, &summonv1beta1.SummonPlatform{}, Templates, []components.Component{
-// 		// Set default values.
-// 		summoncomponents.NewDefaults(),
-
-// 		// Top-level components.
-// 		summoncomponents.NewPullSecret(),
-// 		summoncomponents.NewPostgres("postgres.yml.tpl"),
-// 		summoncomponents.NewConfigMap("configmap.yml.tpl"),
-// 		summoncomponents.NewMigrations("migrations.yml.tpl"),
-// 		summoncomponents.NewSuperuser(),
-
-// 		// Redis components.
-// 		summoncomponents.NewDeployment("redis/deployment.yml.tpl", false),
-// 		summoncomponents.NewService("redis/service.yml.tpl"),
-
-// 		// Web components.
-// 		summoncomponents.NewDeployment("web/deployment.yml.tpl", true),
-// 		summoncomponents.NewService("web/service.yml.tpl"),
-// 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
-
-// 		// Daphne components.
-// 		summoncomponents.NewDeployment("daphne/deployment.yml.tpl", true),
-// 		summoncomponents.NewService("daphne/service.yml.tpl"),
-// 		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
-
-// 		// Static file components.
-// 		summoncomponents.NewDeployment("static/deployment.yml.tpl", true),
-// 		summoncomponents.NewService("static/service.yml.tpl"),
-// 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
-
-// 		// Celery components.
-// 		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", true),
-
-// 		// Celerybeat components.
-// 		summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true),
-// 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
-
-// 		// Channelworker components.
-// 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", true),
-// 	})
-// }
-
-// // add adds a new Controller to mgr with r as the reconcile.Reconciler
-// func add(mgr manager.Manager, r reconcile.Reconciler) error {
-// 	// Create a new controller
-// 	c, err := controller.New("summon-controller", mgr, controller.Options{Reconciler: r})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	// Watch for changes to Summon
-// 	err = c.Watch(&source.Kind{Type: &summonv1beta1.SummonPlatform{}}, &handler.EnqueueRequestForObject{})
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	for _, watchObj := range r.(*components.ComponentController).WatchTypes() {
-// 		err = c.Watch(&source.Kind{Type: watchObj}, &handler.EnqueueRequestForOwner{
-// 			IsController: true,
-// 			OwnerType:    &summonv1beta1.SummonPlatform{},
-// 		})
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }

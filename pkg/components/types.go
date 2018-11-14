@@ -26,15 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// // A ComponentController is the data for a type of controller.
-// type ComponentController struct {
-// 	client.Client
-// 	Scheme     *runtime.Scheme
-// 	Top        runtime.Object
-// 	Templates  http.FileSystem
-// 	Components []Component
-// }
-
+// // A componentReconciler is the data for a single reconciler. These are our
+// side of the controller.
 type componentReconciler struct {
 	top        runtime.Object
 	templates  http.FileSystem
