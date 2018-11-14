@@ -16,175 +16,122 @@ limitations under the License.
 
 package components
 
-import (
-	"context"
-	"log"
-	"net/http"
-	"reflect"
+// import (
+// 	"context"
+// 	"log"
+// 	"net/http"
+// 	"reflect"
 
-	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+// 	"github.com/golang/glog"
+// 	"k8s.io/apimachinery/pkg/api/errors"
+// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+// 	"k8s.io/apimachinery/pkg/runtime"
+// 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+// 	"sigs.k8s.io/controller-runtime/pkg/manager"
+// 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/Ridecell/ridecell-operator/pkg/templates"
-)
+// 	"github.com/Ridecell/ridecell-operator/pkg/templates"
+// )
 
-func NewController(mgr manager.Manager, top runtime.Object, templates http.FileSystem, components []Component) *ComponentController {
-	return &ComponentController{
-		Client:     mgr.GetClient(),
-		Scheme:     mgr.GetScheme(),
-		Top:        top,
-		Templates:  templates,
-		Components: components,
-	}
-}
+// func NewController(mgr manager.Manager, top runtime.Object, templates http.FileSystem, components []Component) *ComponentController {
+// 	return &ComponentController{
+// 		Client:     mgr.GetClient(),
+// 		Scheme:     mgr.GetScheme(),
+// 		Top:        top,
+// 		Templates:  templates,
+// 		Components: components,
+// 	}
+// }
 
-func (controller *ComponentController) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	top := controller.Top.DeepCopyObject()
-	err := controller.Get(context.TODO(), request.NamespacedName, top)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			// Top object not found, likely already deleted.
-			return reconcile.Result{}, nil
-		}
-		// Some other fetch error, try again on the next tick.
-		return reconcile.Result{Requeue: true}, err
-	}
+// func (controller *ComponentController) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+// 	top := controller.Top.DeepCopyObject()
+// 	err := controller.Get(context.TODO(), request.NamespacedName, top)
+// 	if err != nil {
+// 		if errors.IsNotFound(err) {
+// 			// Top object not found, likely already deleted.
+// 			return reconcile.Result{}, nil
+// 		}
+// 		// Some other fetch error, try again on the next tick.
+// 		return reconcile.Result{Requeue: true}, err
+// 	}
 
-	originalTop := top.DeepCopyObject()
-	ctx := &ComponentContext{
-		ComponentController: controller,
-		Context:             context.TODO(),
-		Top:                 top,
-	}
+// 	originalTop := top.DeepCopyObject()
+// 	ctx := &ComponentContext{
+// 		ComponentController: controller,
+// 		Context:             context.TODO(),
+// 		Top:                 top,
+// 	}
 
-	result, err := ReconcileComponents(ctx, controller.Components)
-	if err != nil {
-		log.Printf("ERROR! %s\n", err.Error())
-		top.(Statuser).SetErrorStatus(err.Error())
-	}
-	if !reflect.DeepEqual(top.(Statuser).GetStatus(), originalTop.(Statuser).GetStatus()) {
-		// Update the top object status.
-		log.Printf("Updating status\n")
-		err = controller.Status().Update(ctx.Context, top)
-		if err != nil {
-			// Something went wrong, we definitely want to rerun, unless ...
-			oldRequeue := result.Requeue
-			result.Requeue = true
-			if errors.IsNotFound(err) {
-				// Older Kubernetes which doesn't support status subobjects, so use a GET+UPDATE
-				// because the controller-runtime client doesn't support PATCH calls.
-				freshTop := controller.Top.DeepCopyObject()
-				err = controller.Get(ctx.Context, request.NamespacedName, freshTop)
-				if err != nil {
-					// What?
-					return result, err
-				}
-				freshTop.(Statuser).SetStatus(top.(Statuser).GetStatus())
-				err = controller.Update(ctx.Context, freshTop)
-				if err != nil {
-					// Update failed, probably another update got there first.
-					return result, err
-				} else {
-					// Update worked, so no error for the final return.
-					result.Requeue = oldRequeue
-					err = nil
-				}
-			}
-		}
-	}
-	return result, err
-}
+// 	result, err := ReconcileComponents(ctx, controller.Components)
+// 	if err != nil {
+// 		log.Printf("ERROR! %s\n", err.Error())
+// 		top.(Statuser).SetErrorStatus(err.Error())
+// 	}
+// 	if !reflect.DeepEqual(top.(Statuser).GetStatus(), originalTop.(Statuser).GetStatus()) {
+// 		// Update the top object status.
+// 		log.Printf("Updating status\n")
+// 		err = controller.Status().Update(ctx.Context, top)
+// 		if err != nil {
+// 			// Something went wrong, we definitely want to rerun, unless ...
+// 			oldRequeue := result.Requeue
+// 			result.Requeue = true
+// 			if errors.IsNotFound(err) {
+// 				// Older Kubernetes which doesn't support status subobjects, so use a GET+UPDATE
+// 				// because the controller-runtime client doesn't support PATCH calls.
+// 				freshTop := controller.Top.DeepCopyObject()
+// 				err = controller.Get(ctx.Context, request.NamespacedName, freshTop)
+// 				if err != nil {
+// 					// What?
+// 					return result, err
+// 				}
+// 				freshTop.(Statuser).SetStatus(top.(Statuser).GetStatus())
+// 				err = controller.Update(ctx.Context, freshTop)
+// 				if err != nil {
+// 					// Update failed, probably another update got there first.
+// 					return result, err
+// 				} else {
+// 					// Update worked, so no error for the final return.
+// 					result.Requeue = oldRequeue
+// 					err = nil
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return result, err
+// }
 
-func (controller *ComponentController) WatchTypes() []runtime.Object {
-	types := []runtime.Object{}
-	for _, component := range controller.Components {
-		types = append(types, component.WatchTypes()...)
-	}
-	return types
-}
+// func (controller *ComponentController) WatchTypes() []runtime.Object {
+// 	types := []runtime.Object{}
+// 	for _, component := range controller.Components {
+// 		types = append(types, component.WatchTypes()...)
+// 	}
+// 	return types
+// }
 
-func ReconcileComponents(ctx *ComponentContext, components []Component) (reconcile.Result, error) {
-	instance := ctx.Top.(metav1.Object)
-	ready := []Component{}
-	for _, component := range components {
-		glog.V(10).Infof("[%s/%s] ReconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
-		if component.IsReconcilable(ctx) {
-			glog.V(9).Infof("[%s/%s] ReconcileComponents: %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
-			ready = append(ready, component)
-		}
-	}
-	res := reconcile.Result{}
-	for _, component := range ready {
-		innerRes, err := component.Reconcile(ctx)
-		// Update result. This should be checked before the err!=nil because sometimes
-		// we want to requeue immediately on error.
-		if innerRes.Requeue {
-			res.Requeue = true
-		}
-		if innerRes.RequeueAfter != 0 && (res.RequeueAfter == 0 || res.RequeueAfter > innerRes.RequeueAfter) {
-			res.RequeueAfter = innerRes.RequeueAfter
-		}
-		if err != nil {
-			return res, err
-		}
-	}
-	return res, nil
-}
-
-func ReconcileMeta(target, existing *metav1.ObjectMeta) error {
-	if target.Labels != nil {
-		if existing.Labels == nil {
-			existing.Labels = map[string]string{}
-		}
-		for k, v := range target.Labels {
-			existing.Labels[k] = v
-		}
-	}
-	if target.Annotations != nil {
-		if existing.Annotations == nil {
-			existing.Annotations = map[string]string{}
-		}
-		for k, v := range target.Annotations {
-			existing.Annotations[k] = v
-		}
-	}
-	return nil
-}
-
-func (ctx *ComponentContext) GetTemplate(path string) (runtime.Object, error) {
-	return templates.Get(ctx.Templates, path, struct{ Instance runtime.Object }{Instance: ctx.Top})
-}
-
-func (ctx *ComponentContext) CreateOrUpdate(path string, mutateFn func(runtime.Object, runtime.Object) error) (reconcile.Result, controllerutil.OperationResult, error) {
-	target, err := ctx.GetTemplate(path)
-	if err != nil {
-		return reconcile.Result{}, controllerutil.OperationResultNone, err
-	}
-
-	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existing runtime.Object) error {
-		// Set owner ref.
-		err := controllerutil.SetControllerReference(ctx.Top.(metav1.Object), existing.(metav1.Object), ctx.Scheme)
-		if err != nil {
-			return err
-		}
-		// Run the component-level mutator.
-		err = mutateFn(target, existing)
-		if err != nil {
-			return err
-		}
-		// Sync the metadata fields.
-		targetMeta := target.(metav1.ObjectMetaAccessor).GetObjectMeta().(*metav1.ObjectMeta)
-		existingMeta := existing.(metav1.ObjectMetaAccessor).GetObjectMeta().(*metav1.ObjectMeta)
-		return ReconcileMeta(targetMeta, existingMeta)
-	})
-	if err != nil {
-		return reconcile.Result{Requeue: true}, op, err
-	}
-
-	return reconcile.Result{}, op, nil
-}
+// func ReconcileComponents(ctx *ComponentContext, components []Component) (reconcile.Result, error) {
+// 	instance := ctx.Top.(metav1.Object)
+// 	ready := []Component{}
+// 	for _, component := range components {
+// 		glog.V(10).Infof("[%s/%s] ReconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
+// 		if component.IsReconcilable(ctx) {
+// 			glog.V(9).Infof("[%s/%s] ReconcileComponents: %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
+// 			ready = append(ready, component)
+// 		}
+// 	}
+// 	res := reconcile.Result{}
+// 	for _, component := range ready {
+// 		innerRes, err := component.Reconcile(ctx)
+// 		// Update result. This should be checked before the err!=nil because sometimes
+// 		// we want to requeue immediately on error.
+// 		if innerRes.Requeue {
+// 			res.Requeue = true
+// 		}
+// 		if innerRes.RequeueAfter != 0 && (res.RequeueAfter == 0 || res.RequeueAfter > innerRes.RequeueAfter) {
+// 			res.RequeueAfter = innerRes.RequeueAfter
+// 		}
+// 		if err != nil {
+// 			return res, err
+// 		}
+// 	}
+// 	return res, nil
+// }

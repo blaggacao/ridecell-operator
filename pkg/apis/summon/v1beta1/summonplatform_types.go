@@ -21,17 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	StatusPostgresInitializing     = "PostgresInitializing"
-	StatusPostgresDatabaseCreating = "PostgresDatabaseCreating"
-	StatusRabbitVhostCreating      = "RabbitVhostCreating"
-	StatusMigrating                = "Migrating"
-	StatusDeploying                = "Deploying"
-	StatusReady                    = "Ready"
-	StatusError                    = "Error"
-	StatusErrorSecretNotFound      = "Error: Secret not found"
-)
-
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
