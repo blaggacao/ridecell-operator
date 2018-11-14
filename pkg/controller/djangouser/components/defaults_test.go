@@ -19,26 +19,14 @@ package components_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	ducomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 )
 
 var _ = Describe("DjangoUser Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				Username:       "foo@bar.com",
-				PasswordSecret: "foo-credentials",
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
-		ctx := &components.ComponentContext{Top: instance}
+		instance.Spec.Username = "foo@bar.com"
+		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -48,16 +36,7 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 	})
 
 	It("sets a default password secret", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				Username: "foo@bar.com",
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
-		ctx := &components.ComponentContext{Top: instance}
+		instance.Spec.Username = "foo@bar.com"
 
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -67,16 +46,7 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 	})
 
 	It("sets a default username", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				PasswordSecret: "foo-credentials",
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
-		ctx := &components.ComponentContext{Top: instance}
+		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -86,16 +56,6 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 	})
 
 	It("sets a default username and password secret", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
-		ctx := &components.ComponentContext{Top: instance}
-
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())

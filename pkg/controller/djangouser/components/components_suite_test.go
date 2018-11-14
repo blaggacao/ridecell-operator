@@ -21,13 +21,33 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
+
+var instance *summonv1beta1.DjangoUser
+var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "DjangoUser Components Suite")
 }
+
+var _ = ginkgo.BeforeEach(func() {
+	// Set up default-y values for tests to use if they want.
+	instance = &summonv1beta1.DjangoUser{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
+		Spec: summonv1beta1.DjangoUserSpec{
+			Database: &summonv1beta1.DatabaseConnection{
+				PasswordSecretRef: &summonv1beta1.SecretRef{},
+			},
+		},
+	}
+	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+})

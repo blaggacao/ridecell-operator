@@ -24,26 +24,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 )
 
 var _ = Describe("DjangoUser Secret Component", func() {
 	It("creates a password if no secret exists", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				PasswordSecret: "foo-credentials",
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
-		ctx := &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := djangousercomponents.NewSecret()
 		_, err := comp.Reconcile(ctx)
@@ -57,19 +45,11 @@ var _ = Describe("DjangoUser Secret Component", func() {
 	})
 
 	It("creates a password if the secret exists but has no password key", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				PasswordSecret: "foo-credentials",
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
+		instance.Spec.PasswordSecret = "foo-credentials"
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
 		}
-		ctx := &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(secret), Scheme: scheme.Scheme}
+		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
 		_, err := comp.Reconcile(ctx)
@@ -83,22 +63,14 @@ var _ = Describe("DjangoUser Secret Component", func() {
 	})
 
 	It("does not change an existing password", func() {
-		instance := &summonv1beta1.DjangoUser{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
-			Spec: summonv1beta1.DjangoUserSpec{
-				PasswordSecret: "foo-credentials",
-				Database: &summonv1beta1.DatabaseConnection{
-					PasswordSecretRef: &summonv1beta1.SecretRef{},
-				},
-			},
-		}
+		instance.Spec.PasswordSecret = "foo-credentials"
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
 			Data: map[string][]byte{
 				"password": []byte("foo"),
 			},
 		}
-		ctx := &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(secret), Scheme: scheme.Scheme}
+		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
 		_, err := comp.Reconcile(ctx)
