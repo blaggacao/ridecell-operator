@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -75,6 +76,11 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 		Data: map[string][]byte{
 			"password": password,
 		},
+	}
+
+	err = controllerutil.SetControllerReference(instance, target, ctx.Scheme)
+	if err != nil {
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	err = ctx.Update(ctx.Context, target)
