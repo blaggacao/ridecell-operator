@@ -84,6 +84,9 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 	}
 
 	err = ctx.Update(ctx.Context, target)
+	if err != nil && errors.IsNotFound(err) {
+		err = ctx.Create(ctx.Context, target)
+	}
 	if err != nil {
 		return reconcile.Result{Requeue: true}, fmt.Errorf("secret: unable to save secret: %v", err)
 	}
