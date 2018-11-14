@@ -32,8 +32,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-type secretComponent struct {
-}
+type secretComponent struct{}
 
 func NewSecret() *secretComponent {
 	return &secretComponent{}
