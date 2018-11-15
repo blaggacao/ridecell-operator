@@ -17,12 +17,17 @@ limitations under the License.
 package components_test
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"database/sql/driver"
+	"encoding/hex"
 	"fmt"
+	"strings"
 
 	sqlmock "github.com/DATA-DOG/go-sqlmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -31,6 +36,24 @@ import (
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 )
+
+type passwordMatching struct {
+	password string
+}
+
+// This isn't a great test because it's really just checking GIGO, but it's the
+// best I can do in a unit test.
+func (p passwordMatching) Match(v driver.Value) bool {
+	hashAndData, ok := v.(string)
+	if !ok {
+		return false
+	}
+	hash := strings.SplitN(hashAndData, "$", 2)[1]
+	digested := sha256.Sum256([]byte(p.password))
+	encoded := hex.EncodeToString(digested[:])
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(encoded))
+	return err == nil
+}
 
 var _ = Describe("DjangoUser Database Component", func() {
 	var dbMock sqlmock.Sqlmock
@@ -41,20 +64,8 @@ var _ = Describe("DjangoUser Database Component", func() {
 		db, dbMock, err = sqlmock.New()
 		Expect(err).NotTo(HaveOccurred())
 		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full", db)
-	})
 
-	AfterEach(func() {
-		db.Close()
-		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
-
-		// Check for any unmet expectations.
-		err := dbMock.ExpectationsWereMet()
-		if err != nil {
-			Fail(fmt.Sprintf("there were unfulfilled database expectations: %s", err))
-		}
-	})
-
-	It("creates a user", func() {
+		// Baseline test instance.
 		instance.Spec = summonv1beta1.DjangoUserSpec{
 			Email:          "foo@example.com",
 			PasswordSecret: "foo-credentials",
@@ -69,6 +80,20 @@ var _ = Describe("DjangoUser Database Component", func() {
 				},
 			},
 		}
+	})
+
+	AfterEach(func() {
+		db.Close()
+		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
+
+		// Check for any unmet expectations.
+		err := dbMock.ExpectationsWereMet()
+		if err != nil {
+			Fail(fmt.Sprintf("there were unfulfilled database expectations: %s", err))
+		}
+	})
+
+	It("creates a user", func() {
 		dbSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: "default"},
 			Data: map[string][]byte{
@@ -84,7 +109,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		ctx.Client = fake.NewFakeClient(dbSecret, userSecret)
 
 		rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
-		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", "djangopasshash", "", "", false, false, false).WillReturnRows(rows)
+		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "", "", false, false, false).WillReturnRows(rows)
 
 		comp := djangousercomponents.NewDatabase()
 		_, err := comp.Reconcile(ctx)
@@ -92,4 +117,59 @@ var _ = Describe("DjangoUser Database Component", func() {
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
+
+	It("obeys the status flags", func() {
+		instance.Spec.Active = true
+		instance.Spec.Staff = true
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("secretdbpass"),
+			},
+		}
+		userSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("djangopass"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(dbSecret, userSecret)
+
+		rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "", "", true, true, false).WillReturnRows(rows)
+
+		comp := djangousercomponents.NewDatabase()
+		_, err := comp.Reconcile(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+		Expect(instance.Status.Message).To(Equal("User 1 created"))
+	})
+
+	It("sets the first and last name", func() {
+		instance.Spec.FirstName = "Alan"
+		instance.Spec.LastName = "Smithee"
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("secretdbpass"),
+			},
+		}
+		userSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("djangopass"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(dbSecret, userSecret)
+
+		rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
+		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "Alan", "Smithee", false, false, false).WillReturnRows(rows)
+
+		comp := djangousercomponents.NewDatabase()
+		_, err := comp.Reconcile(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
+		Expect(instance.Status.Message).To(Equal("User 1 created"))
+	})
+
 })

@@ -17,10 +17,13 @@ limitations under the License.
 package components
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 
 	_ "github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -58,7 +61,10 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reco
 	if !ok {
 		return reconcile.Result{Requeue: true}, fmt.Errorf("database: Password secret has no key \"password\"")
 	}
-	hashedPassword := string(password) + "hash" // FIXME
+	hashedPassword, err := comp.hashPassword(password)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("database: Error hashing password: %v", err)
+	}
 
 	// Connect to the database.
 	db, err := comp.openDatabase(ctx)
@@ -93,6 +99,24 @@ INSERT INTO auth_user (username, password, first_name, last_name, email, is_acti
 	instance.Status.Message = fmt.Sprintf("User %v created", id)
 
 	return reconcile.Result{}, nil
+}
+
+func (comp *databaseComponent) hashPassword(password []byte) (string, error) {
+	// Take the SHA256.
+	digested := sha256.Sum256(password)
+
+	// Hex encode it.
+	encoded := make([]byte, hex.EncodedLen(len(digested)))
+	hex.Encode(encoded, digested[:])
+
+	// Bcrypt it.
+	hashed, err := bcrypt.GenerateFromPassword(encoded, 12)
+	if err != nil {
+		return "", err
+	}
+
+	// Format like Django uses.
+	return fmt.Sprintf("bcrypt_sha256$%s", hashed), nil
 }
 
 func (comp *databaseComponent) openDatabase(ctx *components.ComponentContext) (*sql.DB, error) {
