@@ -69,7 +69,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reco
 	// Connect to the database.
 	db, err := comp.openDatabase(ctx)
 	if err != nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Big ass SQL.
