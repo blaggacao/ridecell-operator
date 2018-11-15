@@ -24,6 +24,8 @@ spec:
           type: object
         spec:
           properties:
+            active:
+              type: boolean
             database:
               properties:
                 database:
@@ -48,17 +50,22 @@ spec:
               - username
               - passwordSecretRef
               type: object
+            email:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
             passwordSecret:
               type: string
             staff:
               type: boolean
             superuser:
               type: boolean
-            username:
-              type: string
           required:
-          - username
+          - email
           - database
+          - active
           - staff
           - superuser
           type: object
