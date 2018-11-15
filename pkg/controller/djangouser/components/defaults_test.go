@@ -25,41 +25,41 @@ import (
 
 var _ = Describe("DjangoUser Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
-		instance.Spec.Username = "foo@bar.com"
+		instance.Spec.Email = "foo@bar.com"
 		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Username).To(Equal("foo@bar.com"))
+		Expect(instance.Spec.Email).To(Equal("foo@bar.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo-credentials"))
 	})
 
 	It("sets a default password secret", func() {
-		instance.Spec.Username = "foo@bar.com"
+		instance.Spec.Email = "foo@bar.com"
 
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Username).To(Equal("foo@bar.com"))
+		Expect(instance.Spec.Email).To(Equal("foo@bar.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo.bar.com-credentials"))
 	})
 
-	It("sets a default username", func() {
+	It("sets a default email", func() {
 		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Username).To(Equal("foo@example.com"))
+		Expect(instance.Spec.Email).To(Equal("foo@example.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo-credentials"))
 	})
 
-	It("sets a default username and password secret", func() {
+	It("sets a default email and password secret", func() {
 		comp := ducomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Username).To(Equal("foo@example.com"))
+		Expect(instance.Spec.Email).To(Equal("foo@example.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo.example.com-credentials"))
 	})
 })

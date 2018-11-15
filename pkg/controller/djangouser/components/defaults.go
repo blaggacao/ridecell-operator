@@ -44,13 +44,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	instance := ctx.Top.(*summonv1beta1.DjangoUser)
 
 	// Fill in defaults.
-	if instance.Spec.Username == "" {
+	if instance.Spec.Email == "" {
 		// Use the object name by default, replacing the first `.` with and `@` because `@` isn't allowed in object names.
-		instance.Spec.Username = strings.Replace(instance.Name, ".", "@", 1)
+		instance.Spec.Email = strings.Replace(instance.Name, ".", "@", 1)
 	}
 	if instance.Spec.PasswordSecret == "" {
-		// Reverse the transform used for the default Username and add `-credentials`.
-		instance.Spec.PasswordSecret = strings.Replace(instance.Spec.Username, "@", ".", 1) + "-credentials"
+		// Reverse the transform used for the default Email and add `-credentials`.
+		instance.Spec.PasswordSecret = strings.Replace(instance.Spec.Email, "@", ".", 1) + "-credentials"
 	}
 	if instance.Spec.Database.Port == 0 {
 		// Default Postgres port.
