@@ -40,7 +40,7 @@ type componentReconciler struct {
 type ComponentContext struct {
 	client.Client
 	reconciler *componentReconciler
-	Context    context.Context
+	Context    context.Context // This should probably go away
 	Top        runtime.Object
 	Scheme     *runtime.Scheme
 }
