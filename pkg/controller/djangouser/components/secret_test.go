@@ -30,9 +30,11 @@ import (
 )
 
 var _ = Describe("DjangoUser Secret Component", func() {
-	It("creates a password if no secret exists", func() {
+	BeforeEach(func() {
 		instance.Spec.PasswordSecret = "foo-credentials"
+	})
 
+	It("creates a password if no secret exists", func() {
 		comp := djangousercomponents.NewSecret()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
@@ -45,7 +47,6 @@ var _ = Describe("DjangoUser Secret Component", func() {
 	})
 
 	It("creates a password if the secret exists but has no password key", func() {
-		instance.Spec.PasswordSecret = "foo-credentials"
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
 		}
@@ -63,7 +64,6 @@ var _ = Describe("DjangoUser Secret Component", func() {
 	})
 
 	It("does not change an existing password", func() {
-		instance.Spec.PasswordSecret = "foo-credentials"
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
 			Data: map[string][]byte{
