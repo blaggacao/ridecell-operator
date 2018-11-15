@@ -26,20 +26,23 @@ type SecretRef struct {
 }
 
 type DatabaseConnection struct {
-	Host              string     `json:"host"`
-	Port              uint16     `json:"port,omitempty"`
-	Username          string     `json:"username"`
-	PasswordSecretRef *SecretRef `json:"passwordSecretRef"`
-	Database          string     `json:"database,omitempty"`
+	Host              string    `json:"host"`
+	Port              uint16    `json:"port,omitempty"`
+	Username          string    `json:"username"`
+	PasswordSecretRef SecretRef `json:"passwordSecretRef"`
+	Database          string    `json:"database,omitempty"`
 }
 
 // DjangoUserSpec defines the desired state of DjangoUser
 type DjangoUserSpec struct {
-	Username       string              `json:"username"`
-	PasswordSecret string              `json:"passwordSecret,omitempty"`
-	Database       *DatabaseConnection `json:"database"`
-	Staff          bool                `json:"staff"`
-	Superuser      bool                `json:"superuser"`
+	Email          string             `json:"email"`
+	PasswordSecret string             `json:"passwordSecret,omitempty"`
+	Database       DatabaseConnection `json:"database"`
+	FirstName      string             `json:"firstName,omitempty"`
+	LastName       string             `json:"lastName,omitempty"`
+	Active         bool               `json:"active"`
+	Staff          bool               `json:"staff"`
+	Superuser      bool               `json:"superuser"`
 }
 
 // DjangoUserStatus defines the observed state of DjangoUser
