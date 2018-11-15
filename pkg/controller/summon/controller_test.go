@@ -17,7 +17,6 @@ limitations under the License.
 package summon_test
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -27,7 +26,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"golang.org/x/net/context"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +34,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -44,8 +41,6 @@ const timeout = time.Second * 10
 
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	var dbMock sqlmock.Sqlmock
-	var db *sql.DB
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
@@ -53,22 +48,10 @@ var _ = Describe("Summon controller", func() {
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		err := helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
-
-		db, dbMock, err = sqlmock.New()
-		Expect(err).NotTo(HaveOccurred())
-		dbpool.Dbs.Store("postgres host=foo-database dbname=summon user=summon password='secretdbpass' sslmode=verify-full", db)
 	})
 
 	AfterEach(func() {
 		helpers.TeardownTest()
-		db.Close()
-		dbpool.Dbs.Delete("postgres host=foo-database dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
-
-		// Check for any unmet expectations.
-		err := dbMock.ExpectationsWereMet()
-		if err != nil {
-			Fail(fmt.Sprintf("there were unfulfilled database expectations: %s", err))
-		}
 	})
 
 	// Minimal test, service component has no deps so it should always immediately get created.
@@ -93,11 +76,6 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	It("runs a basic reconcile", func() {
-		// Set up expected Postgres queries.
-		rows := sqlmock.NewRows([]string{"version"}).
-			AddRow("1.2.3")
-		dbMock.ExpectQuery("SELECT version\\(\\)").WillReturnRows(rows)
-
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
@@ -180,11 +158,6 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	It("reconciles labels", func() {
-		// Set up expected Postgres queries.
-		rows := sqlmock.NewRows([]string{"version"}).
-			AddRow("1.2.3")
-		dbMock.ExpectQuery("SELECT version\\(\\).*").WillReturnRows(rows).AnyNumberOfTimes()
-
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
