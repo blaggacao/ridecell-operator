@@ -30,6 +30,7 @@ func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("django-user-controller", mgr, &summonv1beta1.DjangoUser{}, nil, []components.Component{
 		djangousercomponents.NewDefaults(),
 		djangousercomponents.NewSecret(),
+		djangousercomponents.NewDatabase(),
 	})
 	return err
 }
