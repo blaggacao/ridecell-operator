@@ -87,7 +87,7 @@ var _ = Describe("Summon controller", func() {
 		}
 
 		rows := sqlmock.NewRows([]string{"id"}).AddRow(123)
-		dbMock.ExpectQuery("INSERT INTO auth_user").WillReturnRows(rows)
+		dbMock.ExpectQuery("INSERT INTO auth_user").WillReturnRows(rows).AnyNumberOfTimes()
 
 		err := helpers.Client.Create(context.TODO(), dbSecret)
 		Expect(err).NotTo(HaveOccurred())
