@@ -14,16 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package components_test
 
-const (
-	StatusPostgresInitializing     = "PostgresInitializing"
-	StatusPostgresDatabaseCreating = "PostgresDatabaseCreating"
-	StatusRabbitVhostCreating      = "RabbitVhostCreating"
-	StatusSecretCreated            = "SecretCreated"
-	StatusMigrating                = "Migrating"
-	StatusDeploying                = "Deploying"
-	StatusReady                    = "Ready"
-	StatusError                    = "Error"
-	StatusErrorSecretNotFound      = "Error: Secret not found"
+import (
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
 )
+
+func TestTemplates(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "SummonPlatform Components Suite")
+}

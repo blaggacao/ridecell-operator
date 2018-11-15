@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package defaults
+package components
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,7 +27,7 @@ import (
 type defaultsComponent struct {
 }
 
-func New() *defaultsComponent {
+func NewDefaults() *defaultsComponent {
 	return &defaultsComponent{}
 }
 
@@ -43,13 +43,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Fill in defaults.
-	if instance.Spec.Hostname == nil {
-		defaultHostname := instance.Name + ".ridecell.us"
-		instance.Spec.Hostname = &defaultHostname
+	if instance.Spec.Hostname == "" {
+		instance.Spec.Hostname = instance.Name + ".ridecell.us"
 	}
-	if instance.Spec.PullSecret == nil {
-		defaultPullSecret := "pull-secret"
-		instance.Spec.PullSecret = &defaultPullSecret
+	if instance.Spec.PullSecret == "" {
+		instance.Spec.PullSecret = "pull-secret"
 	}
 	defaultReplicas := int32(1)
 	if instance.Spec.WebReplicas == nil {

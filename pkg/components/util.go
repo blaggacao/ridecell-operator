@@ -14,16 +14,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package components
 
-const (
-	StatusPostgresInitializing     = "PostgresInitializing"
-	StatusPostgresDatabaseCreating = "PostgresDatabaseCreating"
-	StatusRabbitVhostCreating      = "RabbitVhostCreating"
-	StatusSecretCreated            = "SecretCreated"
-	StatusMigrating                = "Migrating"
-	StatusDeploying                = "Deploying"
-	StatusReady                    = "Ready"
-	StatusError                    = "Error"
-	StatusErrorSecretNotFound      = "Error: Secret not found"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func ReconcileMeta(target, existing *metav1.ObjectMeta) error {
+	if target.Labels != nil {
+		if existing.Labels == nil {
+			existing.Labels = map[string]string{}
+		}
+		for k, v := range target.Labels {
+			existing.Labels[k] = v
+		}
+	}
+	if target.Annotations != nil {
+		if existing.Annotations == nil {
+			existing.Annotations = map[string]string{}
+		}
+		for k, v := range target.Annotations {
+			existing.Annotations[k] = v
+		}
+	}
+	return nil
+}

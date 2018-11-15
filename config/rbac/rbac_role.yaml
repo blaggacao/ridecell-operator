@@ -19,7 +19,7 @@ rules:
 - apiGroups:
   - summon.ridecell.io
   resources:
-  - summons
+  - djangousers
   verbs:
   - get
   - list

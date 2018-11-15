@@ -14,16 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package djangouser_test
 
-const (
-	StatusPostgresInitializing     = "PostgresInitializing"
-	StatusPostgresDatabaseCreating = "PostgresDatabaseCreating"
-	StatusRabbitVhostCreating      = "RabbitVhostCreating"
-	StatusSecretCreated            = "SecretCreated"
-	StatusMigrating                = "Migrating"
-	StatusDeploying                = "Deploying"
-	StatusReady                    = "Ready"
-	StatusError                    = "Error"
-	StatusErrorSecretNotFound      = "Error: Secret not found"
+import (
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+
+	"github.com/Ridecell/ridecell-operator/pkg/controller/djangouser"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
+
+var testHelpers *test_helpers.TestHelpers
+
+func TestTemplates(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "DjangoUser controller Suite")
+}
+
+var _ = ginkgo.BeforeSuite(func() {
+	testHelpers = test_helpers.Start(djangouser.Add, false)
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	testHelpers.Stop()
+})

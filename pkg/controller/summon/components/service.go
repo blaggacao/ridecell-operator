@@ -14,42 +14,41 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package postgres
+package components
 
 import (
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-type postgresComponent struct {
+type serviceComponent struct {
 	templatePath string
 }
 
-func New(templatePath string) *postgresComponent {
-	return &postgresComponent{templatePath: templatePath}
+func NewService(templatePath string) *serviceComponent {
+	return &serviceComponent{templatePath: templatePath}
 }
 
-func (comp *postgresComponent) WatchTypes() []runtime.Object {
+func (comp *serviceComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&postgresv1.Postgresql{},
+		&corev1.Service{},
 	}
 }
 
-func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool {
+func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
+	// Services have no dependencies, always reconcile.
 	return true
 }
 
-func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
-		goal := goalObj.(*postgresv1.Postgresql)
-		existing := existingObj.(*postgresv1.Postgresql)
-		// Store the postgres status.
-		instance.Status.PostgresStatus = &existing.Status
+		goal := goalObj.(*corev1.Service)
+		existing := existingObj.(*corev1.Service)
+		// Special case: Services mutate the ClusterIP value in the Spec and it should be preserved.
+		goal.Spec.ClusterIP = existing.Spec.ClusterIP
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

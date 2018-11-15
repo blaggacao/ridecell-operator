@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package statefulset
+package components
 
 import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
@@ -31,7 +31,7 @@ type statefulsetComponent struct {
 	waitForDatabase bool
 }
 
-func New(templatePath string, waitForDatabase bool) *statefulsetComponent {
+func NewStatefulSet(templatePath string, waitForDatabase bool) *statefulsetComponent {
 	return &statefulsetComponent{templatePath: templatePath, waitForDatabase: waitForDatabase}
 }
 

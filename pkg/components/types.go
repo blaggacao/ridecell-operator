@@ -22,23 +22,27 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// A ComponentController is the data for a type of controller.
-type ComponentController struct {
-	client.Client
-	Scheme     *runtime.Scheme
-	Top        runtime.Object
-	Templates  http.FileSystem
-	Components []Component
+// // A componentReconciler is the data for a single reconciler. These are our
+// side of the controller.
+type componentReconciler struct {
+	top        runtime.Object
+	templates  http.FileSystem
+	components []Component
+	client     client.Client
+	manager    manager.Manager
 }
 
 // A ComponentContext is the state for a single reconcile request to the controller.
 type ComponentContext struct {
-	*ComponentController
-	Context context.Context
-	Top     runtime.Object
+	client.Client
+	reconciler *componentReconciler
+	Context    context.Context // This should probably go away
+	Top        runtime.Object
+	Scheme     *runtime.Scheme
 }
 
 // A component is a Promise Theory actor inside a controller.

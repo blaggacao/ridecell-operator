@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package deployment
+package components
 
 import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
@@ -31,7 +31,7 @@ type deploymentComponent struct {
 	waitForDatabase bool
 }
 
-func New(templatePath string, waitForDatabase bool) *deploymentComponent {
+func NewDeployment(templatePath string, waitForDatabase bool) *deploymentComponent {
 	return &deploymentComponent{templatePath: templatePath, waitForDatabase: waitForDatabase}
 }
 

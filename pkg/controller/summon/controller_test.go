@@ -33,49 +33,35 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-const timeout = time.Second * 5
+const timeout = time.Second * 10
 
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
-	var stopChannel chan struct{}
 
 	BeforeEach(func() {
-		// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-		// channel when it is finished.
-		mgr, err := manager.New(testHelpers.Cfg, manager.Options{})
-		Expect(err).NotTo(HaveOccurred())
-		helpers = testHelpers.SetupTest(mgr.GetClient())
-
-		err = summon.Add(mgr)
-		Expect(err).NotTo(HaveOccurred())
-
-		stopChannel = StartTestManager(mgr)
+		helpers = testHelpers.SetupTest()
 
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
-		err = helpers.Client.Create(context.TODO(), pullSecret)
+		err := helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		close(stopChannel)
 		helpers.TeardownTest()
 	})
 
-	It("works", func() {
+	// Minimal test, service component has no deps so it should always immediately get created.
+	It("creates a service", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
-		// Create the Summon object and expect the Reconcile and Deployment to be created
+		// Create the Summon object and expect the Reconcile and Service to be created
 		err := c.Create(context.TODO(), instance)
-		// The instance object may not be a valid object because it might be missing some required fields.
-		// Please modify the instance object by adding required fields and then remove the following if statement.
 		if apierrors.IsInvalid(err) {
 			Fail(fmt.Sprintf("failed to create object, got an invalid object error: %v", err))
 		}
@@ -84,7 +70,7 @@ var _ = Describe("Summon controller", func() {
 		service := &corev1.Service{}
 		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 
-		// Delete the Service and expect Reconcile to be called for Deployment deletion
+		// Delete the Service and expect Reconcile to be called for Service deletion
 		Expect(c.Delete(context.TODO(), service)).NotTo(HaveOccurred())
 		Eventually(func() error { return c.Get(context.TODO(), depKey, service) }, timeout).Should(Succeed())
 	})
@@ -109,6 +95,16 @@ var _ = Describe("Summon controller", func() {
 		}, timeout).
 			Should(Succeed())
 		Expect(postgres.Spec.Databases["summon"]).To(Equal("ridecell-admin"))
+
+		// Create a fake credentials secret.
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
@@ -174,6 +170,16 @@ var _ = Describe("Summon controller", func() {
 		err := c.Create(context.TODO(), instance)
 		Expect(err).NotTo(HaveOccurred())
 		err = c.Status().Update(context.TODO(), instance)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Create a fake credentials secret.
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		err = c.Create(context.TODO(), dbSecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of the DB to ready.
