@@ -16,66 +16,93 @@ limitations under the License.
 
 package djangouser_test
 
-// import (
-// 	"testing"
-// 	"time"
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
 
-// 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-// 	"github.com/onsi/gomega"
-// 	"golang.org/x/net/context"
-// 	appsv1 "k8s.io/api/apps/v1"
-// 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-// 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-// 	"k8s.io/apimachinery/pkg/types"
-// 	"sigs.k8s.io/controller-runtime/pkg/client"
-// 	"sigs.k8s.io/controller-runtime/pkg/manager"
-// 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-// )
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
-// var c client.Client
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+)
 
-// var expectedRequest = reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "default"}}
-// var depKey = types.NamespacedName{Name: "foo-deployment", Namespace: "default"}
+const timeout = time.Second * 5
 
-// const timeout = time.Second * 5
+var _ = Describe("Summon controller", func() {
+	var helpers *test_helpers.PerTestHelpers
+	var dbMock sqlmock.Sqlmock
+	var db *sql.DB
 
-// func TestReconcile(t *testing.T) {
-// 	g := gomega.NewGomegaWithT(t)
-// 	instance := &summonv1beta1.DjangoUser{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"}}
+	BeforeEach(func() {
+		helpers = testHelpers.SetupTest()
 
-// 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-// 	// channel when it is finished.
-// 	mgr, err := manager.New(cfg, manager.Options{})
-// 	g.Expect(err).NotTo(gomega.HaveOccurred())
-// 	c = mgr.GetClient()
+		var err error
+		db, dbMock, err = sqlmock.New()
+		Expect(err).NotTo(HaveOccurred())
+		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full", db)
+	})
 
-// 	recFn, requests := SetupTestReconcile(newReconciler(mgr))
-// 	g.Expect(add(mgr, recFn)).NotTo(gomega.HaveOccurred())
-// 	defer close(StartTestManager(mgr, g))
+	AfterEach(func() {
+		helpers.TeardownTest()
+		db.Close()
+		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
 
-// 	// Create the DjangoUser object and expect the Reconcile and Deployment to be created
-// 	err = c.Create(context.TODO(), instance)
-// 	// The instance object may not be a valid object because it might be missing some required fields.
-// 	// Please modify the instance object by adding required fields and then remove the following if statement.
-// 	if apierrors.IsInvalid(err) {
-// 		t.Logf("failed to create object, got an invalid object error: %v", err)
-// 		return
-// 	}
-// 	g.Expect(err).NotTo(gomega.HaveOccurred())
-// 	defer c.Delete(context.TODO(), instance)
-// 	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
+		// Check for any unmet expectations.
+		err := dbMock.ExpectationsWereMet()
+		if err != nil {
+			Fail(fmt.Sprintf("there were unfulfilled database expectations: %s", err))
+		}
+	})
 
-// 	deploy := &appsv1.Deployment{}
-// 	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
-// 		Should(gomega.Succeed())
+	It("runs a basic reconcile", func() {
+		instance := &summonv1beta1.DjangoUser{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.DjangoUserSpec{
+				Active:    true,
+				Staff:     true,
+				Superuser: true,
+				Database: summonv1beta1.DatabaseConnection{
+					Host:     "foo-database",
+					Username: "summon",
+					Database: "summon",
+					PasswordSecretRef: summonv1beta1.SecretRef{
+						Name: "summon.foo-database.credentials",
+					},
+				},
+			},
+		}
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"password": []byte("secretdbpass"),
+			},
+		}
 
-// 	// Delete the Deployment and expect Reconcile to be called for Deployment deletion
-// 	g.Expect(c.Delete(context.TODO(), deploy)).NotTo(gomega.HaveOccurred())
-// 	g.Eventually(requests, timeout).Should(gomega.Receive(gomega.Equal(expectedRequest)))
-// 	g.Eventually(func() error { return c.Get(context.TODO(), depKey, deploy) }, timeout).
-// 		Should(gomega.Succeed())
+		rows := sqlmock.NewRows([]string{"id"}).AddRow(123)
+		dbMock.ExpectQuery("INSERT INTO auth_user").WillReturnRows(rows)
 
-// 	// Manually delete Deployment since GC isn't enabled in the test control plane
-// 	g.Expect(c.Delete(context.TODO(), deploy)).To(gomega.Succeed())
+		err := helpers.Client.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
 
-// }
+		err = helpers.Client.Create(context.TODO(), instance)
+		Expect(err).NotTo(HaveOccurred())
+
+		fetched := &summonv1beta1.DjangoUser{}
+		Eventually(func() (string, error) {
+			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo.example.com", Namespace: helpers.Namespace}, fetched)
+			if err != nil {
+				return "", err
+			}
+			return fetched.Status.Status, nil
+		}, timeout).Should(Equal(summonv1beta1.StatusReady))
+		Expect(fetched.Status.Message).To(Equal("User 123 created"))
+	})
+})

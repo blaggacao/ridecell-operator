@@ -34,7 +34,7 @@ func TestTemplates(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(djangouser.Add, true)
+	testHelpers = test_helpers.Start(djangouser.Add, false)
 })
 
 var _ = ginkgo.AfterSuite(func() {

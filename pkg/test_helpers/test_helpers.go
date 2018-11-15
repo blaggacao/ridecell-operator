@@ -94,7 +94,7 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 	if cacheClient {
 		helpers.Client = helpers.Manager.GetClient()
 	} else {
-		helpers.Client, err = client.New(helpers.Cfg, client.Options{Scheme: scheme.Scheme})
+		helpers.Client, err = client.New(helpers.Cfg, client.Options{Scheme: helpers.Manager.GetScheme()})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}
 
