@@ -30,7 +30,7 @@ var Dbs sync.Map
 var passwordRe *regexp.Regexp
 
 func init() {
-	passwordRe = regexp.MustCompile("(password='[^']*')|(password=\\S+)")
+	passwordRe = regexp.MustCompile(`(password='[^']*')|(password=\S+)`)
 }
 
 func Open(driverName, dataSourceName string) (*sql.DB, error) {
