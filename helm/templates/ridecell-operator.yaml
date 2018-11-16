@@ -28,8 +28,11 @@ rules:
   resources: [postgresqls]
   verbs: ["*"]
 - apiGroups: [summon.ridecell.io]
-  resources: ["*"]
+  resources: [summonplatforms, summonplatforms/status]
   verbs: [get, list, watch, update]
+- apiGroups: [summon.ridecell.io]
+  resources: [djangouser, djangouser/status]
+  verbs: ["*"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
