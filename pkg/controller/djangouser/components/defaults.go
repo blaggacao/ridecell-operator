@@ -60,6 +60,16 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		// Use "password" as the default key.
 		instance.Spec.Database.PasswordSecretRef.Key = "password"
 	}
+	if instance.Spec.Superuser {
+		// Superuser means everything else too implicitly.
+		instance.Spec.Staff = true
+		instance.Spec.Manager = true
+		instance.Spec.Dispatcher = true
+	}
+	if instance.Spec.Staff || instance.Spec.Manager || instance.Spec.Dispatcher {
+		// You are active if you have perms. This might be wrong if we want to disable user but leave their perms?
+		instance.Spec.Active = true
+	}
 
 	return reconcile.Result{}, nil
 }
