@@ -86,12 +86,24 @@ INSERT INTO auth_user (username, password, first_name, last_name, email, is_acti
     is_superuser=EXCLUDED.is_superuser
   RETURNING id;`
 
-	// Run the query.
+	// Create the auth_user.
 	row := db.QueryRow(query, instance.Spec.Email, hashedPassword, instance.Spec.FirstName, instance.Spec.LastName, instance.Spec.Active, instance.Spec.Staff, instance.Spec.Superuser)
 	var id int
 	err = row.Scan(&id)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("database: Error running query: %v", err)
+		return reconcile.Result{}, fmt.Errorf("database: Error running auth_user query: %v", err)
+	}
+
+	// Smaller ass SQL.
+	query = `
+INSERT INTO common_userprofile (user_id, is_jumio_verified, created_at, updated_at)
+  VALUES ($1, false, NOW(), NOW())
+  ON CONFLICT DO NOTHING;`
+
+	// Create the common_userprofile.
+	_, err = db.Exec(query, id)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("database: Error running common_userprofile query: %v", err)
 	}
 
 	// Success!
