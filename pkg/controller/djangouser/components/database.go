@@ -94,11 +94,12 @@ INSERT INTO auth_user (username, password, first_name, last_name, email, is_acti
 		return reconcile.Result{}, fmt.Errorf("database: Error running auth_user query: %v", err)
 	}
 
-	// Smaller ass SQL.
+	// Smaller ass SQL. The awkward SET field is because DO NOTHING doesn't work with RETURNING.
 	query = `
 INSERT INTO common_userprofile (user_id, is_jumio_verified, created_at, updated_at)
   VALUES ($1, false, NOW(), NOW())
-  ON CONFLICT DO NOTHING
+  ON CONFLICT (user_id) DO UPDATE SET
+    is_jumio_verified=common_userprofile.is_jumio_verified
   RETURNING id;`
 
 	// Create the common_userprofile.
