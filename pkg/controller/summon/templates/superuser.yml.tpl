@@ -8,7 +8,7 @@ spec:
   staff: true
   superuser: true
   database:
-    host: {{ .Instance.Name }}-database
+    host: {{ .Instance.Name }}-database.{{ .Instance.Namespace }}
     username: summon
     database: summon
     passwordSecretRef:
