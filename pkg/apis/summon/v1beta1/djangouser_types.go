@@ -41,6 +41,8 @@ type DjangoUserSpec struct {
 	FirstName      string             `json:"firstName,omitempty"`
 	LastName       string             `json:"lastName,omitempty"`
 	Active         bool               `json:"active"`
+	Manager        bool               `json:"manager"`
+	Dispatcher     bool               `json:"dispatcher"`
 	Staff          bool               `json:"staff"`
 	Superuser      bool               `json:"superuser"`
 }

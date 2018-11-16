@@ -130,7 +130,8 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "", "", false, false, false).WillReturnRows(rows)
-		dbMock.ExpectExec("INSERT INTO common_userprofile").WithArgs(1).WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectQuery("INSERT INTO common_userprofile").WithArgs(1).WillReturnRows(rows)
+		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
 		_, err := comp.Reconcile(ctx)
@@ -158,7 +159,8 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "", "", true, true, false).WillReturnRows(rows)
-		dbMock.ExpectExec("INSERT INTO common_userprofile").WithArgs(1).WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectQuery("INSERT INTO common_userprofile").WithArgs(1).WillReturnRows(rows)
+		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, true, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
 		_, err := comp.Reconcile(ctx)
@@ -186,7 +188,8 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 		rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WithArgs("foo@example.com", passwordMatching{password: "djangopass"}, "Alan", "Smithee", false, false, false).WillReturnRows(rows)
-		dbMock.ExpectExec("INSERT INTO common_userprofile").WithArgs(1).WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectQuery("INSERT INTO common_userprofile").WithArgs(1).WillReturnRows(rows)
+		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
 		_, err := comp.Reconcile(ctx)

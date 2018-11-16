@@ -50,12 +50,16 @@ spec:
               - username
               - passwordSecretRef
               type: object
+            dispatcher:
+              type: boolean
             email:
               type: string
             firstName:
               type: string
             lastName:
               type: string
+            manager:
+              type: boolean
             passwordSecret:
               type: string
             staff:
@@ -66,6 +70,8 @@ spec:
           - email
           - database
           - active
+          - manager
+          - dispatcher
           - staff
           - superuser
           type: object

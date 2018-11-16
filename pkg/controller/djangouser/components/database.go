@@ -98,12 +98,31 @@ INSERT INTO auth_user (username, password, first_name, last_name, email, is_acti
 	query = `
 INSERT INTO common_userprofile (user_id, is_jumio_verified, created_at, updated_at)
   VALUES ($1, false, NOW(), NOW())
-  ON CONFLICT DO NOTHING;`
+  ON CONFLICT DO NOTHING
+  RETURNING id;`
 
 	// Create the common_userprofile.
-	_, err = db.Exec(query, id)
+	row = db.QueryRow(query, id)
+	var profileId int
+	err = row.Scan(&profileId)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("database: Error running common_userprofile query: %v", err)
+	}
+
+	// Medium ass SQL.
+	query = `
+INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher)
+  VALUES ($1, $2, $3, $4)
+  ON CONFLICT (user_profile_id) DO UPDATE SET
+    is_active=EXCLUDED.is_active,
+    manager=EXCLUDED.manager,
+    dispatcher=EXCLUDED.dispatcher;
+`
+
+	// Create the common_staff.
+	_, err = db.Exec(query, profileId, instance.Spec.Active, instance.Spec.Manager, instance.Spec.Dispatcher)
+	if err != nil {
+		return reconcile.Result{}, fmt.Errorf("database: Error running common_staff query: %v", err)
 	}
 
 	// Success!

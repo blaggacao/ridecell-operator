@@ -88,7 +88,8 @@ var _ = Describe("Summon controller", func() {
 
 		rows := sqlmock.NewRows([]string{"id"}).AddRow(123)
 		dbMock.ExpectQuery("INSERT INTO auth_user").WillReturnRows(rows).AnyNumberOfTimes()
-		dbMock.ExpectExec("INSERT INTO common_userprofile").WillReturnResult(sqlmock.NewResult(0, 1)).AnyNumberOfTimes()
+		dbMock.ExpectQuery("INSERT INTO common_userprofile").WillReturnRows(rows).AnyNumberOfTimes()
+		dbMock.ExpectExec("INSERT INTO common_staff").WillReturnResult(sqlmock.NewResult(0, 1)).AnyNumberOfTimes()
 
 		err := helpers.Client.Create(context.TODO(), dbSecret)
 		Expect(err).NotTo(HaveOccurred())
