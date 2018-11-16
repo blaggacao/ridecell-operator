@@ -35,7 +35,9 @@ func NewSuperuser() *superuserComponent {
 }
 
 func (comp *superuserComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&summonv1beta1.DjangoUser{},
+	}
 }
 
 func (comp *superuserComponent) IsReconcilable(ctx *components.ComponentContext) bool {
