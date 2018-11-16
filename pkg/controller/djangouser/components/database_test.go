@@ -55,6 +55,26 @@ func (p passwordMatching) Match(v driver.Value) bool {
 	return err == nil
 }
 
+// Short test to test the test matcher used later on.
+var _ = Describe("passwordMatching", func() {
+	// Created by `manage.py changepassword
+	djangoHash := "bcrypt_sha256$$2b$12$c6T/4vpvrWs5NhmfIst8O.od24KswgzMu/9Uf1UXHKt2tHuit118i"
+
+	badHash := "bcrypt_sha256$$2b$12$ONmUvu/6O3xmMqutasdf3OXLJsePlLOs5vxN4YnGsCRlPxCR.CCa."
+
+	It("accepts a hash created by Django", func() {
+		m := passwordMatching{password: "secretdbpass"}
+		Expect(m.Match(djangoHash)).To(BeTrue())
+	})
+
+	It("rejects various bad hashes", func() {
+		m := passwordMatching{password: "secretdbpass"}
+		Expect(m.Match(badHash)).To(BeFalse())
+		m = passwordMatching{password: "other"}
+		Expect(m.Match(djangoHash)).To(BeFalse())
+	})
+})
+
 var _ = Describe("DjangoUser Database Component", func() {
 	var dbMock sqlmock.Sqlmock
 	var db *sql.DB
