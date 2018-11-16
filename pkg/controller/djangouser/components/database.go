@@ -131,7 +131,7 @@ func (comp *databaseComponent) openDatabase(ctx *components.ComponentContext) (*
 	if !ok {
 		return nil, fmt.Errorf("database: Password key %v not found in database secret %v", dbInfo.PasswordSecretRef.Key, dbInfo.PasswordSecretRef.Name)
 	}
-	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=verify-full", dbInfo.Host, dbInfo.Port, dbInfo.Database, dbInfo.Username, dbPassword)
+	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=require", dbInfo.Host, dbInfo.Port, dbInfo.Database, dbInfo.Username, dbPassword)
 	db, err := dbpool.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("database: Unable to open database connection: %v", err)

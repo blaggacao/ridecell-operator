@@ -83,7 +83,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		var err error
 		db, dbMock, err = sqlmock.New()
 		Expect(err).NotTo(HaveOccurred())
-		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full", db)
+		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=require", db)
 
 		// Baseline test instance.
 		instance.Spec = summonv1beta1.DjangoUserSpec{
@@ -104,7 +104,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 
 	AfterEach(func() {
 		db.Close()
-		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
+		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=require")
 
 		// Check for any unmet expectations.
 		err := dbMock.ExpectationsWereMet()

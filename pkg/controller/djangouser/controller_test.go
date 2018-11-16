@@ -47,13 +47,13 @@ var _ = Describe("Summon controller", func() {
 		var err error
 		db, dbMock, err = sqlmock.New()
 		Expect(err).NotTo(HaveOccurred())
-		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full", db)
+		dbpool.Dbs.Store("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=require", db)
 	})
 
 	AfterEach(func() {
 		helpers.TeardownTest()
 		db.Close()
-		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=verify-full")
+		dbpool.Dbs.Delete("postgres host=foo-database port=5432 dbname=summon user=summon password='secretdbpass' sslmode=require")
 
 		// Check for any unmet expectations.
 		err := dbMock.ExpectationsWereMet()
