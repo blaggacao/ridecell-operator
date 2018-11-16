@@ -10,14 +10,6 @@
   version = "v0.30.0"
 
 [[projects]]
-  digest = "1:9e96087ee84ca7a3e93c8df64360fdbfc892b2d9147eddbda5cb4ac421f1f6e2"
-  name = "github.com/DATA-DOG/go-sqlmock"
-  packages = ["."]
-  pruneopts = "T"
-  revision = "d76b18b42f285b792bf985118980ce9eacea9d10"
-  version = "v1.3.0"
-
-[[projects]]
   digest = "1:9f42202ac457c462ad8bb9642806d275af9ab4850cf0b1960b9c6f083d4a309a"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -577,11 +569,11 @@
 
 [[projects]]
   branch = "repeatable"
-  digest = "1:d17cc14aee217d3cd51b9e0724399f4a5a98fcd1e931ff2d9f33101c8f774e20"
+  digest = "1:793142251a81c1dd8d4eda2d238715d42ccc97a85fcc98a3ba58d4dc15a93882"
   name = "gopkg.in/DATA-DOG/go-sqlmock.v1"
   packages = ["."]
   pruneopts = "T"
-  revision = "2ddffdea10b465ce06bfa9af5dfcf47b8346ac18"
+  revision = "fbb34b2830ba62acf5dd956a871a53f0e54b97c6"
   source = "https://github.com/coderanger/go-sqlmock.git"
 
 [[projects]]
@@ -901,7 +893,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/DATA-DOG/go-sqlmock",
     "github.com/emicklei/go-restful",
     "github.com/golang/glog",
     "github.com/lib/pq",
