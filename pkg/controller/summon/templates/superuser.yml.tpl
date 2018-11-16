@@ -4,8 +4,6 @@ metadata:
   name: dispatcher.ridecell.com
   namespace: {{ .Instance.Namespace }}
 spec:
-  active: true
-  staff: true
   superuser: true
   database:
     host: {{ .Instance.Name }}-database.{{ .Instance.Namespace }}
