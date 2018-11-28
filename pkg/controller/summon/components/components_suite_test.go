@@ -21,9 +21,28 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/Ridecell/ridecell-operator/pkg/apis"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-func TestTemplates(t *testing.T) {
+var instance *summonv1beta1.SummonPlatform
+var ctx *components.ComponentContext
+
+func TestComponents(t *testing.T) {
+	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "SummonPlatform Components Suite")
 }
+
+var _ = ginkgo.BeforeEach(func() {
+	// Set up default-y values for tests to use if they want.
+	instance = &summonv1beta1.SummonPlatform{
+		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+	}
+	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+})
