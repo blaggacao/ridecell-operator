@@ -14,6 +14,7 @@ func main() {
 		PackageName:  "summon",
 		BuildTags:    "release",
 		VariableName: "Templates",
+		Filename:     "zz_generated.templates.go",
 	})
 	if err != nil {
 		log.Fatalln(err)
