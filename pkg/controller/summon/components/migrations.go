@@ -81,32 +81,45 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (rec
 		}
 		err = ctx.Create(ctx.Context, job)
 		if err != nil {
-			// If this fails, someone else might have started one between the Get and here, so just try again.
+			// If this fails, someone else might have started a migraton job between the Get and here, so just try again.
 			return reconcile.Result{Requeue: true}, err
 		}
-		// Done for now.
+		// Job is started, so we're done for now.
 		return reconcile.Result{}, nil
 	} else if err != nil {
+		// Some other real error, bail.
 		return reconcile.Result{}, err
+	}
+
+	// If we get this far, the job previously started at some point and might be done.
+	// First make sure we even care about this job, it only counts if it's for the version we want.
+	existingVersion, ok := existing.Labels["app.kubernetes.io/version"]
+	if !ok || existingVersion != instance.Spec.Version {
+		glog.Infof("[%s/%s] migrations: Found existing migration job with bad version %#v\n", instance.Namespace, instance.Name, existingVersion)
+		// This is from a bad (or broken if !ok) version, try to delete it and then run again.
+		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Check if the job succeeded.
 	if existing.Status.Succeeded > 0 {
 		// Success! Update the MigrateVersion (this will trigger a reconcile) and delete the job.
+		glog.Infof("[%s/%s] migrations: Migration job succeeded, updating MigrateVersion from %s to %s\n", instance.Namespace, instance.Name, instance.Status.MigrateVersion, instance.Spec.Version)
 		instance.Status.MigrateVersion = instance.Spec.Version
-		glog.Infof("Migration job %s/%s succeeded, updating MigrateVersion to %s\n", job.Namespace, job.Name, instance.Status.MigrateVersion)
 
-		glog.V(2).Infof("Deleting migration Job %s/%s\n", existing.Namespace, existing.Name)
+		glog.V(2).Infof("[%s/%s] Deleting migration Job %s/%s\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
 		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
 		if err != nil {
 			return reconcile.Result{Requeue: true}, err
 		}
 	}
 
-	// If the job failed, leave things for debugging.
+	// ... Or if the job failed.
 	if existing.Status.Failed > 0 {
-		glog.Errorf("Migration job for %s/%s failed, leaving job %s/%s running for debugging purposes\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
+		// If it was an outdated job, we would have already deleted it, so this means it's a failed migration for the current version.
+		glog.Errorf("[%s/%s] Migration job failed, leaving job %s/%s for debugging purposes\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
 	}
 
+	// Job is still running, will get reconciled when it finishes.
 	return reconcile.Result{}, nil
 }
