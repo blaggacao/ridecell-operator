@@ -29,6 +29,7 @@ import (
 // // A componentReconciler is the data for a single reconciler. These are our
 // side of the controller.
 type componentReconciler struct {
+	name       string
 	top        runtime.Object
 	templates  http.FileSystem
 	components []Component

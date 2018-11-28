@@ -37,6 +37,7 @@ import (
 
 func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templates http.FileSystem, components []Component) (*componentReconciler, error) {
 	cr := &componentReconciler{
+		name:       name,
 		top:        top,
 		templates:  templates,
 		components: components,
@@ -103,7 +104,7 @@ func (cr *componentReconciler) newContext(request reconcile.Request) (*Component
 }
 
 func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	glog.Infof("[%s] Reconcile: Reconciling!", request.NamespacedName)
+	glog.Infof("[%s] %s: Reconciling!", request.NamespacedName, cr.name)
 
 	// Build a reconciler context to pass around.
 	ctx, err := cr.newContext(request)
