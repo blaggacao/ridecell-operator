@@ -33,7 +33,7 @@ import (
 var instance *summonv1beta1.DjangoUser
 var ctx *components.ComponentContext
 
-func TestTemplates(t *testing.T) {
+func TestComponents(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "DjangoUser Components Suite")
