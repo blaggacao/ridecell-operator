@@ -19,10 +19,10 @@ package components
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -54,8 +54,8 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 
 	existing := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace}, existing)
-	if err != nil && !errors.IsNotFound(err) {
-		return reconcile.Result{Requeue: true}, fmt.Errorf("secret: unable to load secret: %v", err)
+	if err != nil && !kerrors.IsNotFound(err) {
+		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	} else if err == nil {
 		// Loaded correctly, if the password exists then we're done.
 		val, ok := existing.Data["password"]
@@ -84,11 +84,11 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 	}
 
 	err = ctx.Update(ctx.Context, target)
-	if err != nil && errors.IsNotFound(err) {
+	if err != nil && kerrors.IsNotFound(err) {
 		err = ctx.Create(ctx.Context, target)
 	}
 	if err != nil {
-		return reconcile.Result{Requeue: true}, fmt.Errorf("secret: unable to save secret: %v", err)
+		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to save secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 
 	instance.Status.Status = summonv1beta1.StatusSecretCreated
