@@ -18,6 +18,7 @@ package components
 
 import (
 	"github.com/golang/glog"
+
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -48,7 +49,7 @@ func (comp *migrationComponent) WatchTypes() []runtime.Object {
 
 func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Status.PostgresStatus == nil || *instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
 		// Database not ready yet.
 		return false
 	}

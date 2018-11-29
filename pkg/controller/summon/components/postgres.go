@@ -49,7 +49,7 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reco
 		goal := goalObj.(*postgresv1.Postgresql)
 		existing := existingObj.(*postgresv1.Postgresql)
 		// Store the postgres status.
-		instance.Status.PostgresStatus = &existing.Status
+		instance.Status.PostgresStatus = existing.Status
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil

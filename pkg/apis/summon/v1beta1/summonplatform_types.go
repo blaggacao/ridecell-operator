@@ -67,7 +67,7 @@ type SummonPlatformStatus struct {
 	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
 
 	// Current Postgresql status if one exists.
-	PostgresStatus *postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
+	PostgresStatus postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
 
 	// Previous version for which migrations ran successfully.
 	// +optional
