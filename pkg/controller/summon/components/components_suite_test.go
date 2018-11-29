@@ -23,11 +23,11 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
 )
 
 var instance *summonv1beta1.SummonPlatform
@@ -43,6 +43,9 @@ var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &summonv1beta1.SummonPlatform{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Spec: summonv1beta1.SummonPlatformSpec{
+			Version: "1.2.3",
+		},
 	}
-	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
+	ctx = components.NewTestContext(instance, summon.Templates)
 })

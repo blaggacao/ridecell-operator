@@ -40,10 +40,10 @@ type componentReconciler struct {
 // A ComponentContext is the state for a single reconcile request to the controller.
 type ComponentContext struct {
 	client.Client
-	reconciler *componentReconciler
-	Context    context.Context // This should probably go away
-	Top        runtime.Object
-	Scheme     *runtime.Scheme
+	templates http.FileSystem
+	Context   context.Context // This should probably go away
+	Top       runtime.Object
+	Scheme    *runtime.Scheme
 }
 
 // A component is a Promise Theory actor inside a controller.

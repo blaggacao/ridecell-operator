@@ -92,9 +92,9 @@ func (cr *componentReconciler) newContext(request reconcile.Request) (*Component
 	}
 
 	ctx := &ComponentContext{
-		reconciler: cr,
-		Context:    reqCtx,
-		Top:        top,
+		templates: cr.templates,
+		Context:   reqCtx,
+		Top:       top,
 	}
 	err = cr.manager.SetFields(ctx)
 	if err != nil {
