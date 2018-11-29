@@ -41,6 +41,7 @@ vet:
 # Generate code
 generate:
 	go generate ./pkg/... ./cmd/...
+	@cp config/crds/* helm/templates/crds/
 
 # Build the docker image
 docker-build: test
