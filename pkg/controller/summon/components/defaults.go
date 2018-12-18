@@ -24,6 +24,8 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
+var configDefaults map[string]summonv1beta1.ConfigValue
+
 type defaultsComponent struct {
 }
 
@@ -66,5 +68,27 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
 
+	for key, value := range configDefaults {
+		_, ok := instance.Spec.Config[key]
+		if !ok {
+			instance.Spec.Config[key] = value
+		}
+	}
+
 	return reconcile.Result{}, nil
+}
+
+func defConfig(key string, value interface{}) {
+	boolVal, ok := value.(bool)
+	if ok {
+		configDefaults[key] = summonv1beta1.ConfigValueBool(boolVal)
+		return
+	}
+	panic("Unknown type")
+}
+
+func init() {
+	configDefaults = make(map[string]summonv1beta1.ConfigValue, 20)
+	// Default config, mostly based on local dev.
+	defConfig("AMAZON_S3_USED", false)
 }
