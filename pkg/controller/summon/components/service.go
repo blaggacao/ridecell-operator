@@ -44,7 +44,7 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.Service)
 		existing := existingObj.(*corev1.Service)
 		// Special case: Services mutate the ClusterIP value in the Spec and it should be preserved.

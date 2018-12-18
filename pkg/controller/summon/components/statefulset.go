@@ -56,7 +56,7 @@ func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContex
 }
 
 func (comp *statefulsetComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*appsv1.StatefulSet)
 		existing := existingObj.(*appsv1.StatefulSet)
 		// Copy the Spec over.
