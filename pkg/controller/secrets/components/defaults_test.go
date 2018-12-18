@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,21 +19,19 @@ package components_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	secrertsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	secretscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/secrets/components"
 )
 
 var _ = Describe("PullSecret Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
-		replicas := int32(2)
 		instance := &secretsv1beta1.PullSecret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 			Spec: secretsv1beta1.PullSecretSpec{
-				PullSecret:            "foo-secret",
+				PullSecret: "foo-secret",
 			},
 		}
 		ctx := &components.ComponentContext{Top: instance}
@@ -45,8 +43,7 @@ var _ = Describe("PullSecret Defaults Component", func() {
 	})
 
 
-	It("sets a default pull secret", func() {
-		replicas := int32(2)
+	It("sets a default secret", func() {
 		instance := &secretsv1beta1.PullSecret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 			Spec: secretsv1beta1.PullSecretSpec{

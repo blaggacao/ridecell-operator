@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,30 +18,39 @@ package secrets_test
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
+
+const timeout = time.Second * 10
 
 var _ = Describe("Secrets controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 
-	It("Creates pullsecret", func() {
+	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
+	})
 
+	AfterEach(func() {
+		helpers.TeardownTest()
+	})
+
+	It("Gets pull-secret when it does not exist", func() {
+	    Eventually(func() error { return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{}) }, timeout).ShouldNot(Succeed())
+	})
+
+	It("Gets pull-secret", func() {
+	    // Create Pull Secret
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		err := helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
+	    Eventually(func() error { return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{}) }, timeout).Should(Succeed())
 	})
 })

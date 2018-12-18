@@ -18,103 +18,49 @@ package components
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-const inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+type pullsecretcomponent struct{}
 
-type pullSecretComponent struct{}
-
-func NewSecret() *pullSecretComponent {
-	return &pullSecretComponent{}
+func NewSecret() *pullsecretcomponent {
+	return &pullsecretcomponent{}
 }
 
-func (comp *pullSecretComponent) WatchTypes() []runtime.Object {
+func (_ *pullsecretcomponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
 		&corev1.Secret{},
 	}
 }
 
-func (_ *pullSecretComponent) IsReconcilable(_ *components.ComponentContext) bool {
-	// Secrets have no dependencies, always reconcile.
+func (_ *pullsecretcomponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *pullsecretcomponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	instance := ctx.Top.(*secretsv1beta1.PullSecret)
 
-	operatorNamespace := os.Getenv("NAMESPACE")
-	if operatorNamespace == "" {
-		var err error
-		operatorNamespace, err = getInClusterNamespace()
-		if err != nil {
-			instance.Status.PullSecretStatus = secretsv1beta1.StatusError
-			return reconcile.Result{}, err
-		}
-	}
-
-	target := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: operatorNamespace}, target)
+	existing := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: instance.Namespace}, existing)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			instance.Status.PullSecretStatus = secretsv1beta1.StatusErrorSecretNotFound
-		} else {
-			instance.Status.PullSecretStatus = secretsv1beta1.StatusError
+	    instance.Status.Status = secretsv1beta1.StatusErrorSecretNotFound
+		return reconcile.Result{Requeue: true}, fmt.Errorf("secret: unable to load secret: %v", err)
+	} else if err == nil {
+		// Loaded correctly, if the password exists then we're done.
+		val, ok := existing.Data[".dockerconfigjson"]
+		if !ok || !(len(val) > 0) {
+		    instance.Status.Status = secretsv1beta1.StatusErrorSecretNotFound
+		    return reconcile.Result{}, nil
 		}
-		return reconcile.Result{Requeue: true}, err
 	}
 
-	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecret, Namespace: instance.Namespace}}
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
-		// Set owner ref.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			instance.Status.PullSecretStatus = secretsv1beta1.StatusError
-			return err
-		}
-		// Sync important fields.
-		existing.ObjectMeta.Labels = target.ObjectMeta.Labels
-		existing.ObjectMeta.Annotations = target.ObjectMeta.Annotations
-		existing.Type = target.Type
-		existing.Data = target.Data
-		return nil
-	})
-	if err != nil {
-		instance.Status.PullSecretStatus = secretsv1beta1.StatusError
-		return reconcile.Result{Requeue: true}, err
-	}
-
-	instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
+	instance.Status.Status = secretsv1beta1.StatusReady
 	return reconcile.Result{}, nil
-}
-
-func getInClusterNamespace() (string, error) {
-	// Check whether the namespace file exists.
-	// If not, we are not running in cluster so can't guess the namespace.
-	_, err := os.Stat(inClusterNamespacePath)
-	if os.IsNotExist(err) {
-		return "", fmt.Errorf("not running in-cluster, please specify $NAMESPACE")
-	} else if err != nil {
-		return "", fmt.Errorf("error checking namespace file: %v", err)
-	}
-
-	// Load the namespace file and return itss content
-	namespace, err := ioutil.ReadFile(inClusterNamespacePath)
-	if err != nil {
-		return "", fmt.Errorf("error reading namespace file: %v", err)
-	}
-	return string(namespace), nil
 }
