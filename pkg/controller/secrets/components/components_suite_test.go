@@ -42,7 +42,7 @@ func TestTemplates(t *testing.T) {
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
 	instance = &secretsv1beta1.PullSecret{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo.example.com", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "secrets.ridecell.us", Namespace: "default"},
 	}
 	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
 })
