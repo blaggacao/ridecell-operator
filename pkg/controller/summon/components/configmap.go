@@ -17,11 +17,15 @@ limitations under the License.
 package components
 
 import (
+	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 )
 
 type configmapComponent struct {
@@ -44,7 +48,25 @@ func (_ *configmapComponent) IsReconcilable(_ *components.ComponentContext) bool
 }
 
 func (comp *configmapComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	// Create the map that will be the summon-platform.yml
+	config := map[string]interface{}{}
+	for key, value := range instance.Spec.Config {
+		config[key] = value.ToNilInterface()
+	}
+
+	// Render to JSON (which is a subset of YAML).
+	b, err := json.Marshal(config)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "configmap: unable to serialize config JSON for %s/%s", instance.Namespace, instance.Name)
+	}
+
+	// Set up the extra data map for the template.
+	extra := map[string]interface{}{}
+	extra["SummonYaml"] = string(b)
+
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.ConfigMap)
 		existing := existingObj.(*corev1.ConfigMap)
 		// Copy the data over.
