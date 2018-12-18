@@ -17,6 +17,8 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -68,11 +70,25 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
 
+	// Fill in static default config values.
+	if instance.Spec.Config == nil {
+		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
+	}
 	for key, value := range configDefaults {
 		_, ok := instance.Spec.Config[key]
 		if !ok {
 			instance.Spec.Config[key] = value
 		}
+	}
+
+	// Fill in the two config values that need the instance name in them.
+	_, ok := instance.Spec.Config["ASGI_URL"]
+	if !ok {
+		instance.Spec.Config["ASGI_URL"] = summonv1beta1.ConfigValue{String: fmt.Sprintf("redis://%s-redis/0", instance.Name), IsString: true}
+	}
+	_, ok = instance.Spec.Config["CACHE_URL"]
+	if !ok {
+		instance.Spec.Config["CACHE_URL"] = summonv1beta1.ConfigValue{String: fmt.Sprintf("redis://%s-redis/1", instance.Name), IsString: true}
 	}
 
 	return reconcile.Result{}, nil
@@ -81,14 +97,69 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 func defConfig(key string, value interface{}) {
 	boolVal, ok := value.(bool)
 	if ok {
-		configDefaults[key] = summonv1beta1.ConfigValueBool(boolVal)
+		configDefaults[key] = summonv1beta1.ConfigValue{Bool: boolVal, IsBool: true}
+		return
+	}
+	intVal, ok := value.(int)
+	if ok {
+		configDefaults[key] = summonv1beta1.ConfigValue{Int: intVal, IsInt: true}
+		return
+	}
+	stringVal, ok := value.(string)
+	if ok {
+		configDefaults[key] = summonv1beta1.ConfigValue{String: stringVal, IsString: true}
 		return
 	}
 	panic("Unknown type")
 }
 
 func init() {
-	configDefaults = make(map[string]summonv1beta1.ConfigValue, 20)
+	configDefaults = map[string]summonv1beta1.ConfigValue{}
 	// Default config, mostly based on local dev.
 	defConfig("AMAZON_S3_USED", false)
+	defConfig("AWS_REGION", "us-west-2")
+	defConfig("AWS_STORAGE_BUCKET_NAME", "")
+	defConfig("CARSHARING_V1_API_DISABLED", false)
+	defConfig("CLOUDFRONT_DISTRIBUTION", "")
+	defConfig("COMPRESS_ENABLED", false)
+	defConfig("CSBE_CONNECTION_USED", false)
+	defConfig("DATA_PIPELINE_SQS_QUEUE_NAME", "master-data-pipeline")
+	defConfig("DEBUG", true)
+	defConfig("ENABLE_NEW_RELIC", false)
+	defConfig("ENABLE_SENTRY", false)
+	defConfig("FACEBOOK_AUTHENTICATION_EMPLOYEE_PERMISSION_REQUIRED", false)
+	defConfig("FIREBASE_APP", "instant-stage")
+	defConfig("FIREBASE_ROOT_NODE", "unknown-local")
+	defConfig("GDPR_ENABLED", true)
+	defConfig("GOOGLE_ANALYTICS_ID", "UA-37653074-1")
+	defConfig("INTERNATIONAL_OUTGOING_SMS_NUMBER", "14152345773")
+	defConfig("NEWRELIC_NAME", "")
+	defConfig("OAUTH_HOSTED_DOMAIN", "")
+	defConfig("OUTGOING_SMS_NUMBER", "41254")
+	defConfig("PLATFORM_ENV", "DEV")
+	defConfig("SAML_EMAIL_ATTRIBUTE", "eduPersonPrincipalName")
+	defConfig("SAML_FIRST_NAME_ATTRIBUTE", "givenName")
+	defConfig("SAML_IDP_ENTITY_ID", "https://idp.testshib.org/idp/shibboleth")
+	defConfig("SAML_IDP_METADATA_FILENAME", "")
+	defConfig("SAML_IDP_METADATA_URL", "https://www.testshib.org/metadata/testshib-providers.xml")
+	defConfig("SAML_IDP_PUBLIC_KEY_FILENAME", "testshib.crt")
+	defConfig("SAML_IDP_SSO_URL", "https://idp.testshib.org/idp/profile/SAML2/Redirect/SSO")
+	defConfig("SAML_LAST_NAME_ATTRIBUTE", "sn")
+	defConfig("SAML_NAME_ID_FORMAT", "urn:oasis:names:tc:SAML:2.0:nameid-format:transient")
+	defConfig("SAML_PRIVATE_KEY_FILENAME", "sp.key")
+	defConfig("SAML_PRIVATE_KEY_FILENAME", "sp.key")
+	defConfig("SAML_PUBLIC_KEY_FILENAME", "sp.crt")
+	defConfig("SAML_PUBLIC_KEY_FILENAME", "sp.crt")
+	defConfig("SAML_SERVICE_NAME", "RideCell SAML Test")
+	defConfig("SAML_USE_LOCAL_METADATA", "")
+	defConfig("SAML_VALID_FOR_HOURS", 24)
+	defConfig("SESSION_COOKIE_AGE", 1209600)
+	defConfig("TENANT_ID", "unknown-local")
+	defConfig("TIME_ZONE", "America/Los_Angeles")
+	defConfig("USE_FACEBOOK_AUTHENTICATION_FOR_RIDERS", false)
+	defConfig("USE_GOOGLE_AUTHENTICATION_FOR_RIDERS", false)
+	defConfig("USE_SAML_AUTHENTICATION_FOR_RIDERS", false)
+	defConfig("WEB_URL", "http://localhost:38080")
+	defConfig("XMLSEC_BINARY_LOCATION", "/usr/bin/xmlsec1")
+
 }

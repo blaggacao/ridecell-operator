@@ -21,27 +21,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Slight workaround for limitations the Kubernetes code generator and interface{}.
-type ConfigValue interface {
-	DeepCopyConfigValue() ConfigValue
-}
-
-type ConfigValueInt int
-
-func (v ConfigValueInt) DeepCopyConfigValue() ConfigValue {
-	return v
-}
-
-type ConfigValueBool bool
-
-func (v ConfigValueBool) DeepCopyConfigValue() ConfigValue {
-	return v
-}
-
-type ConfigValueString string
-
-func (v ConfigValueString) DeepCopyConfigValue() ConfigValue {
-	return v
+// Gross workaround for limitations the Kubernetes code generator and interface{}.
+// If you want to see the weird inner workings of the hack, looking marshall.go.
+type ConfigValue struct {
+	IsBool   bool   `json:"isBool,omitempty"`
+	Bool     bool   `json:"bool,omitempty"`
+	IsInt    bool   `json:"isInt,omitempty"`
+	Int      int    `json:"int,omitempty"`
+	IsString bool   `json:"isString,omitempty"`
+	String   string `json:"string,omitempty"`
 }
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
