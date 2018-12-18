@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,28 +20,25 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 )
 
+func intp(n int32) *int32 {
+	return &n
+}
+
 var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
-		replicas := int32(2)
-		instance := &summonv1beta1.SummonPlatform{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				Hostname:              "foo.example.com",
-				PullSecret:            "foo-secret",
-				WebReplicas:           &replicas,
-				DaphneReplicas:        &replicas,
-				ChannelWorkerReplicas: &replicas,
-				StaticReplicas:        &replicas,
-			},
+		instance.Spec = summonv1beta1.SummonPlatformSpec{
+			Hostname:              "foo.example.com",
+			PullSecret:            "foo-secret",
+			WebReplicas:           intp(2),
+			DaphneReplicas:        intp(2),
+			ChannelWorkerReplicas: intp(2),
+			StaticReplicas:        intp(2),
 		}
-		ctx := &components.ComponentContext{Top: instance}
 
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -55,18 +52,13 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("sets a default hostname", func() {
-		replicas := int32(2)
-		instance := &summonv1beta1.SummonPlatform{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				PullSecret:            "foo-secret",
-				WebReplicas:           &replicas,
-				DaphneReplicas:        &replicas,
-				ChannelWorkerReplicas: &replicas,
-				StaticReplicas:        &replicas,
-			},
+		instance.Spec = summonv1beta1.SummonPlatformSpec{
+			PullSecret:            "foo-secret",
+			WebReplicas:           intp(2),
+			DaphneReplicas:        intp(2),
+			ChannelWorkerReplicas: intp(2),
+			StaticReplicas:        intp(2),
 		}
-		ctx := &components.ComponentContext{Top: instance}
 
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -80,18 +72,13 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("sets a default pull secret", func() {
-		replicas := int32(2)
-		instance := &summonv1beta1.SummonPlatform{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				Hostname:              "foo.example.com",
-				WebReplicas:           &replicas,
-				DaphneReplicas:        &replicas,
-				ChannelWorkerReplicas: &replicas,
-				StaticReplicas:        &replicas,
-			},
+		instance.Spec = summonv1beta1.SummonPlatformSpec{
+			Hostname:              "foo.example.com",
+			WebReplicas:           intp(2),
+			DaphneReplicas:        intp(2),
+			ChannelWorkerReplicas: intp(2),
+			StaticReplicas:        intp(2),
 		}
-		ctx := &components.ComponentContext{Top: instance}
 
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -105,18 +92,13 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("sets a default web replicas", func() {
-		replicas := int32(2)
-		instance := &summonv1beta1.SummonPlatform{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				Hostname:              "foo.example.com",
-				PullSecret:            "foo-secret",
-				DaphneReplicas:        &replicas,
-				ChannelWorkerReplicas: &replicas,
-				StaticReplicas:        &replicas,
-			},
+		instance.Spec = summonv1beta1.SummonPlatformSpec{
+			Hostname:              "foo.example.com",
+			PullSecret:            "foo-secret",
+			DaphneReplicas:        intp(2),
+			ChannelWorkerReplicas: intp(2),
+			StaticReplicas:        intp(2),
 		}
-		ctx := &components.ComponentContext{Top: instance}
 
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
@@ -130,20 +112,14 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	})
 
 	It("allows 0 web replicas", func() {
-		replicas := int32(2)
-		zeroReplicas := int32(0)
-		instance := &summonv1beta1.SummonPlatform{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-			Spec: summonv1beta1.SummonPlatformSpec{
-				Hostname:              "foo.example.com",
-				PullSecret:            "foo-secret",
-				WebReplicas:           &zeroReplicas,
-				DaphneReplicas:        &replicas,
-				ChannelWorkerReplicas: &replicas,
-				StaticReplicas:        &replicas,
-			},
+		instance.Spec = summonv1beta1.SummonPlatformSpec{
+			Hostname:              "foo.example.com",
+			PullSecret:            "foo-secret",
+			WebReplicas:           intp(0),
+			DaphneReplicas:        intp(2),
+			ChannelWorkerReplicas: intp(2),
+			StaticReplicas:        intp(2),
 		}
-		ctx := &components.ComponentContext{Top: instance}
 
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)

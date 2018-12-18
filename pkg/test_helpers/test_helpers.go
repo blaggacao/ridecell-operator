@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -110,8 +110,12 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 
 // Shut down the test environment. Call from AfterSuite().
 func (helpers *TestHelpers) Stop() {
-	close(helpers.ManagerStop)
-	helpers.Environment.Stop()
+	if helpers != nil && helpers.ManagerStop != nil {
+		close(helpers.ManagerStop)
+	}
+	if helpers != nil && helpers.Environment != nil {
+		helpers.Environment.Stop()
+	}
 }
 
 // Set up any needed per test values. Call from BeforeEach().

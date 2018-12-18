@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ type SummonPlatformStatus struct {
 	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
 
 	// Current Postgresql status if one exists.
-	PostgresStatus *postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
+	PostgresStatus postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
 
 	// Previous version for which migrations ran successfully.
 	// +optional

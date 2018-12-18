@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ package components
 // TODO: This whole thing should probably be its own custom resource.
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,7 +70,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 	target := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: operatorNamespace}, target)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			instance.Status.PullSecretStatus = summonv1beta1.StatusErrorSecretNotFound
 		} else {
 			instance.Status.PullSecretStatus = summonv1beta1.StatusError
@@ -108,15 +108,15 @@ func getInClusterNamespace() (string, error) {
 	// If not, we are not running in cluster so can't guess the namespace.
 	_, err := os.Stat(inClusterNamespacePath)
 	if os.IsNotExist(err) {
-		return "", fmt.Errorf("not running in-cluster, please specify $NAMESPACE")
+		return "", errors.New("not running in-cluster, please specify $NAMESPACE")
 	} else if err != nil {
-		return "", fmt.Errorf("error checking namespace file: %v", err)
+		return "", errors.Wrap(err, "error checking namespace file")
 	}
 
 	// Load the namespace file and return itss content
 	namespace, err := ioutil.ReadFile(inClusterNamespacePath)
 	if err != nil {
-		return "", fmt.Errorf("error reading namespace file: %v", err)
+		return "", errors.Wrap(err, "error reading namespace file")
 	}
 	return string(namespace), nil
 }

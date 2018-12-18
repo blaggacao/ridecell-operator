@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,15 +56,15 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reco
 	secret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, fmt.Errorf("database: Unable to load password secret: %v", err)
+		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "database: Unable to load password secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 	password, ok := secret.Data["password"]
 	if !ok {
-		return reconcile.Result{Requeue: true}, fmt.Errorf("database: Password secret has no key \"password\"")
+		return reconcile.Result{Requeue: true}, errors.Errorf("database: Password secret %s/%s has no key \"password\"", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 	hashedPassword, err := comp.hashPassword(password)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("database: Error hashing password: %v", err)
+		return reconcile.Result{}, errors.Wrap(err, "database: Error hashing password")
 	}
 
 	// Connect to the database.
@@ -91,7 +92,7 @@ INSERT INTO auth_user (username, password, first_name, last_name, email, is_acti
 	var id int
 	err = row.Scan(&id)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("database: Error running auth_user query: %v", err)
+		return reconcile.Result{}, errors.Wrap(err, "database: Error running auth_user query")
 	}
 
 	// Smaller ass SQL. The awkward SET field is because DO NOTHING doesn't work with RETURNING.
@@ -107,7 +108,7 @@ INSERT INTO common_userprofile (user_id, is_jumio_verified, created_at, updated_
 	var profileId int
 	err = row.Scan(&profileId)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("database: Error running common_userprofile query: %v", err)
+		return reconcile.Result{}, errors.Wrap(err, "database: Error running common_userprofile query")
 	}
 
 	// Medium ass SQL.
@@ -123,7 +124,7 @@ INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher)
 	// Create the common_staff.
 	_, err = db.Exec(query, profileId, instance.Spec.Active, instance.Spec.Manager, instance.Spec.Dispatcher)
 	if err != nil {
-		return reconcile.Result{}, fmt.Errorf("database: Error running common_staff query: %v", err)
+		return reconcile.Result{}, errors.Wrap(err, "database: Error running common_staff query")
 	}
 
 	// Success!
@@ -157,16 +158,16 @@ func (comp *databaseComponent) openDatabase(ctx *components.ComponentContext) (*
 	passwordSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: dbInfo.PasswordSecretRef.Name, Namespace: instance.Namespace}, passwordSecret)
 	if err != nil {
-		return nil, fmt.Errorf("database: Unable to load database secret %v: %v", dbInfo.PasswordSecretRef.Name, err)
+		return nil, errors.Wrapf(err, "database: Unable to load database secret %s/%s", instance.Namespace, dbInfo.PasswordSecretRef.Name)
 	}
 	dbPassword, ok := passwordSecret.Data[dbInfo.PasswordSecretRef.Key]
 	if !ok {
-		return nil, fmt.Errorf("database: Password key %v not found in database secret %v", dbInfo.PasswordSecretRef.Key, dbInfo.PasswordSecretRef.Name)
+		return nil, errors.Errorf("database: Password key %v not found in database secret %s/%s", dbInfo.PasswordSecretRef.Key, instance.Namespace, dbInfo.PasswordSecretRef.Name)
 	}
 	connStr := fmt.Sprintf("host=%s port=%v dbname=%s user=%v password='%s' sslmode=require", dbInfo.Host, dbInfo.Port, dbInfo.Database, dbInfo.Username, dbPassword)
 	db, err := dbpool.Open("postgres", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("database: Unable to open database connection: %v", err)
+		return nil, errors.Wrap(err, "database: Unable to open database connection")
 	}
 	return db, nil
 }

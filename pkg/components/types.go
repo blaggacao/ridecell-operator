@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import (
 // // A componentReconciler is the data for a single reconciler. These are our
 // side of the controller.
 type componentReconciler struct {
+	name       string
 	top        runtime.Object
 	templates  http.FileSystem
 	components []Component
@@ -39,10 +40,10 @@ type componentReconciler struct {
 // A ComponentContext is the state for a single reconcile request to the controller.
 type ComponentContext struct {
 	client.Client
-	reconciler *componentReconciler
-	Context    context.Context // This should probably go away
-	Top        runtime.Object
-	Scheme     *runtime.Scheme
+	templates http.FileSystem
+	Context   context.Context // This should probably go away
+	Top       runtime.Object
+	Scheme    *runtime.Scheme
 }
 
 // A component is a Promise Theory actor inside a controller.

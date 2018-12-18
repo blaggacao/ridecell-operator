@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc..
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,11 +18,14 @@ package components
 
 import (
 	"fmt"
+	"net/http"
 
 	// "github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
@@ -31,10 +34,10 @@ import (
 )
 
 func (ctx *ComponentContext) GetTemplate(path string) (runtime.Object, error) {
-	if ctx.reconciler.templates == nil {
+	if ctx.templates == nil {
 		return nil, fmt.Errorf("no templates loaded for this reconciler")
 	}
-	return templates.Get(ctx.reconciler.templates, path, struct{ Instance runtime.Object }{Instance: ctx.Top})
+	return templates.Get(ctx.templates, path, struct{ Instance runtime.Object }{Instance: ctx.Top})
 }
 
 func (ctx *ComponentContext) CreateOrUpdate(path string, mutateFn func(runtime.Object, runtime.Object) error) (reconcile.Result, controllerutil.OperationResult, error) {
@@ -64,6 +67,17 @@ func (ctx *ComponentContext) CreateOrUpdate(path string, mutateFn func(runtime.O
 	}
 
 	return reconcile.Result{}, op, nil
+}
+
+// Method for creating a test context, for use in component unit tests.
+func NewTestContext(top runtime.Object, templates http.FileSystem) *ComponentContext {
+	// This method is ugly and I don't like it. I should rebuild this whole subsytem around interfaces and have an explicit fake for it.
+	return &ComponentContext{
+		Top:       top,
+		Client:    fake.NewFakeClient(),
+		Scheme:    scheme.Scheme,
+		templates: templates,
+	}
 }
 
 // ComponentContext implements inject.Client.

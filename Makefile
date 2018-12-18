@@ -6,8 +6,7 @@ all: test manager
 
 # Run tests
 test: generate fmt vet manifests
-	# go test ./pkg/... ./cmd/... -coverprofile cover.out
-	ginkgo ./pkg/... ./cmd/... -coverprofile cover.out
+	ginkgo ./pkg/... ./cmd/... -cover -coverprofile cover.out -race -progress
 
 # Build manager binary
 manager: generate fmt vet
@@ -29,6 +28,7 @@ deploy: manifests
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
+	@cp config/crds/* helm/templates/crds/
 
 # Run go fmt against code
 fmt:
