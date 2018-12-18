@@ -84,11 +84,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	// Fill in the two config values that need the instance name in them.
 	_, ok := instance.Spec.Config["ASGI_URL"]
 	if !ok {
-		instance.Spec.Config["ASGI_URL"] = summonv1beta1.ConfigValue{String: fmt.Sprintf("redis://%s-redis/0", instance.Name), IsString: true}
+		val := fmt.Sprintf("redis://%s-redis/0", instance.Name)
+		instance.Spec.Config["ASGI_URL"] = summonv1beta1.ConfigValue{String: &val}
 	}
 	_, ok = instance.Spec.Config["CACHE_URL"]
 	if !ok {
-		instance.Spec.Config["CACHE_URL"] = summonv1beta1.ConfigValue{String: fmt.Sprintf("redis://%s-redis/1", instance.Name), IsString: true}
+		val := fmt.Sprintf("redis://%s-redis/1", instance.Name)
+		instance.Spec.Config["CACHE_URL"] = summonv1beta1.ConfigValue{String: &val}
 	}
 
 	return reconcile.Result{}, nil
@@ -97,17 +99,17 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 func defConfig(key string, value interface{}) {
 	boolVal, ok := value.(bool)
 	if ok {
-		configDefaults[key] = summonv1beta1.ConfigValue{Bool: boolVal, IsBool: true}
+		configDefaults[key] = summonv1beta1.ConfigValue{Bool: &boolVal}
 		return
 	}
 	intVal, ok := value.(int)
 	if ok {
-		configDefaults[key] = summonv1beta1.ConfigValue{Int: intVal, IsInt: true}
+		configDefaults[key] = summonv1beta1.ConfigValue{Int: &intVal}
 		return
 	}
 	stringVal, ok := value.(string)
 	if ok {
-		configDefaults[key] = summonv1beta1.ConfigValue{String: stringVal, IsString: true}
+		configDefaults[key] = summonv1beta1.ConfigValue{String: &stringVal}
 		return
 	}
 	panic("Unknown type")

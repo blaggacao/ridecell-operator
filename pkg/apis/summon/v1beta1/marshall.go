@@ -39,20 +39,17 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 	}
 	boolVal, ok := tmp.(bool)
 	if ok {
-		v.IsBool = true
-		v.Bool = boolVal
+		v.Bool = &boolVal
 		return nil
 	}
 	intVal, ok := tmp.(int)
 	if ok {
-		v.IsInt = true
-		v.Int = intVal
+		v.Int = &intVal
 		return nil
 	}
 	stringVal, ok := tmp.(string)
 	if ok {
-		v.IsString = true
-		v.String = stringVal
+		v.String = &stringVal
 		return nil
 	}
 	// It was something else.
@@ -62,12 +59,12 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 // Run the reverse, convert the union back into an interface{} for use in JSON
 // or YAML encoding when building the config file.
 func (v *ConfigValue) ToNilInterface() interface{} {
-	if v.IsBool {
-		return v.Bool
-	} else if v.IsInt {
-		return v.Int
-	} else if v.IsString {
-		return v.String
+	if v.Bool != nil {
+		return *v.Bool
+	} else if v.Int != nil {
+		return *v.Int
+	} else if v.String != nil {
+		return *v.String
 	} else {
 		panic("Unknown ConfigValue type")
 	}

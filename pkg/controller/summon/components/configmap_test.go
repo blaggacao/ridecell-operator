@@ -62,7 +62,8 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 	Context("with a string config value", func() {
 		It("creates a config file", func() {
 			instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
-			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{String: "bar", IsString: true}
+			val := "bar"
+			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{String: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
 			_, err := comp.Reconcile(ctx)
@@ -79,7 +80,8 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 	Context("with an int config value", func() {
 		It("creates a config file", func() {
 			instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
-			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Int: 42, IsInt: true}
+			val := 42
+			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Int: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
 			_, err := comp.Reconcile(ctx)
@@ -96,7 +98,8 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 	Context("with a bool config value", func() {
 		It("creates a config file", func() {
 			instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
-			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Bool: true, IsBool: true}
+			val := true
+			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Bool: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
 			_, err := comp.Reconcile(ctx)
