@@ -130,7 +130,7 @@ var _ = Describe("Summon controller", func() {
 		}, timeout).
 			Should(Succeed())
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
-		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "gunicorn.app.wsgiapp", "-b", "0.0.0.0:8000", "summon_platform.wsgi"}))
+		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "gunicorn.app.wsgiapp", "-b", "0.0.0.0:8000", "summon_platform.wsgi", "--log-level=debug"}))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(BeEquivalentTo(8000))
 
 		// Check the web Service object.
