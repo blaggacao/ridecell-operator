@@ -24,9 +24,9 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const timeout = time.Second * 10
@@ -44,17 +44,17 @@ var _ = Describe("Secrets controller", func() {
 
 	It("Gets pull-secret when it does not exist", func() {
 		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{})
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.Namespace}, &corev1.Secret{})
 		}, timeout).ShouldNot(Succeed())
 	})
 
 	It("Gets pull-secret", func() {
 		// Create Pull Secret
-		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
+		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.Namespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		err := helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(func() error {
-			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{})
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.Namespace}, &corev1.Secret{})
 		}, timeout).Should(Succeed())
 	})
 })
