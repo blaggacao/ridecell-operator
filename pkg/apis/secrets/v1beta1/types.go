@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 const (
-	StatusReady                    = "Ready"
-	StatusError                    = "Error"
-	StatusErrorSecretNotFound      = "Error: Secret not found"
+	StatusReady               = "Ready"
+	StatusError               = "Error"
+	StatusErrorSecretNotFound = "Error: Secret not found"
 )

@@ -43,14 +43,18 @@ var _ = Describe("Secrets controller", func() {
 	})
 
 	It("Gets pull-secret when it does not exist", func() {
-	    Eventually(func() error { return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{}) }, timeout).ShouldNot(Succeed())
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{})
+		}, timeout).ShouldNot(Succeed())
 	})
 
 	It("Gets pull-secret", func() {
-	    // Create Pull Secret
+		// Create Pull Secret
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		err := helpers.Client.Create(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
-	    Eventually(func() error { return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{}) }, timeout).Should(Succeed())
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, &corev1.Secret{})
+		}, timeout).Should(Succeed())
 	})
 })

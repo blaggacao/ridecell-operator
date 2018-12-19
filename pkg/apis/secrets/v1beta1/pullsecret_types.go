@@ -24,11 +24,10 @@ import (
 
 // PullSecretSpec defines the desired state of PullSecret
 type PullSecretSpec struct {
-    // Important: Run "make" to regenerate code after modifying this file
-    // Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
+	// Important: Run "make" to regenerate code after modifying this file
+	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
-    PullSecret string `json:"pullSecret,omitempty"`
-
+	PullSecret string `json:"pullSecret,omitempty"`
 }
 
 // PullSecretStatus defines the observed state of PullSecret
@@ -39,7 +38,6 @@ type PullSecretStatus struct {
 	// Message related to the current status.
 	Message string `json:"message,omitempty"`
 }
-
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

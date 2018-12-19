@@ -42,12 +42,10 @@ var _ = Describe("PullSecret Defaults Component", func() {
 		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 	})
 
-
 	It("sets a default secret", func() {
 		instance := &secretsv1beta1.PullSecret{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-			Spec: secretsv1beta1.PullSecretSpec{
-			},
+			Spec:       secretsv1beta1.PullSecretSpec{},
 		}
 		ctx := &components.ComponentContext{Top: instance}
 
@@ -56,6 +54,5 @@ var _ = Describe("PullSecret Defaults Component", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
 	})
-
 
 })
