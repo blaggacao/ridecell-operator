@@ -82,16 +82,19 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	}
 
 	// Fill in the two config values that need the instance name in them.
-	_, ok := instance.Spec.Config["ASGI_URL"]
-	if !ok {
-		val := fmt.Sprintf("redis://%s-redis/0", instance.Name)
-		instance.Spec.Config["ASGI_URL"] = summonv1beta1.ConfigValue{String: &val}
+	defVal := func(key, valueTemplate string, args ...interface{}) {
+		_, ok := instance.Spec.Config[key]
+		if !ok {
+			value := fmt.Sprintf(valueTemplate, args...)
+			instance.Spec.Config[key] = summonv1beta1.ConfigValue{String: &value}
+		}
 	}
-	_, ok = instance.Spec.Config["CACHE_URL"]
-	if !ok {
-		val := fmt.Sprintf("redis://%s-redis/1", instance.Name)
-		instance.Spec.Config["CACHE_URL"] = summonv1beta1.ConfigValue{String: &val}
-	}
+	defVal("ASGI_URL", "redis://%s-redis/0", instance.Name)
+	defVal("CACHE_URL", "redis://%s-redis/1", instance.Name)
+	defVal("FIREBASE_ROOT_NODE", "%s", instance.Name)
+	defVal("TENANT_ID", "%s", instance.Name)
+	defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
+	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
 
 	return reconcile.Result{}, nil
 }
@@ -126,16 +129,14 @@ func init() {
 	defConfig("COMPRESS_ENABLED", false)
 	defConfig("CSBE_CONNECTION_USED", false)
 	defConfig("DATA_PIPELINE_SQS_QUEUE_NAME", "master-data-pipeline")
-	defConfig("DEBUG", true)
+	defConfig("DEBUG", false)
 	defConfig("ENABLE_NEW_RELIC", false)
 	defConfig("ENABLE_SENTRY", false)
 	defConfig("FACEBOOK_AUTHENTICATION_EMPLOYEE_PERMISSION_REQUIRED", false)
 	defConfig("FIREBASE_APP", "instant-stage")
-	defConfig("FIREBASE_ROOT_NODE", "unknown-local")
 	defConfig("GDPR_ENABLED", true)
 	defConfig("GOOGLE_ANALYTICS_ID", "UA-37653074-1")
 	defConfig("INTERNATIONAL_OUTGOING_SMS_NUMBER", "14152345773")
-	defConfig("NEWRELIC_NAME", "")
 	defConfig("OAUTH_HOSTED_DOMAIN", "")
 	defConfig("OUTGOING_SMS_NUMBER", "41254")
 	defConfig("PLATFORM_ENV", "DEV")
@@ -156,12 +157,10 @@ func init() {
 	defConfig("SAML_USE_LOCAL_METADATA", "")
 	defConfig("SAML_VALID_FOR_HOURS", float64(24))
 	defConfig("SESSION_COOKIE_AGE", float64(1209600))
-	defConfig("TENANT_ID", "unknown-local")
 	defConfig("TIME_ZONE", "America/Los_Angeles")
 	defConfig("USE_FACEBOOK_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("USE_GOOGLE_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("USE_SAML_AUTHENTICATION_FOR_RIDERS", false)
-	defConfig("WEB_URL", "http://localhost:38080")
 	defConfig("XMLSEC_BINARY_LOCATION", "/usr/bin/xmlsec1")
 
 }
