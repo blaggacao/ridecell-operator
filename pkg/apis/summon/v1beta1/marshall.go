@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"encoding/json"
+	"errors"
 )
 
 // Intercept JSON decoding and try to deal with "simple" values before giving
@@ -42,9 +43,9 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 		v.Bool = &boolVal
 		return nil
 	}
-	intVal, ok := tmp.(int)
+	floatVal, ok := tmp.(float64)
 	if ok {
-		v.Int = &intVal
+		v.Float = &floatVal
 		return nil
 	}
 	stringVal, ok := tmp.(string)
@@ -52,8 +53,29 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 		v.String = &stringVal
 		return nil
 	}
-	// It was something else.
-	return json.Unmarshal(data, v)
+	// It was something else, hopefully a JSON object.
+	mapVal, ok := tmp.(map[string]interface{})
+	if ok {
+		val, ok := mapVal["bool"]
+		if ok {
+			boolVal = val.(bool)
+			v.Bool = &boolVal
+			return nil
+		}
+		val, ok = mapVal["float"]
+		if ok {
+			floatVal = val.(float64)
+			v.Float = &floatVal
+			return nil
+		}
+		val, ok = mapVal["string"]
+		if ok {
+			stringVal = val.(string)
+			v.String = &stringVal
+			return nil
+		}
+	}
+	return errors.New("error decoding JSON")
 }
 
 // Run the reverse, convert the union back into an interface{} for use in JSON
@@ -61,8 +83,8 @@ func (v *ConfigValue) UnmarshalJSON(data []byte) error {
 func (v *ConfigValue) ToNilInterface() interface{} {
 	if v.Bool != nil {
 		return *v.Bool
-	} else if v.Int != nil {
-		return *v.Int
+	} else if v.Float != nil {
+		return *v.Float
 	} else if v.String != nil {
 		return *v.String
 	} else {

@@ -77,11 +77,11 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 		})
 	})
 
-	Context("with an int config value", func() {
+	Context("with a float config value", func() {
 		It("creates a config file", func() {
 			instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
-			val := 42
-			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Int: &val}
+			val := float64(42)
+			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Float: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
 			_, err := comp.Reconcile(ctx)

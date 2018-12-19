@@ -102,9 +102,9 @@ func defConfig(key string, value interface{}) {
 		configDefaults[key] = summonv1beta1.ConfigValue{Bool: &boolVal}
 		return
 	}
-	intVal, ok := value.(int)
+	floatVal, ok := value.(float64)
 	if ok {
-		configDefaults[key] = summonv1beta1.ConfigValue{Int: &intVal}
+		configDefaults[key] = summonv1beta1.ConfigValue{Float: &floatVal}
 		return
 	}
 	stringVal, ok := value.(string)
@@ -154,8 +154,8 @@ func init() {
 	defConfig("SAML_PUBLIC_KEY_FILENAME", "sp.crt")
 	defConfig("SAML_SERVICE_NAME", "RideCell SAML Test")
 	defConfig("SAML_USE_LOCAL_METADATA", "")
-	defConfig("SAML_VALID_FOR_HOURS", 24)
-	defConfig("SESSION_COOKIE_AGE", 1209600)
+	defConfig("SAML_VALID_FOR_HOURS", float64(24))
+	defConfig("SESSION_COOKIE_AGE", float64(1209600))
 	defConfig("TENANT_ID", "unknown-local")
 	defConfig("TIME_ZONE", "America/Los_Angeles")
 	defConfig("USE_FACEBOOK_AUTHENTICATION_FOR_RIDERS", false)
