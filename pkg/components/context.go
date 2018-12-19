@@ -33,15 +33,18 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/templates"
 )
 
-func (ctx *ComponentContext) GetTemplate(path string) (runtime.Object, error) {
+func (ctx *ComponentContext) GetTemplate(path string, extraData map[string]interface{}) (runtime.Object, error) {
 	if ctx.templates == nil {
 		return nil, fmt.Errorf("no templates loaded for this reconciler")
 	}
-	return templates.Get(ctx.templates, path, struct{ Instance runtime.Object }{Instance: ctx.Top})
+	return templates.Get(ctx.templates, path, struct {
+		Instance runtime.Object
+		Extra    map[string]interface{}
+	}{Instance: ctx.Top, Extra: extraData})
 }
 
-func (ctx *ComponentContext) CreateOrUpdate(path string, mutateFn func(runtime.Object, runtime.Object) error) (reconcile.Result, controllerutil.OperationResult, error) {
-	target, err := ctx.GetTemplate(path)
+func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]interface{}, mutateFn func(runtime.Object, runtime.Object) error) (reconcile.Result, controllerutil.OperationResult, error) {
+	target, err := ctx.GetTemplate(path, extraData)
 	if err != nil {
 		return reconcile.Result{}, controllerutil.OperationResultNone, err
 	}

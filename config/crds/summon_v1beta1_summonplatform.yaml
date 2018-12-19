@@ -24,6 +24,8 @@ spec:
           type: object
         spec:
           properties:
+            config:
+              type: object
             hostname:
               type: string
             pullSecret:

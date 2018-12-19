@@ -65,7 +65,7 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 }
 
 func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	obj, err := ctx.GetTemplate(comp.templatePath)
+	obj, err := ctx.GetTemplate(comp.templatePath, nil)
 	if err != nil {
 		return reconcile.Result{}, err
 	}

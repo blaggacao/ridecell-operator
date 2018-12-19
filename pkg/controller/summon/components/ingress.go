@@ -43,7 +43,7 @@ func (_ *ingressComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*extv1beta1.Ingress)
 		existing := existingObj.(*extv1beta1.Ingress)
 		// Copy the Spec over.

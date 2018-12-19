@@ -47,7 +47,7 @@ func (comp *superuserComponent) IsReconcilable(ctx *components.ComponentContext)
 }
 
 func (comp *superuserComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	res, _, err := ctx.CreateOrUpdate("superuser.yml.tpl", func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate("superuser.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*summonv1beta1.DjangoUser)
 		existing := existingObj.(*summonv1beta1.DjangoUser)
 		// Copy the Spec over.

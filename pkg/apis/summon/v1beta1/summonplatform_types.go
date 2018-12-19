@@ -21,7 +21,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Gross workaround for limitations the Kubernetes code generator and interface{}.
+// If you want to see the weird inner workings of the hack, looking marshall.go.
+type ConfigValue struct {
+	Bool   *bool    `json:"bool,omitempty"`
+	Float  *float64 `json:"float,omitempty"`
+	String *string  `json:"string,omitempty"`
+}
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
@@ -37,6 +43,9 @@ type SummonPlatformSpec struct {
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
 	PullSecret string `json:"pullSecret,omitempty"`
+
+	// Summon-platform.yml configuration options.
+	Config map[string]ConfigValue `json:"config,omitempty"`
 
 	// Number of gunicorn pods to run. Defaults to 1.
 	// +optional
