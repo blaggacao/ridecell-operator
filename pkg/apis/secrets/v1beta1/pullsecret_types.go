@@ -27,7 +27,7 @@ type PullSecretSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
-	PullSecretName string `json:"pullSecret,omitempty"`
+	PullSecretName string `json:"pullSecretName,omitempty"`
 }
 
 // PullSecretStatus defines the observed state of PullSecret
