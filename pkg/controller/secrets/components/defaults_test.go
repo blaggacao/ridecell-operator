@@ -26,18 +26,18 @@ import (
 var _ = Describe("PullSecret Defaults Component", func() {
 
 	It("does nothing on a filled out object", func() {
-		instance.Spec.PullSecret = "foo-secret"
+		instance.Spec.PullSecretName = "foo-secret"
 		comp := secretscomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
+		Expect(instance.Spec.PullSecretName).To(Equal("foo-secret"))
 	})
 
 	It("sets a default secret", func() {
 		comp := secretscomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
+		Expect(instance.Spec.PullSecretName).To(Equal("pull-secret"))
 	})
 
 })

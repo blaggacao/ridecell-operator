@@ -43,8 +43,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	instance := ctx.Top.(*secretsv1beta1.PullSecret)
 
 	// Fill in defaults.
-	if instance.Spec.PullSecret == "" {
-		instance.Spec.PullSecret = "pull-secret"
+	if instance.Spec.PullSecretName == "" {
+		instance.Spec.PullSecretName = "pull-secret"
 	}
 
 	return reconcile.Result{}, nil

@@ -65,6 +65,17 @@ var _ = Describe("Secrets controller", func() {
 		Eventually(func() error {
 			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "pull-secret", Namespace: helpers.Namespace}, &corev1.Secret{})
 		}, timeout).ShouldNot(Succeed())
+	})
 
+	It("Sets secret with non-default name, gets secret", func() {
+		secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.OperatorNamespace}}
+		err := helpers.Client.Create(context.TODO(), secret)
+		Expect(err).NotTo(HaveOccurred())
+		pullSecret := &secretsv1beta1.PullSecret{ObjectMeta: metav1.ObjectMeta{Name: "secrets.ridecell.us", Namespace: helpers.Namespace}, Spec: secretsv1beta1.PullSecretSpec{PullSecretName: "foo"}}
+		err = helpers.Client.Create(context.TODO(), pullSecret)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: helpers.Namespace}, &corev1.Secret{})
+		}, timeout).Should(Succeed())
 	})
 })

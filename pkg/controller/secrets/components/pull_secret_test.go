@@ -48,7 +48,7 @@ var _ = Describe("pull_secret Component", func() {
 	It("Sets valid secret, runs reconcile", func() {
 		comp := secretscomponents.NewSecret()
 		newPullSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecret, Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecretName, Namespace: "default"},
 			Data: map[string][]byte{
 				".dockerconfigjson": []byte("dslakfjlskdj3"),
 			},
@@ -62,7 +62,7 @@ var _ = Describe("pull_secret Component", func() {
 
 	It("Ensures details remain the same after reconcile", func() {
 		newPullSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecret, Namespace: "default", Labels: map[string]string{"Name": "stuff"}},
+			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecretName, Namespace: "default", Labels: map[string]string{"Name": "stuff"}},
 			Data: map[string][]byte{
 				".dockerconfigjson": []byte("dslakfjlskdj3"),
 			},
@@ -72,7 +72,7 @@ var _ = Describe("pull_secret Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		target := &corev1.Secret{}
-		err = ctx.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: "default"}, target)
+		err = ctx.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.PullSecretName, Namespace: "default"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(target.ObjectMeta.Labels).To(Equal(map[string]string{"Name": "stuff"}))
 		Expect(target.Data).To(Equal(map[string][]byte{".dockerconfigjson": []byte("dslakfjlskdj3")}))
