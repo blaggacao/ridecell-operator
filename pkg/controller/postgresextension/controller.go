@@ -19,6 +19,7 @@ package postgresextension
 import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	pecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresextension/components"
 )
