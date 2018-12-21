@@ -16,6 +16,9 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
+	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -53,7 +56,7 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 	var existingPostgisToplogy *dbv1beta1.PostgresExtension
 
 	// Create the postgis extension.
-	res, _, err := ctx.CreateOrUpdate("postgres_extensions/postgis.yml", nil, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate("postgres_extensions/postgis.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.PostgresExtension)
 		existingPostgis = existingObj.(*dbv1beta1.PostgresExtension)
 		// Copy the Spec over.
@@ -61,11 +64,11 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 		return nil
 	})
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "Error from postgis extension")
 	}
 
 	// Create the postgis_topology extension.
-	res, _, err = ctx.CreateOrUpdate("postgres_extensions/postgis_topology.yml", nil, func(goalObj, existingObj runtime.Object) error {
+	res, _, err = ctx.CreateOrUpdate("postgres_extensions/postgis_topology.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*dbv1beta1.PostgresExtension)
 		existingPostgisToplogy = existingObj.(*dbv1beta1.PostgresExtension)
 		// Copy the Spec over.
@@ -73,7 +76,7 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 		return nil
 	})
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "Error from postgis_topology extension")
 	}
 
 	// Figure out status-y things.
@@ -81,17 +84,17 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 		// Postgis error'd, grab its message and error the whole thing.
 		instance.Status.Status = summonv1beta1.StatusError
 		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusError
-		instance.Status.Message = existingPostgis.Status.Message
+		instance.Status.Message = fmt.Sprintf("postgis: %s", existingPostgis.Status.Message)
 	} else if existingPostgisToplogy.Status.Status == dbv1beta1.StatusError {
 		// Postgis_topology, same as above but with a different error message (hopefully).
 		instance.Status.Status = summonv1beta1.StatusError
 		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusError
-		instance.Status.Message = existingPostgisToplogy.Status.Message
+		instance.Status.Message = fmt.Sprintf("postgis_topology: %s", existingPostgisToplogy.Status.Message)
 	} else if existingPostgis.Status.Status == dbv1beta1.StatusReady && existingPostgisToplogy.Status.Status == dbv1beta1.StatusReady {
 		// Both are ready, we're good to go!
 		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
 	} else {
-		// This shouldn't happen, but just in case? We don't want to leave the status as Ready if something weird has happened.
+		// Something else, probably still initial setup where upstream status is still "".
 		instance.Status.PostgresExtensionStatus = ""
 	}
 
