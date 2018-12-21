@@ -14,24 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package postgresextension
 
-const (
-	StatusReady = "Ready"
-	StatusError = "Error"
+import (
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	pecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresextension/components"
 )
 
-// A reference to a value in a secret.
-type SecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
-}
-
-// Connection details for a Postgres database.
-type PostgresConnection struct {
-	Host              string    `json:"host"`
-	Port              uint16    `json:"port,omitempty"`
-	Username          string    `json:"username"`
-	PasswordSecretRef SecretRef `json:"passwordSecretRef"`
-	Database          string    `json:"database,omitempty"`
+func Add(mgr manager.Manager) error {
+	_, err := components.NewReconciler("postgres-extension-controller", mgr, &dbv1beta1.PostgresExtension{}, nil, []components.Component{
+		pecomponents.NewDefaults(),
+		pecomponents.NewDatabase(),
+	})
+	return err
 }

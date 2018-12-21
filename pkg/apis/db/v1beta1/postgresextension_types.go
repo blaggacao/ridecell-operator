@@ -20,23 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type SecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
-}
-
-type DatabaseConnection struct {
-	Host              string    `json:"host"`
-	Port              uint16    `json:"port,omitempty"`
-	Username          string    `json:"username"`
-	PasswordSecretRef SecretRef `json:"passwordSecretRef"`
-	Database          string    `json:"database,omitempty"`
-}
-
 // PostgresExtensionSpec defines the desired state of PostgresExtension
 type PostgresExtensionSpec struct {
 	ExtensionName string             `json:"extensionName,omitempty"`
-	Database      DatabaseConnection `json:"database"`
+	Version       string             `json:"version,omitempty"`
+	Database      PostgresConnection `json:"database"`
 }
 
 // PostgresExtensionStatus defines the observed state of PostgresExtension

@@ -14,13 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apis
+package postgresextension_test
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+
+	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresextension"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back.
-	AddToSchemes = append(AddToSchemes, v1beta1.SchemeBuilder.AddToScheme)
+var testHelpers *test_helpers.TestHelpers
+
+func TestTemplates(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "PostgresExtension controller Suite")
 }
+
+var _ = ginkgo.BeforeSuite(func() {
+	testHelpers = test_helpers.Start(postgresextension.Add, false)
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	testHelpers.Stop()
+})
