@@ -46,6 +46,14 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		// Default extension name is just the name of the resource.
 		instance.Spec.ExtensionName = instance.Name
 	}
+	if instance.Spec.Database.Port == 0 {
+		// Default Postgres port.
+		instance.Spec.Database.Port = 5432
+	}
+	if instance.Spec.Database.PasswordSecretRef.Key == "" {
+		// Use "password" as the default key.
+		instance.Spec.Database.PasswordSecretRef.Key = "password"
+	}
 
 	return reconcile.Result{}, nil
 }
