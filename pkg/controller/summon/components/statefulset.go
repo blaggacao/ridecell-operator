@@ -49,7 +49,7 @@ func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContex
 	}
 	// If we need the database, make sure that exists. Otherwise, always ready.
 	if comp.waitForDatabase {
-		return instance.Status.PostgresStatus == postgresv1.ClusterStatusRunning && instance.Spec.Version == instance.Status.MigrateVersion
+		return instance.Status.PostgresStatus == postgresv1.ClusterStatusRunning && instance.Status.PostgresExtensionStatus == summonv1beta1.StatusReady && instance.Spec.Version == instance.Status.MigrateVersion
 	} else {
 		return true
 	}
