@@ -29,6 +29,20 @@ type ConfigValue struct {
 	String *string  `json:"string,omitempty"`
 }
 
+// NotificationStatus defines the observed state of Notifications
+type NotificationStatus struct {
+	// Important: Run "make" to regenerate code after modifying this file
+	// +optional
+	NotifyVersion string `json:"NotifyVersion,omitempty"`
+	LastErrorHash string `json:"LastErrorHash,omitempty"`
+}
+
+// SecretRef for Notifications
+type NotificationSecretRef struct {
+	Name string `json:"name"`
+	Key  string `json:"key,omitempty"`
+}
+
 // SummonPlatformSpec defines the desired state of SummonPlatform
 type SummonPlatformSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
@@ -62,6 +76,12 @@ type SummonPlatformSpec struct {
 	// Number of caddy pods to run. Defaults to 1.
 	// +optional
 	StaticReplicas *int32 `json:"static_replicas,omitempty"`
+	// Name of the slack channel for notifications. Defaults to "".
+	// +optional
+	SlackChannelName string `json:"slackChannelName,omitempty"`
+	// Slack API Key
+	// +optional
+	SlackAPISecret string `json:"slackAPIKey,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
@@ -81,6 +101,9 @@ type SummonPlatformStatus struct {
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`
+	// Spec for Notification
+	// +optional
+	Notification NotificationStatus `json:"notification,omitempty"`
 }
 
 // +genclient

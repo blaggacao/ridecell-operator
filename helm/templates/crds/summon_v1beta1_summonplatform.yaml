@@ -32,6 +32,10 @@ spec:
               type: string
             secret:
               type: string
+            slackAPIKey:
+              type: string
+            slackChannelName:
+              type: string
             version:
               type: string
           required:
@@ -44,6 +48,13 @@ spec:
               type: string
             migrateVersion:
               type: string
+            notification:
+              properties:
+                LastErrorHash:
+                  type: string
+                NotifyVersion:
+                  type: string
+              type: object
             postgresStatus:
               type: string
             pullSecretStatus:

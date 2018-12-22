@@ -46,6 +46,8 @@ var _ = ginkgo.BeforeEach(func() {
 		Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
 		},
+		Status: summonv1beta1.SummonPlatformStatus{
+			Notification: summonv1beta1.NotificationStatus{NotifyVersion: "1.2.3"}},
 	}
 	ctx = components.NewTestContext(instance, summon.Templates)
 })

@@ -66,6 +66,10 @@ func Add(mgr manager.Manager) error {
 
 		// Channelworker components.
 		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", true),
+
+		// Notification componenets.
+		// Keep Notification at the end of this block
+		summoncomponents.NewNotification(),
 	})
 	return err
 }
