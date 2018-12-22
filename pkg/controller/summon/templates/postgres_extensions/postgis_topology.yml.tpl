@@ -1,7 +1,7 @@
 apiVersion: db.ridecell.io/v1beta1
 kind: PostgresExtension
 metadata:
-  name: {{ .Instance.Name }}-postgis_topology
+  name: {{ .Instance.Name }}-postgis-topology
   namespace: {{ .Instance.Namespace }}
 spec:
   extensionName: postgis_topology

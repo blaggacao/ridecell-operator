@@ -41,7 +41,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis"))
 
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis_topology", Namespace: "default"}, ext)
+		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis-topology", Namespace: "default"}, ext)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis_topology"))
 
@@ -73,9 +73,9 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		Expect(instance.Status.PostgresExtensionStatus).To(Equal(summonv1beta1.StatusError))
 	})
 
-	It("handles an error in the postgis_topology extension", func() {
+	It("handles an error in the postgis-topology extension", func() {
 		ext := &dbv1beta1.PostgresExtension{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-postgis_topology", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-postgis-topology", Namespace: "default"},
 			Status: dbv1beta1.PostgresExtensionStatus{
 				Status:  dbv1beta1.StatusError,
 				Message: "Unable to floop the other foobar",
@@ -124,7 +124,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 			},
 		}
 		ext2 := &dbv1beta1.PostgresExtension{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-postgis_topology", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-postgis-topology", Namespace: "default"},
 			Status: dbv1beta1.PostgresExtensionStatus{
 				Status:  dbv1beta1.StatusReady,
 				Message: "",
