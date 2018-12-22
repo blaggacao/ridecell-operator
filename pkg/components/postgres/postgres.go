@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package components
+package postgres
 
 import (
 	"database/sql"
@@ -26,11 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 )
 
 // Open a connection to the Postgres database as defined by a PostgresConnection object.
-func OpenPostgres(ctx *ComponentContext, dbInfo *dbv1beta1.PostgresConnection) (*sql.DB, error) {
+func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection) (*sql.DB, error) {
 	namespace := ctx.Top.(metav1.Object).GetNamespace()
 	passwordSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: dbInfo.PasswordSecretRef.Name, Namespace: namespace}, passwordSecret)

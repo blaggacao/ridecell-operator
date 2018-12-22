@@ -26,6 +26,7 @@ import (
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/Ridecell/ridecell-operator/pkg/components/postgres"
 )
 
 type databaseComponent struct{}
@@ -46,7 +47,7 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reco
 	instance := ctx.Top.(*dbv1beta1.PostgresExtension)
 
 	// Connect to the database.
-	db, err := components.OpenPostgres(ctx, &instance.Spec.Database)
+	db, err := postgres.Open(ctx, &instance.Spec.Database)
 	if err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
