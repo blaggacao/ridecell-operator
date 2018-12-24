@@ -1,5 +1,0 @@
-mode: atomic
-github.com/Ridecell/ridecell-operator/pkg/controller/summon/controller.go:29.37,72.2 2 1
-github.com/Ridecell/ridecell-operator/pkg/controller/summon/templates.go:30.13,32.9 2 1
-github.com/Ridecell/ridecell-operator/pkg/controller/summon/templates.go:35.2,35.53 1 1
-github.com/Ridecell/ridecell-operator/pkg/controller/summon/templates.go:32.9,33.38 1 0
