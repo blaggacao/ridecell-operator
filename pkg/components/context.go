@@ -77,7 +77,7 @@ func NewTestContext(top runtime.Object, templates http.FileSystem) *ComponentCon
 	// This method is ugly and I don't like it. I should rebuild this whole subsytem around interfaces and have an explicit fake for it.
 	return &ComponentContext{
 		Top:       top,
-		Client:    fake.NewFakeClient(),
+		Client:    fake.NewFakeClient(top),
 		Scheme:    scheme.Scheme,
 		templates: templates,
 	}

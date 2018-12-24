@@ -44,6 +44,8 @@ spec:
               type: string
             migrateVersion:
               type: string
+            postgresExtensionStatus:
+              type: string
             postgresStatus:
               type: string
             pullSecretStatus:
