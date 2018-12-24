@@ -47,12 +47,21 @@ func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContex
 	if instance.Status.PullSecretStatus != summonv1beta1.StatusReady {
 		return false
 	}
-	// If we need the database, make sure that exists. Otherwise, always ready.
-	if comp.waitForDatabase {
-		return instance.Status.PostgresStatus == postgresv1.ClusterStatusRunning && instance.Status.PostgresExtensionStatus == summonv1beta1.StatusReady && instance.Spec.Version == instance.Status.MigrateVersion
-	} else {
+	// If we don't need the database, we're ready.
+	if !comp.waitForDatabase {
 		return true
 	}
+	// We do want the database, so check all the database statuses.
+	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+		return false
+	}
+	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
+		return false
+	}
+	if instance.Status.MigrateVersion != instance.Spec.Version {
+		return false
+	}
+	return true
 }
 
 func (comp *statefulsetComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {

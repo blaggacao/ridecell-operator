@@ -43,7 +43,16 @@ func (comp *superuserComponent) WatchTypes() []runtime.Object {
 func (comp *superuserComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Wait for the database to be up and migrated.
-	return instance.Status.PostgresStatus == postgresv1.ClusterStatusRunning && instance.Status.PostgresExtensionStatus == summonv1beta1.StatusReady && instance.Spec.Version == instance.Status.MigrateVersion
+	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
+		return false
+	}
+	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
+		return false
+	}
+	if instance.Status.MigrateVersion != instance.Spec.Version {
+		return false
+	}
+	return true
 }
 
 func (comp *superuserComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
