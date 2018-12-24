@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"time"
 
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -34,6 +33,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -109,6 +110,21 @@ var _ = Describe("Summon controller", func() {
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
 		err = c.Status().Update(context.TODO(), postgres)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set the Postgres extensions to ready.
+		ext := &dbv1beta1.PostgresExtension{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: helpers.Namespace}, ext)
+		}, timeout).Should(Succeed())
+		ext.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), ext)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis-topology", Namespace: helpers.Namespace}, ext)
+		}, timeout).Should(Succeed())
+		ext.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), ext)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Check that a migration Job was created.
@@ -190,6 +206,21 @@ var _ = Describe("Summon controller", func() {
 			Should(Succeed())
 		postgres.Status = postgresv1.ClusterStatusRunning
 		err = c.Status().Update(context.TODO(), postgres)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set the Postgres extensions to ready.
+		ext := &dbv1beta1.PostgresExtension{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: helpers.Namespace}, ext)
+		}, timeout).Should(Succeed())
+		ext.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), ext)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis-topology", Namespace: helpers.Namespace}, ext)
+		}, timeout).Should(Succeed())
+		ext.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), ext)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Fetch the Deployment and check the initial label.

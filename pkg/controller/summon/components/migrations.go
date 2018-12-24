@@ -53,6 +53,10 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Database not ready yet.
 		return false
 	}
+	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
+		// Extensions not installed yet.
+		return false
+	}
 	if instance.Status.PullSecretStatus != summonv1beta1.StatusReady {
 		// Pull secret not ready yet.
 		return false
