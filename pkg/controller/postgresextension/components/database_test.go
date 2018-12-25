@@ -78,8 +78,8 @@ var _ = Describe("PostgresExtension Database Component", func() {
 	})
 
 	It("creates an extension", func() {
-		dbMock.ExpectExec("CREATE EXTENSION").WithArgs("postgis").WillReturnResult(sqlmock.NewResult(0, 1))
-		dbMock.ExpectExec("ALTER EXTENSION").WithArgs("postgis").WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectExec("CREATE EXTENSION IF NOT EXISTS \"postgis\"").WithArgs().WillReturnResult(sqlmock.NewResult(0, 1))
+		dbMock.ExpectExec("ALTER EXTENSION \"postgis\" UPDATE").WithArgs().WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := pecomponents.NewDatabase()
 		_, err := comp.Reconcile(ctx)

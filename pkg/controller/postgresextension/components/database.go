@@ -19,7 +19,7 @@ package components
 import (
 	"fmt"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -55,25 +55,25 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reco
 	// Two codepaths because both queries look very different depending on if we have a version or not.
 	if instance.Spec.Version == "" {
 		// Create the extension if it doesn't exist already.
-		_, err = db.Exec("CREATE EXTENSION IF NOT EXISTS $1", instance.Spec.ExtensionName)
+		_, err = db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %s", pq.QuoteIdentifier(instance.Spec.ExtensionName)))
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "database: Error running CREATE EXTENSION")
 		}
 
 		// Upgrade the extension if it did exist.
-		_, err = db.Exec("ALTER EXTENSION $1 UPDATE", instance.Spec.ExtensionName)
+		_, err = db.Exec(fmt.Sprintf("ALTER EXTENSION %s UPDATE", pq.QuoteIdentifier(instance.Spec.ExtensionName)))
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "database: Error running ALTER EXTENSION")
 		}
 	} else {
 		// Create the extension if it doesn't exist already.
-		_, err = db.Exec("CREATE EXTENSION IF NOT EXISTS $1 WITH VERSION $2", instance.Spec.ExtensionName, instance.Spec.Version)
+		_, err = db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %s WITH VERSION %s", pq.QuoteIdentifier(instance.Spec.ExtensionName), pq.QuoteIdentifier(instance.Spec.Version)))
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "database: Error running CREATE EXTENSION")
 		}
 
 		// Upgrade the extension if it did exist.
-		_, err = db.Exec("ALTER EXTENSION $1 UPDATE TO $2", instance.Spec.ExtensionName, instance.Spec.Version)
+		_, err = db.Exec(fmt.Sprintf("ALTER EXTENSION %s UPDATE TO %s", pq.QuoteIdentifier(instance.Spec.ExtensionName), pq.QuoteIdentifier(instance.Spec.Version)))
 		if err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "database: Error running ALTER EXTENSION")
 		}
