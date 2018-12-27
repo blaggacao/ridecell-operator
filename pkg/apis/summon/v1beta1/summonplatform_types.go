@@ -29,18 +29,18 @@ type ConfigValue struct {
 	String *string  `json:"string,omitempty"`
 }
 
+// NotificationSecretRef defines the spec for the slack API secret
+type NotificationSecretRef struct {
+	Name string `json:"name"`
+	Key  string `json:"key,omitempty"`
+}
+
 // NotificationStatus defines the observed state of Notifications
 type NotificationStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// +optional
-	NotifyVersion string `json:"NotifyVersion,omitempty"`
-	LastErrorHash string `json:"LastErrorHash,omitempty"`
-}
-
-// SecretRef for Notifications
-type NotificationSecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
+	NotifyVersion string `json:"notifyVersion,omitempty"`
+	LastErrorHash string `json:"lastErrorHash,omitempty"`
 }
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
@@ -76,12 +76,15 @@ type SummonPlatformSpec struct {
 	// Number of caddy pods to run. Defaults to 1.
 	// +optional
 	StaticReplicas *int32 `json:"static_replicas,omitempty"`
+	// Slack API endpoint
+	// +optional
+	SlackAPIEndpoint string `json:"slackApiEndpoint,omitempty"`
 	// Name of the slack channel for notifications. Defaults to "".
 	// +optional
 	SlackChannelName string `json:"slackChannelName,omitempty"`
-	// Slack API Key
+	// Slack API Key Secret Definition
 	// +optional
-	SlackAPISecret string `json:"slackAPIKey,omitempty"`
+	NotificationSecretRef NotificationSecretRef `json:"secretRef,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform

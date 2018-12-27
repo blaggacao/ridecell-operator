@@ -21,10 +21,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
-	"os"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -38,6 +35,29 @@ import (
 
 type notificationComponent struct{}
 
+// Fields is nested inside of of Attachments for building Json payload
+type Fields struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+}
+
+// Attachments is nested inside of PayloadMessage for building Json payload
+type Attachments struct {
+	Color      string   `json:"color"`
+	AuthorName string   `json:"author_name"`
+	Title      string   `json:"title"`
+	TitleLink  string   `json:"title_link"`
+	Fields     []Fields `json:"fields"`
+}
+
+// PayloadMessage is the base structure for building Json payload
+type PayloadMessage struct {
+	Channel     string        `json:"channel"`
+	Token       string        `json:"token"`
+	Text        string        `json:"text"`
+	Attachments []Attachments `json:"attachments"`
+}
+
 func NewNotification() *notificationComponent {
 	return &notificationComponent{}
 }
@@ -49,6 +69,10 @@ func (comp *notificationComponent) WatchTypes() []runtime.Object {
 func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	// Don't send notification is slackChannel or slackApiEndpoint are not defined.
+	if instance.Spec.SlackChannelName == "" || instance.Spec.SlackAPIEndpoint == "" {
+		return false
+	}
 	if instance.Status.Status == summonv1beta1.StatusReady || instance.Status.Status == summonv1beta1.StatusError {
 		hashedError := comp.HashStatus(instance.Status.Message)
 		if comp.isMismatchedVersion(ctx) {
@@ -64,81 +88,63 @@ func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentConte
 
 func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
 	// Try to find the Slack API Key
 	secret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.SlackAPISecret, Namespace: instance.Namespace}, secret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.NotificationSecretRef.Name, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "notifications: Unable to load slackAPIKey secret %s/%s", instance.Namespace, instance.Spec.SlackAPISecret)
+		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "notifications: Unable to load slackAPIKey secret %s/%s", instance.Namespace, instance.Spec.NotificationSecretRef.Name)
 	}
-	apiKeyByte, ok := secret.Data["slackAPIKey"]
+	apiKeyByte, ok := secret.Data[instance.Spec.NotificationSecretRef.Key]
 	if !ok {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"slackAPIKey\"", instance.Namespace, instance.Spec.SlackAPISecret)
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"slackAPIKey\"", instance.Namespace, instance.Spec.NotificationSecretRef.Name)
 	}
 	apiKey := string(apiKeyByte)
 
-	// Send Slack Notification if ChannelName is set
-	if instance.Spec.SlackChannelName != "" {
+	var messageColor, messageText, messageTitle string
+	if instance.Status.Status == summonv1beta1.StatusError {
+		messageColor = "#FF0000"
+		messageText = instance.Status.Message
+		messageTitle = "Error"
+	} else {
+		messageColor = "#36a64f"
+		messageText = ""
+		messageTitle = "Deployed"
+	}
 
-		alertText := "Test"
+	rawPayloadMessage := PayloadMessage{
+		Channel: instance.Spec.SlackChannelName,
+		Token:   apiKey,
+		Text:    messageText,
+		Attachments: []Attachments{
+			{
+				Color:      messageColor,
+				AuthorName: "Kubernetes Alert",
+				Title:      instance.Spec.Hostname,
+				TitleLink:  instance.Spec.Hostname,
+				Fields: []Fields{
+					{
+						Title: messageTitle,
+						Value: instance.Spec.Version,
+					},
+				},
+			},
+		},
+	}
+	payload, err := json.Marshal(rawPayloadMessage)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
+	}
 
-		// Check if we are running tests
-		dryRunEnv := os.Getenv("DRY_RUN")
-		var dryRun bool
-		if dryRunEnv != "" {
-			dryRun = true
-		}
-
-		// If running tests create mock HTTP server and direct requests to it.
-		var postURL string
-		if dryRun {
-			testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				requestBody, err := ioutil.ReadAll(r.Body)
-				var badRequest bool
-				if err != nil {
-					badRequest = true
-				}
-				type jsonStruct struct {
-					Token   string `json:"token"`
-					Channel string `json:"channel"`
-					Text    string `json:"text"`
-				}
-				var jsonPayload *jsonStruct
-				err = json.Unmarshal(requestBody, &jsonPayload)
-				if err != nil {
-					badRequest = true
-				}
-				if jsonPayload.Token != apiKey || jsonPayload.Channel != instance.Spec.SlackChannelName || jsonPayload.Text != alertText {
-					badRequest = true
-				}
-				if badRequest {
-					w.WriteHeader(http.StatusBadRequest)
-				} else {
-					w.WriteHeader(http.StatusOK)
-				}
-
-			}))
-			defer testServer.Close()
-			postURL = testServer.URL
-		} else {
-			// Hardcoding this for now.
-			postURL = ""
-		}
-		// Send POST request
-		rawPayload := map[string]string{"token": apiKey, "channel": instance.Spec.SlackChannelName, "text": alertText}
-		payload, err := json.Marshal(rawPayload)
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
-		}
-
-		resp, err := http.Post(postURL, "application/json", bytes.NewBuffer(payload))
-		// Test if the request was actually sent, and make sure we got a 200
-		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
-		}
-		if resp.StatusCode != http.StatusOK {
-			return reconcile.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v", resp.StatusCode)
-		}
+	resp, err := http.Post(instance.Spec.SlackAPIEndpoint, "application/json", bytes.NewBuffer(payload))
+	// Test if the request was actually sent, and make sure we got a 200
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
+	}
+	// Set body to close after function call to avoid errors
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return reconcile.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v", resp.StatusCode)
 	}
 
 	// Update NotifyVersion if it needs to be changed.
