@@ -34,6 +34,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const slackEndpoint = "https://slack.com/api/chat.postMessage"
+
 type notificationComponent struct{}
 
 // Fields is nested inside of of Attachments for building Json payload
@@ -90,6 +92,10 @@ func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentConte
 func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	slackURL := instance.Spec.SlackAPIEndpoint
+	if slackURL == "" {
+		slackURL = slackEndpoint
+	}
 	// Try to find the Slack API Key
 	secret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.NotificationSecretRef.Name, Namespace: instance.Namespace}, secret)
@@ -109,7 +115,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
 	}
 
-	resp, err := http.Post(instance.Spec.SlackAPIEndpoint, "application/json", bytes.NewBuffer(payload))
+	resp, err := http.Post(slackURL, "application/json", bytes.NewBuffer(payload))
 	// Test if the request was actually sent, and make sure we got a 200
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
