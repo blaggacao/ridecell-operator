@@ -69,6 +69,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	if instance.Spec.StaticReplicas == nil {
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
+	if instance.Spec.SlackAPIEndpoint == "" {
+		instance.Spec.SlackAPIEndpoint = "https://slack.com/api/chat.postMessage"
+	}
 
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {

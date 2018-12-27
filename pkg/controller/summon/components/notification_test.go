@@ -37,25 +37,56 @@ var _ = Describe("notifications Component", func() {
 
 	BeforeEach(func() {
 		instance.Spec.SlackChannelName = "test-channel"
-		instance.Spec.SlackAPIEndpoint = "10.0.0.1"
+		instance.Spec.SlackAPIEndpoint = "foo"
 	})
 
-	It("Check if reconcilable without SlackChannel set", func() {
-		instance.Spec.SlackChannelName = ""
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
-	})
+	Describe("isReconcilable", func() {
+		It("Check if reconcilable without SlackChannel set", func() {
+			instance.Spec.SlackChannelName = ""
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		})
 
-	It("Check if reconcilable without SlackAPIEndpoint set", func() {
-		instance.Spec.SlackAPIEndpoint = ""
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
-	})
+		It("Check if reconcilable without SlackAPIEndpoint set", func() {
+			instance.Spec.SlackAPIEndpoint = ""
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		})
 
-	It("Set StatusReady, match versions", func() {
-		instance.Status.Status = summonv1beta1.StatusReady
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		It("Set StatusReady, match versions", func() {
+			instance.Status.Status = summonv1beta1.StatusReady
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		})
+
+		It("Set StatusError, match versions, match errors", func() {
+			instance.Status.Status = summonv1beta1.StatusError
+			errorMessage := "testError"
+			instance.Status.Message = errorMessage
+
+			s := sha1.New()
+			hash := s.Sum([]byte(errorMessage))
+			encodedHash := hex.EncodeToString(hash)
+			instance.Status.Notification.LastErrorHash = encodedHash
+
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		})
+
+		It("Set StatusError, mismatch versions", func() {
+			instance.Status.Status = summonv1beta1.StatusError
+			instance.Status.Message = "testError"
+			instance.Status.Notification.NotifyVersion = "v9000.1"
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		})
+
+		It("Set StatusError, match versions, mismatch errors", func() {
+			instance.Status.Status = summonv1beta1.StatusError
+			instance.Status.Message = "testError"
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		})
 	})
 
 	It("Set StatusReady, mismatch versions", func() {
@@ -79,35 +110,6 @@ var _ = Describe("notifications Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(instance.Spec.Version).To(Equal(instance.Status.Notification.NotifyVersion))
-	})
-
-	It("Set StatusError, match versions, match errors", func() {
-		instance.Status.Status = summonv1beta1.StatusError
-		errorMessage := "testError"
-		instance.Status.Message = errorMessage
-
-		s := sha1.New()
-		hash := s.Sum([]byte(errorMessage))
-		encodedHash := hex.EncodeToString(hash)
-		instance.Status.Notification.LastErrorHash = encodedHash
-
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
-	})
-
-	It("Set StatusError, mismatch versions", func() {
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.Message = "testError"
-		instance.Status.Notification.NotifyVersion = "v9000.1"
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-	})
-
-	It("Set StatusError, match versions, mismatch errors", func() {
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.Message = "testError"
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
 	})
 
 	It("Set StatusError, match versions, mistmatch errors, reconcile", func() {
@@ -134,7 +136,8 @@ var _ = Describe("notifications Component", func() {
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(instance.Status.Notification.LastErrorHash).To(Equal(comp.HashStatus(errorMessage)))
+
+		Expect(instance.Status.Notification.LastErrorHash).To(Equal("746573744572726f72da39a3ee5e6b4b0d3255bfef95601890afd80709"))
 	})
 })
 
@@ -149,7 +152,7 @@ func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor strin
 		if err != nil {
 			badRequest = true
 		}
-		expectedPayloadMessage := &summoncomponents.PayloadMessage{
+		expectedPayload := &summoncomponents.Payload{
 			Channel: instance.Spec.SlackChannelName,
 			Token:   fakeAPIKey,
 			Text:    messageText,
@@ -169,13 +172,13 @@ func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor strin
 			},
 		}
 
-		var payloadMessage *summoncomponents.PayloadMessage
-		err = json.Unmarshal(requestBody, &payloadMessage)
+		var payload *summoncomponents.Payload
+		err = json.Unmarshal(requestBody, &payload)
 		if err != nil {
 			badRequest = true
 		}
 
-		Expect(payloadMessage).To(Equal(expectedPayloadMessage))
+		Expect(payload).To(Equal(expectedPayload))
 
 		if badRequest {
 			w.WriteHeader(http.StatusBadRequest)

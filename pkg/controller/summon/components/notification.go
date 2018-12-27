@@ -21,6 +21,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -41,7 +42,7 @@ type Fields struct {
 	Value string `json:"value"`
 }
 
-// Attachments is nested inside of PayloadMessage for building Json payload
+// Attachments is nested inside of Payload for building Json payload
 type Attachments struct {
 	Color      string   `json:"color"`
 	AuthorName string   `json:"author_name"`
@@ -50,8 +51,8 @@ type Attachments struct {
 	Fields     []Fields `json:"fields"`
 }
 
-// PayloadMessage is the base structure for building Json payload
-type PayloadMessage struct {
+// Payload is the base structure for building Json payload
+type Payload struct {
 	Channel     string        `json:"channel"`
 	Token       string        `json:"token"`
 	Text        string        `json:"text"`
@@ -70,11 +71,11 @@ func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentConte
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Don't send notification is slackChannel or slackApiEndpoint are not defined.
-	if instance.Spec.SlackChannelName == "" || instance.Spec.SlackAPIEndpoint == "" {
+	if instance.Spec.SlackChannelName == "" {
 		return false
 	}
 	if instance.Status.Status == summonv1beta1.StatusReady || instance.Status.Status == summonv1beta1.StatusError {
-		hashedError := comp.HashStatus(instance.Status.Message)
+		hashedError := comp.hashStatus(instance.Status.Message)
 		if comp.isMismatchedVersion(ctx) {
 			return true
 
@@ -97,10 +98,65 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 	apiKeyByte, ok := secret.Data[instance.Spec.NotificationSecretRef.Key]
 	if !ok {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"slackAPIKey\"", instance.Namespace, instance.Spec.NotificationSecretRef.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"%s\"", instance.Namespace, instance.Spec.NotificationSecretRef.Name, instance.Spec.NotificationSecretRef.Key)
 	}
 	apiKey := string(apiKeyByte)
 
+	rawPayload := comp.formatPayload(ctx, apiKey)
+
+	payload, err := json.Marshal(rawPayload)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
+	}
+
+	resp, err := http.Post(instance.Spec.SlackAPIEndpoint, "application/json", bytes.NewBuffer(payload))
+	// Test if the request was actually sent, and make sure we got a 200
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
+	}
+	// Set body to close after function call to avoid errors
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return reconcile.Result{}, errors.Errorf("notifications: Failed to read body from non 200 HTTP StatusCode")
+		}
+		return reconcile.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v, body of response = %#v", resp.StatusCode, body)
+	}
+
+	// Update NotifyVersion if it needs to be changed.
+	if comp.isMismatchedVersion(ctx) {
+		instance.Status.Notification.NotifyVersion = instance.Spec.Version
+	}
+
+	// Update LastErrorHash if it needs to be updated.
+	encodedHash := comp.hashStatus(instance.Status.Message)
+	if comp.isMismatchedError(ctx, encodedHash) {
+		instance.Status.Notification.LastErrorHash = encodedHash
+	}
+
+	return reconcile.Result{}, nil
+}
+
+func (comp *notificationComponent) hashStatus(status string) string {
+	// Turns instance.Status.Message into sha1 -> hex -> string
+	hash := sha1.New().Sum([]byte(status))
+	encodedHash := hex.EncodeToString(hash)
+	return encodedHash
+}
+
+func (comp *notificationComponent) isMismatchedVersion(ctx *components.ComponentContext) bool {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	return instance.Spec.Version != instance.Status.Notification.NotifyVersion
+}
+
+func (comp *notificationComponent) isMismatchedError(ctx *components.ComponentContext, errorHash string) bool {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	return instance.Status.Status == summonv1beta1.StatusError && errorHash != instance.Status.Notification.LastErrorHash
+}
+
+func (comp *notificationComponent) formatPayload(ctx *components.ComponentContext, apiKey string) Payload {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	var messageColor, messageText, messageTitle string
 	if instance.Status.Status == summonv1beta1.StatusError {
 		messageColor = "#FF0000"
@@ -112,7 +168,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		messageTitle = "Deployed"
 	}
 
-	rawPayloadMessage := PayloadMessage{
+	rawPayload := Payload{
 		Channel: instance.Spec.SlackChannelName,
 		Token:   apiKey,
 		Text:    messageText,
@@ -131,57 +187,6 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 			},
 		},
 	}
-	payload, err := json.Marshal(rawPayloadMessage)
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
-	}
 
-	resp, err := http.Post(instance.Spec.SlackAPIEndpoint, "application/json", bytes.NewBuffer(payload))
-	// Test if the request was actually sent, and make sure we got a 200
-	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
-	}
-	// Set body to close after function call to avoid errors
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return reconcile.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v", resp.StatusCode)
-	}
-
-	// Update NotifyVersion if it needs to be changed.
-	if comp.isMismatchedVersion(ctx) {
-		instance.Status.Notification.NotifyVersion = instance.Spec.Version
-	}
-
-	// Update LastErrorHash if it needs to be updated.
-	encodedHash := comp.HashStatus(instance.Status.Message)
-	if comp.isMismatchedError(ctx, encodedHash) {
-		instance.Status.Notification.LastErrorHash = encodedHash
-	}
-
-	return reconcile.Result{}, nil
-}
-
-func (comp *notificationComponent) HashStatus(status string) string {
-	// Turns instance.Status.Message into sha1 -> hex -> string
-	hash := sha1.New().Sum([]byte(status))
-	encodedHash := hex.EncodeToString(hash)
-	return encodedHash
-}
-
-func (comp *notificationComponent) isMismatchedVersion(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Spec.Version != instance.Status.Notification.NotifyVersion {
-		return true
-	}
-	return false
-}
-
-func (comp *notificationComponent) isMismatchedError(ctx *components.ComponentContext, errorHash string) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Status.Status == summonv1beta1.StatusError {
-		if errorHash != instance.Status.Notification.LastErrorHash {
-			return true
-		}
-	}
-	return false
+	return rawPayload
 }
