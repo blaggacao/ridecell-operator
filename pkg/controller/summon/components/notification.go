@@ -34,7 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const slackEndpoint = "https://slack.com/api/chat.postMessage"
+const defaultSlackEndpoint = "https://slack.com/api/chat.postMessage"
 
 type notificationComponent struct{}
 
@@ -94,7 +94,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 
 	slackURL := instance.Spec.SlackAPIEndpoint
 	if slackURL == "" {
-		slackURL = slackEndpoint
+		slackURL = defaultSlackEndpoint
 	}
 	// Try to find the Slack API Key
 	secret := &corev1.Secret{}
