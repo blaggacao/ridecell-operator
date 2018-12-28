@@ -76,16 +76,12 @@ func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentConte
 	if instance.Spec.SlackChannelName == "" {
 		return false
 	}
-	if instance.Status.Status == summonv1beta1.StatusReady || instance.Status.Status == summonv1beta1.StatusError {
+	if instance.Status.Status == summonv1beta1.StatusReady {
+		return comp.isMismatchedVersion(ctx)
+	} else if instance.Status.Status == summonv1beta1.StatusError {
 		hashedError := comp.hashStatus(instance.Status.Message)
-		if comp.isMismatchedVersion(ctx) {
-			return true
-
-		} else if comp.isMismatchedError(ctx, hashedError) {
-			return true
-		}
+		return comp.isMismatchedError(ctx, hashedError)
 	}
-
 	return false
 }
 
@@ -131,13 +127,13 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 
 	// Update NotifyVersion if it needs to be changed.
-	if comp.isMismatchedVersion(ctx) {
+	if instance.Status.Status == summonv1beta1.StatusReady && comp.isMismatchedVersion(ctx) {
 		instance.Status.Notification.NotifyVersion = instance.Spec.Version
 	}
 
 	// Update LastErrorHash if it needs to be updated.
 	encodedHash := comp.hashStatus(instance.Status.Message)
-	if comp.isMismatchedError(ctx, encodedHash) {
+	if instance.Status.Status == summonv1beta1.StatusError && comp.isMismatchedError(ctx, encodedHash) {
 		instance.Status.Notification.LastErrorHash = encodedHash
 	}
 

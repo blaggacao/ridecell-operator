@@ -87,9 +87,24 @@ var _ = Describe("notifications Component", func() {
 			comp := summoncomponents.NewNotification()
 			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
 		})
+
+		It("Set StatusError, mismatch versions, match errors", func() {
+			instance.Status.Status = summonv1beta1.StatusError
+			instance.Status.Notification.NotifyVersion = "v9000.1"
+			errorMessage := "testError"
+			instance.Status.Message = errorMessage
+
+			s := sha1.New()
+			hash := s.Sum([]byte(errorMessage))
+			encodedHash := hex.EncodeToString(hash)
+			instance.Status.Notification.LastErrorHash = encodedHash
+			comp := summoncomponents.NewNotification()
+			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("v9000.1"))
+		})
 	})
 
-	It("Set StatusReady, mismatch versions", func() {
+	It("Set StatusReady, mismatch versions, reconcile", func() {
 		instance.Status.Status = summonv1beta1.StatusReady
 		instance.Status.Notification.NotifyVersion = "v9000.1"
 		fakeAPIKey := "testAPIKey"
