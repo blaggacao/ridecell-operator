@@ -34,7 +34,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-const timeout = time.Second * 5
+const timeout = time.Second * 20
 
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers

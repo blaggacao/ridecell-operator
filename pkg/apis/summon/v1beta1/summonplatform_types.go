@@ -101,6 +101,9 @@ type SummonPlatformStatus struct {
 	// Current Postgresql status if one exists.
 	PostgresStatus postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
 
+	// Status of the required Postgres extensions (collectively).
+	PostgresExtensionStatus string `json:"postgresExtensionStatus,omitempty"`
+
 	// Previous version for which migrations ran successfully.
 	// +optional
 	MigrateVersion string `json:"migrateVersion,omitempty"`

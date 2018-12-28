@@ -28,10 +28,16 @@ rules:
   resources: [postgresqls]
   verbs: ["*"]
 - apiGroups: [summon.ridecell.io]
-  resources: [summonplatforms, summonplatforms/status]
+  resources: ["*"]
   verbs: [get, list, watch, update]
 - apiGroups: [summon.ridecell.io]
   resources: [djangousers, djangousers/status]
+  verbs: ["*"]
+- apiGroups: [secrets.ridecell.io]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: [db.ridecell.io]
+  resources: ["*"]
   verbs: ["*"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -68,7 +74,7 @@ spec:
       containers:
       - name: default
         image: us.gcr.io/ridecell-1/ridecell-operator:{{ .Values.tag | required "tag is required" }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         resources:
           limits:
             cpu: 100m

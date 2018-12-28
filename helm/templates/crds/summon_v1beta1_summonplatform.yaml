@@ -64,6 +64,8 @@ spec:
                 notifyVersion:
                   type: string
               type: object
+            postgresExtensionStatus:
+              type: string
             postgresStatus:
               type: string
             pullSecretStatus:

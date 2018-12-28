@@ -6,7 +6,8 @@ all: test manager
 
 # Run tests
 test: generate fmt vet manifests
-	ginkgo ./pkg/... ./cmd/... -cover -coverprofile cover.out -race -progress
+	ginkgo --randomizeAllSpecs --randomizeSuites --cover --trace --race --progress ./pkg/... ./cmd/...
+	gover
 
 # Build manager binary
 manager: generate fmt vet
@@ -51,3 +52,16 @@ docker-build: test
 # Push the docker image
 docker-push:
 	docker push ${IMG}
+
+# Install tools
+tools:
+	if ! type dep >/dev/null; then go get github.com/golang/dep/cmd/dep; fi
+	go get -u github.com/onsi/ginkgo/ginkgo github.com/modocache/gover github.com/mattn/goveralls
+
+# Install dependencies
+dep: tools
+	dep ensure
+
+# Display a coverage report
+cover:
+	go tool cover -html=gover.coverprofile

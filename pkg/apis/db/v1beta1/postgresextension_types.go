@@ -20,17 +20,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// PullSecretSpec defines the desired state of PullSecret
-type PullSecretSpec struct {
-	// Name of the secret to create. Defaults to the name of the PullSecret
-	// +optional
-	SecretName string `json:"secretName,omitempty"`
-
-	// Should the source secret name be configurable or is that overkill?
+// PostgresExtensionSpec defines the desired state of PostgresExtension
+type PostgresExtensionSpec struct {
+	ExtensionName string             `json:"extensionName,omitempty"`
+	Version       string             `json:"version,omitempty"`
+	Database      PostgresConnection `json:"database"`
 }
 
-// PullSecretStatus defines the observed state of PullSecret
-type PullSecretStatus struct {
+// PostgresExtensionStatus defines the observed state of PostgresExtension
+type PostgresExtensionStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
@@ -38,26 +36,26 @@ type PullSecretStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PullSecret is the Schema for the PullSecrets API
+// PostgresExtension is the Schema for the PostgresExtensions API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-type PullSecret struct {
+type PostgresExtension struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PullSecretSpec   `json:"spec,omitempty"`
-	Status PullSecretStatus `json:"status,omitempty"`
+	Spec   PostgresExtensionSpec   `json:"spec,omitempty"`
+	Status PostgresExtensionStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PullSecretList contains a list of PullSecret
-type PullSecretList struct {
+// PostgresExtensionList contains a list of PostgresExtension
+type PostgresExtensionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PullSecret `json:"items"`
+	Items           []PostgresExtension `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PullSecret{}, &PullSecretList{})
+	SchemeBuilder.Register(&PostgresExtension{}, &PostgresExtensionList{})
 }
