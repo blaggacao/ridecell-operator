@@ -58,7 +58,7 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Extensions not installed yet.
 		return false
 	}
-	if instance.Status.PullSecretStatus.Status != secretsv1beta1.StatusReady {
+	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		// Pull secret not ready yet.
 		return false
 	}

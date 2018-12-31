@@ -55,7 +55,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		existing := existingObj.(*secretsv1beta1.PullSecret)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
-		instance.Status.PullSecretStatus = existing.Status
+		instance.Status.PullSecretStatus = existing.Status.Status
 		return nil
 	})
 	return res, err

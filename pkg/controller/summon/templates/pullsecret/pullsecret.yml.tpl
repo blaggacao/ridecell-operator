@@ -4,4 +4,4 @@ metadata:
   name: {{ .Instance.Name }}-pullsecret
   namespace: {{ .Instance.Namespace }}
 spec:
-  pullSecretName: {{ .Instance.Name }}-secrets.ridecell.us
+  pullSecretName: {{ .Instance.Spec.PullSecret }}

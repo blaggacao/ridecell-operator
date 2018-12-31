@@ -45,7 +45,7 @@ func (comp *statefulsetComponent) WatchTypes() []runtime.Object {
 func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Check on the pull secret. Not technically needed in some cases, but just wait.
-	if instance.Status.PullSecretStatus.Status != secretsv1beta1.StatusReady {
+	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		return false
 	}
 	// If we don't need the database, we're ready.

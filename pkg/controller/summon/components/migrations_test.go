@@ -71,7 +71,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 				instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
-				instance.Status.PullSecretStatus.Status = secretsv1beta1.StatusReady
+				instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 			})
 
 			It("returns true", func() {
@@ -85,7 +85,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			BeforeEach(func() {
 				instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 				instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
-				instance.Status.PullSecretStatus.Status = secretsv1beta1.StatusReady
+				instance.Status.PullSecretStatus = secretsv1beta1.StatusReady
 				instance.Status.MigrateVersion = "1.2.3"
 			})
 

@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -58,10 +57,8 @@ type SummonPlatformSpec struct {
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
 	PullSecret string `json:"pullSecret,omitempty"`
-
 	// Summon-platform.yml configuration options.
 	Config map[string]ConfigValue `json:"config,omitempty"`
-
 	// Number of gunicorn pods to run. Defaults to 1.
 	// +optional
 	WebReplicas *int32 `json:"web_replicas,omitempty"`
@@ -97,7 +94,7 @@ type SummonPlatformStatus struct {
 	Message string `json:"message,omitempty"`
 
 	// Status of the pull secret.
-	PullSecretStatus secretsv1beta1.PullSecretStatus `json:"pullSecretStatus,omitempty"`
+	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
 
 	// Current Postgresql status if one exists.
 	PostgresStatus postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`
