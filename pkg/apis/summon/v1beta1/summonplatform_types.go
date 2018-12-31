@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -96,7 +97,7 @@ type SummonPlatformStatus struct {
 	Message string `json:"message,omitempty"`
 
 	// Status of the pull secret.
-	PullSecretStatus string `json:"pullSecretStatus,omitempty"`
+	PullSecretStatus secretsv1beta1.PullSecretStatus `json:"pullSecretStatus,omitempty"`
 
 	// Current Postgresql status if one exists.
 	PostgresStatus postgresv1.PostgresStatus `json:"postgresStatus,omitempty"`

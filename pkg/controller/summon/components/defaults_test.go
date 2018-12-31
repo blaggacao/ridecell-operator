@@ -33,7 +33,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:              "foo.example.com",
-			PullSecret:            "foo-secret",
 			WebReplicas:           intp(2),
 			DaphneReplicas:        intp(2),
 			ChannelWorkerReplicas: intp(2),
@@ -44,7 +43,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
-		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -53,7 +51,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 	It("sets a default hostname", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
-			PullSecret:            "foo-secret",
 			WebReplicas:           intp(2),
 			DaphneReplicas:        intp(2),
 			ChannelWorkerReplicas: intp(2),
@@ -64,27 +61,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.Hostname).To(Equal("foo.ridecell.us"))
-		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
-		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
-		Expect(instance.Spec.StaticReplicas).To(PointTo(BeEquivalentTo(2)))
-	})
-
-	It("sets a default pull secret", func() {
-		instance.Spec = summonv1beta1.SummonPlatformSpec{
-			Hostname:              "foo.example.com",
-			WebReplicas:           intp(2),
-			DaphneReplicas:        intp(2),
-			ChannelWorkerReplicas: intp(2),
-			StaticReplicas:        intp(2),
-		}
-
-		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
-		Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -94,7 +70,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("sets a default web replicas", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:              "foo.example.com",
-			PullSecret:            "foo-secret",
 			DaphneReplicas:        intp(2),
 			ChannelWorkerReplicas: intp(2),
 			StaticReplicas:        intp(2),
@@ -104,7 +79,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
-		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(1)))
 		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -114,7 +88,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("allows 0 web replicas", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:              "foo.example.com",
-			PullSecret:            "foo-secret",
 			WebReplicas:           intp(0),
 			DaphneReplicas:        intp(2),
 			ChannelWorkerReplicas: intp(2),
@@ -125,7 +98,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
-		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(0)))
 		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))

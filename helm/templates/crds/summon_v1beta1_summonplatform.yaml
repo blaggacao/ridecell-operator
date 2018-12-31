@@ -69,7 +69,12 @@ spec:
             postgresStatus:
               type: string
             pullSecretStatus:
-              type: string
+              properties:
+                message:
+                  type: string
+                status:
+                  type: string
+              type: object
             status:
               type: string
           type: object
