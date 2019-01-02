@@ -24,7 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -70,11 +69,7 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 	target := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: operatorNamespace}, target)
 	if err != nil {
-		if kerrors.IsNotFound(err) {
-			instance.Status.PullSecretStatus = summonv1beta1.StatusErrorSecretNotFound
-		} else {
-			instance.Status.PullSecretStatus = summonv1beta1.StatusError
-		}
+		instance.Status.PullSecretStatus = summonv1beta1.StatusError
 		return reconcile.Result{Requeue: true}, err
 	}
 

@@ -17,6 +17,7 @@ limitations under the License.
 package components
 
 import (
+	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -45,14 +46,30 @@ func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	var existing *postgresv1.Postgresql
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*postgresv1.Postgresql)
-		existing := existingObj.(*postgresv1.Postgresql)
-		// Store the postgres status.
-		instance.Status.PostgresStatus = existing.Status
+		existing = existingObj.(*postgresv1.Postgresql)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
 	})
+	instance.Status.PostgresStatus = existing.Status
+	if err != nil {
+		return res, err
+	}
+	if !existing.Status.Success() {
+		// I honestly can't tell how this field works. I think it's just ignored by the CRD entirely. Trying to play both sides just in case.
+		if existing.Error == "" {
+			err = errors.Errorf("postgres: status is %s", existing.Status)
+		} else {
+			err = errors.Errorf("postgres: status is %s: %s", existing.Status, existing.Error)
+		}
+		return reconcile.Result{}, err
+	}
+	if existing.Status != postgresv1.ClusterStatusUnknown {
+		// DB creation was started, and we already checked if something went wrong so we are at least up to initializing.
+		instance.Status.Status = summonv1beta1.StatusInitializing
+	}
 	return res, err
 }

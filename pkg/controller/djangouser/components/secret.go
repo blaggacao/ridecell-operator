@@ -91,7 +91,5 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to save secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 
-	instance.Status.Status = summonv1beta1.StatusSecretCreated
-
 	return reconcile.Result{}, nil
 }

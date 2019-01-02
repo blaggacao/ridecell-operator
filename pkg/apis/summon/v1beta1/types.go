@@ -17,13 +17,9 @@ limitations under the License.
 package v1beta1
 
 const (
-	StatusPostgresInitializing     = "PostgresInitializing"
-	StatusPostgresDatabaseCreating = "PostgresDatabaseCreating"
-	StatusRabbitVhostCreating      = "RabbitVhostCreating"
-	StatusSecretCreated            = "SecretCreated"
-	StatusMigrating                = "Migrating"
-	StatusDeploying                = "Deploying"
-	StatusReady                    = "Ready"
-	StatusError                    = "Error"
-	StatusErrorSecretNotFound      = "Error: Secret not found"
+	StatusInitializing = "Initializing"
+	StatusMigrating    = "Migrating"
+	StatusDeploying    = "Deploying"
+	StatusReady        = "Ready"
+	StatusError        = "Error"
 )

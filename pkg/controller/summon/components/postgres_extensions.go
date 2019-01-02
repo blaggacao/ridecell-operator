@@ -93,6 +93,7 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 	} else if existingPostgis.Status.Status == dbv1beta1.StatusReady && existingPostgisToplogy.Status.Status == dbv1beta1.StatusReady {
 		// Both are ready, we're good to go!
 		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
+		instance.Status.Status = summonv1beta1.StatusInitializing
 	} else {
 		// Something else, probably still initial setup where upstream status is still "".
 		instance.Status.PostgresExtensionStatus = ""
