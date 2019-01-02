@@ -1,0 +1,74 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    controller-tools.k8s.io: "1.0"
+  name: postgresextensions.db.ridecell.io
+spec:
+  group: db.ridecell.io
+  names:
+    kind: PostgresExtension
+    plural: postgresextensions
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          properties:
+            database:
+              properties:
+                database:
+                  type: string
+                host:
+                  type: string
+                passwordSecretRef:
+                  properties:
+                    key:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - name
+                  type: object
+                port:
+                  type: uint16
+                username:
+                  type: string
+              required:
+              - host
+              - username
+              - passwordSecretRef
+              type: object
+            extensionName:
+              type: string
+            version:
+              type: string
+          required:
+          - database
+          type: object
+        status:
+          properties:
+            message:
+              type: string
+            status:
+              type: string
+          required:
+          - status
+          - message
+          type: object
+  version: v1beta1
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
