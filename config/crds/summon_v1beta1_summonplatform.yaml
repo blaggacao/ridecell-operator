@@ -32,6 +32,19 @@ spec:
               type: string
             secret:
               type: string
+            secretRef:
+              properties:
+                key:
+                  type: string
+                name:
+                  type: string
+              required:
+              - name
+              type: object
+            slackApiEndpoint:
+              type: string
+            slackChannelName:
+              type: string
             version:
               type: string
           required:
@@ -44,6 +57,13 @@ spec:
               type: string
             migrateVersion:
               type: string
+            notification:
+              properties:
+                lastErrorHash:
+                  type: string
+                notifyVersion:
+                  type: string
+              type: object
             postgresExtensionStatus:
               type: string
             postgresStatus:

@@ -70,6 +70,10 @@ func Add(mgr manager.Manager) error {
 
 		// End of converge status checks.
 		summoncomponents.NewStatus(),
+
+		// Notification componenets.
+		// Keep Notification at the end of this block
+		summoncomponents.NewNotification(),
 	})
 	return err
 }
