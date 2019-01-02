@@ -138,7 +138,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 
 		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Status.Status).To(Equal(""))
+		Expect(instance.Status.Status).To(Equal("Initializing"))
 		Expect(instance.Status.Message).To(Equal(""))
 		Expect(instance.Status.PostgresExtensionStatus).To(Equal(summonv1beta1.StatusReady))
 	})

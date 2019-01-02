@@ -88,10 +88,10 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				instance.Status.MigrateVersion = "1.2.3"
 			})
 
-			It("returns false", func() {
+			It("returns true", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				ok := comp.IsReconcilable(ctx)
-				Expect(ok).To(BeFalse())
+				Expect(ok).To(BeTrue())
 			})
 		})
 	})
@@ -181,7 +181,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 			It("leaves the migration", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
 				_, err := comp.Reconcile(ctx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(err).To(HaveOccurred())
 
 				job := &batchv1.Job{}
 				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)

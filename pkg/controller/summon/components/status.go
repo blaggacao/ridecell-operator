@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -106,7 +107,8 @@ func (comp *statusComponent) get(ctx *components.ComponentContext, part string, 
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	name := types.NamespacedName{Name: fmt.Sprintf("%s-%s", instance.Name, part), Namespace: instance.Namespace}
 	err := ctx.Get(ctx.Context, name, obj)
-	if err != nil {
+	// If it's a NotFound error, just ignore it since we don't want to that to fail things and the zero value will fail later on.
+	if err != nil && !kerrors.IsNotFound(err) {
 		return errors.Wrapf(err, "status: unable to get Deployment or StatefulSet %s for %s subsystem", name, part)
 	}
 	return nil

@@ -349,8 +349,9 @@ var _ = Describe("Summon controller", func() {
 		// Set deployments and statefulsets to ready.
 		updateDeployment := func(s string) {
 			deployment := &appsv1.Deployment{}
-			err = c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, deployment)
-			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() error {
+				return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, deployment)
+			}, timeout).Should(Succeed())
 			deployment.Status.Replicas = 1
 			deployment.Status.ReadyReplicas = 1
 			deployment.Status.AvailableReplicas = 1
@@ -359,7 +360,9 @@ var _ = Describe("Summon controller", func() {
 		}
 		updateStatefulSet := func(s string) {
 			statefulset := &appsv1.StatefulSet{}
-			err = c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, statefulset)
+			Eventually(func() error {
+				return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, statefulset)
+			}, timeout).Should(Succeed())
 			Expect(err).NotTo(HaveOccurred())
 			statefulset.Status.Replicas = 1
 			statefulset.Status.ReadyReplicas = 1
