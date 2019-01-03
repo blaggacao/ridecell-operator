@@ -50,7 +50,7 @@ func (comp *appSecretComponent) WatchTypes() []runtime.Object {
 func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning || instance.Status.PostgresExtensionStatus != dbv1beta1.StatusReady {
+	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
 		return false
 	}
 	return true
@@ -72,7 +72,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	}
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
-		return reconcile.Result{}, errors.Wrapf(err, "app_secrets: Postgres password not found in secret")
+		return reconcile.Result{}, errors.New("app_secrets: Postgres password not found in secret")
 	}
 
 	appSecrets.Data["DATABASE_URL"] = []byte(fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name))
