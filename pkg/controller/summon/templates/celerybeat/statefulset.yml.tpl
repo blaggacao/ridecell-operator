@@ -27,40 +27,6 @@ spec:
     spec:
       imagePullSecrets:
       - name: pull-secret
-      initContainers:
-      - name: init
-        image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
-        imagePullPolicy: Always
-        resources:
-          requests:
-            memory: 4M
-            cpu: 10m
-          limits:
-            memory: 8M
-            cpu: 10m
-        volumeMounts:
-        - name: config-volume
-          mountPath: /etc/config
-        - name: secrets-orig
-          mountPath: /etc/secrets-orig
-        - name: app-secrets
-          mountPath: /etc/secrets
-        - name: postgres-credentials
-          mountPath: /postgres-credentials
-      - name: volumeperms
-        image: alpine:latest
-        command: [chown, "1000:1000", /schedule]
-        resources:
-          requests:
-            memory: 4M
-            cpu: 10m
-          limits:
-            memory: 8M
-            cpu: 10m
-        volumeMounts:
-        - name: beat-state
-          mountPath: /schedule
-
       containers:
       - name: default
         image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
@@ -91,9 +57,6 @@ spec:
         - name: app-secrets
           secret:
             secretName: summon.{{ .Instance.Name }}.app-secrets
-        - name: postgres-credentials
-          secret:
-            secretName: summon.{{ .Instance.Name }}-database.credentials
   volumeClaimTemplates:
   - metadata:
       name: beat-state

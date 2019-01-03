@@ -27,7 +27,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,8 +47,12 @@ func (comp *appSecretComponent) WatchTypes() []runtime.Object {
 	}
 }
 
-func (_ *appSecretComponent) IsReconcilable(_ *components.ComponentContext) bool {
-	// Secrets have no dependencies, always reconcile.
+func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning || instance.Status.PostgresExtensionStatus != dbv1beta1.StatusReady {
+		return false
+	}
 	return true
 }
 
@@ -64,7 +70,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	if err != nil {
 		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
 	}
-	postgresPassword := postgresSecret.Data["password"]
+	postgresPassword, ok := postgresSecret.Data["password"]
+	if !ok {
+		return reconcile.Result{}, errors.Wrapf(err, "app_secrets: Postgres password not found in secret")
+	}
 
 	appSecrets.Data["DATABASE_URL"] = []byte(fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name))
 	appSecrets.Data["OUTBOUNDSMS_URL"] = []byte(fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name))
@@ -78,7 +87,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 
 	newSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
-		StringData: map[string]string{"summon-platform.yml": string(parsedYaml)},
+		Data:       map[string][]byte{"summon-platform.yml": parsedYaml},
 	}
 
 	fetchTarget := &corev1.Secret{}
@@ -92,9 +101,13 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(fetchTarget runtime.Object) error {
 		existing := fetchTarget.(*corev1.Secret)
 		// Sync important fields.
+		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
+		if err != nil {
+			return err
+		}
 		existing.ObjectMeta = newSecret.ObjectMeta
 		existing.Type = newSecret.Type
-		existing.StringData = newSecret.StringData
+		existing.Data = newSecret.Data
 		return nil
 	})
 

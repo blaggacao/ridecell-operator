@@ -26,24 +26,25 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("app_secrets Component", func() {
 
-	It("Should fail if postgres password not set", func() {
+	It("Unreconcilable when db not ready", func() {
 		comp := summoncomponents.NewAppSecret()
-
-		ctx.Client = fake.NewFakeClient()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		fmt.Printf(err.Error())
+		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
 	})
 
 	It("Sets postgres password and checks reconcile output", func() {
 		comp := summoncomponents.NewAppSecret()
+		instance.Status.PostgresExtensionStatus = dbv1beta1.StatusReady
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
 
 		postgresSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
@@ -58,7 +59,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
-		byteData := []byte(fetchSecret.StringData["summon-platform.yml"])
+		byteData := fetchSecret.Data["summon-platform.yml"]
 		var parsedYaml map[string][]byte
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
