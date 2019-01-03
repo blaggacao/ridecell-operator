@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
