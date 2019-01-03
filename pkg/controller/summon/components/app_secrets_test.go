@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -40,11 +39,36 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
 	})
 
-	It("Sets postgres password and checks reconcile output", func() {
+	It("Reconcilable when db is ready", func() {
 		comp := summoncomponents.NewAppSecret()
-		instance.Status.PostgresExtensionStatus = dbv1beta1.StatusReady
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+	})
+
+	It("Run reconcile without a postgres password", func() {
+		comp := summoncomponents.NewAppSecret()
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("Run reconcile with a blank postgres password", func() {
+		comp := summoncomponents.NewAppSecret()
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+
+		postgresSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{},
+		}
+		ctx.Client = fake.NewFakeClient(postgresSecret)
+		_, err := comp.Reconcile(ctx)
+		Expect(err.Error()).To(Equal("app_secrets: Postgres password not found in secret"))
+	})
+
+	It("Sets postgres password and checks reconcile output", func() {
+		comp := summoncomponents.NewAppSecret()
+		//Set status so that IsReconcileable returns true
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 
 		postgresSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
