@@ -27,6 +27,20 @@ spec:
     spec:
       imagePullSecrets:
       - name: pull-secret
+      initContainers:
+      - name: volumeperms
+        image: alpine:latest
+        command: [chown, "1000:1000", /schedule]
+        resources:
+          requests:
+            memory: 4M
+            cpu: 10m
+          limits:
+            memory: 8M
+            cpu: 10m
+        volumeMounts:
+        - name: beat-state
+          mountPath: /schedule
       containers:
       - name: default
         image: us.gcr.io/ridecell-1/summon:{{ .Instance.Spec.Version }}
