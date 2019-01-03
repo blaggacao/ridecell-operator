@@ -35,6 +35,10 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewPullSecret(),
 		summoncomponents.NewPostgres("postgres.yml.tpl"),
 		summoncomponents.NewPostgresExtensions(),
+
+		// Secrets component.
+		summoncomponents.NewAppSecret(),
+
 		summoncomponents.NewConfigMap("configmap.yml.tpl"),
 		summoncomponents.NewMigrations("migrations.yml.tpl"),
 		summoncomponents.NewSuperuser(),

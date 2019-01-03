@@ -30,7 +30,6 @@ import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -89,16 +88,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 		Data:       map[string][]byte{"summon-platform.yml": parsedYaml},
 	}
 
-	fetchTarget := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchTarget)
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return reconcile.Result{}, err
-		}
-	}
-
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(fetchTarget runtime.Object) error {
-		existing := fetchTarget.(*corev1.Secret)
+	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(existingObj runtime.Object) error {
+		existing := existingObj.(*corev1.Secret)
 		// Sync important fields.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 		if err != nil {
