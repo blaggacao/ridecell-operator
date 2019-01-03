@@ -103,7 +103,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 		// Sync important fields.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "app_secrets: Failed to set controller reference")
 		}
 		existing.ObjectMeta = newSecret.ObjectMeta
 		existing.Type = newSecret.Type
