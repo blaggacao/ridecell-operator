@@ -57,10 +57,8 @@ type SummonPlatformSpec struct {
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
 	PullSecret string `json:"pullSecret,omitempty"`
-
 	// Summon-platform.yml configuration options.
 	Config map[string]ConfigValue `json:"config,omitempty"`
-
 	// Number of gunicorn pods to run. Defaults to 1.
 	// +optional
 	WebReplicas *int32 `json:"web_replicas,omitempty"`

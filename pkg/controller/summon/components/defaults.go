@@ -50,9 +50,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	if instance.Spec.Hostname == "" {
 		instance.Spec.Hostname = instance.Name + ".ridecell.us"
 	}
-	if instance.Spec.PullSecret == "" {
-		instance.Spec.PullSecret = "pull-secret"
-	}
 	defaultReplicas := int32(1)
 	if instance.Spec.WebReplicas == nil {
 		instance.Spec.WebReplicas = &defaultReplicas
@@ -68,6 +65,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	}
 	if instance.Spec.StaticReplicas == nil {
 		instance.Spec.StaticReplicas = &defaultReplicas
+	}
+	if instance.Spec.PullSecret == "" {
+		instance.Spec.PullSecret = "pull-secret"
 	}
 
 	// Fill in static default config values.
