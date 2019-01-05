@@ -249,54 +249,7 @@ func (cr *componentReconciler) updateStatus(ctx *ComponentContext, instance runt
 		return errors.Wrapf(err, "error updating %s/%s for object status", instanceObj.GetNamespace(), instanceObj.GetName())
 	}
 	return nil
-	// err := ctx.Status().Update(ctx.Context, instance)
-	// if err != nil {
-	// 	if kerrors.IsNotFound(err) {
-	// 		// Not found usually means that we're on old Kubernetes.
-	// 		return cr.updateStatusOldSchool(ctx, instance)
-	// 	}
-	// 	// Probably another object save already happened, modifyStatus will try again.
-	// 	instanceObj := ctx.Top.(metav1.Object)
-	// 	return errors.Wrapf(err, "error updating %s/%s object status", instanceObj.GetNamespace(), instanceObj.GetName())
-	// }
-	// return nil
 }
-
-// // controller-runtime doesn't (yet) support PATCH calls so do a GET+PUT instead.
-// func (cr *componentReconciler) updateStatusOldSchool(ctx *ComponentContext, instance runtime.Object) error {
-// 	instanceObj := ctx.Top.(metav1.Object)
-// 	freshCopy, err := cr.getForStatus(ctx, instance)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if freshCopy == nil {
-// 		// Don't even try.
-// 		return nil
-// 	}
-// 	// Copy over the status data.
-// 	freshCopy.(Statuser).SetStatus(instance.(Statuser).GetStatus())
-// 	err = cr.client.Update(ctx.Context, freshCopy)
-// 	if err != nil {
-// 		// This usually means another object save happened during the reconcile, modifyStatus will try again.
-// 		return errors.Wrapf(err, "error updating %s/%s for oldschool object status", instanceObj.GetNamespace(), instanceObj.GetName())
-// 	}
-// 	return nil
-// }
-
-// func (cr *componentReconciler) getForStatus(ctx *ComponentContext, instance runtime.Object) (runtime.Object, error) {
-// 	instanceObj := instance.(metav1.Object)
-// 	freshCopy := instance.DeepCopyObject()
-// 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instanceObj.GetName(), Namespace: instanceObj.GetNamespace()}, freshCopy)
-// 	if err != nil {
-// 		if kerrors.IsNotFound(err) {
-// 			// Object was deleted already, don't keep retrying, just ignore the error and move on.
-// 			// This is kind of questionable, hopefully we don't regret it in the future.
-// 			return nil, nil
-// 		}
-// 		return nil, errors.Wrapf(err, "error getting %s/%s for object status", instanceObj.GetNamespace(), instanceObj.GetName())
-// 	}
-// 	return freshCopy, nil
-// }
 
 // componentReconciler implements inject.Client.
 // A client will be automatically injected.
