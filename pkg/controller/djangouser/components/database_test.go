@@ -191,7 +191,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
-		Expect(comp).ToNot(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
