@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -49,18 +48,18 @@ func (_ *secretComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.DjangoUser)
 
 	existing := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace}, existing)
 	if err != nil && !kerrors.IsNotFound(err) {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to load secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	} else if err == nil {
 		// Loaded correctly, if the password exists then we're done.
 		val, ok := existing.Data["password"]
 		if ok && len(val) > 0 {
-			return reconcile.Result{}, nil
+			return components.Result{}, nil
 		}
 	}
 
@@ -80,7 +79,7 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 
 	err = controllerutil.SetControllerReference(instance, target, ctx.Scheme)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, err
+		return components.Result{Requeue: true}, err
 	}
 
 	err = ctx.Update(ctx.Context, target)
@@ -88,8 +87,8 @@ func (comp *secretComponent) Reconcile(ctx *components.ComponentContext) (reconc
 		err = ctx.Create(ctx.Context, target)
 	}
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to save secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "secret: unable to save secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }
