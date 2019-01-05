@@ -26,6 +26,9 @@ spec:
           properties:
             config:
               type: object
+            fernetKeyRotation:
+              format: int64
+              type: integer
             hostname:
               type: string
             pullSecret:
