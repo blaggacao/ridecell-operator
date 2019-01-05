@@ -21,11 +21,14 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -109,7 +112,7 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// Build a reconciler context to pass around.
 	ctx, err := cr.newContext(request)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			// Top object not found, likely already deleted.
 			return reconcile.Result{}, nil
 		}
@@ -122,48 +125,29 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	cleanTop := ctx.Top.DeepCopyObject()
 
 	// Reconcile all the components.
-	result, err := cr.reconcileComponents(ctx)
+	start := time.Now()
+	result, statusModifiers, err := cr.reconcileComponents(ctx)
+	fmt.Printf("$$$ Reconcile took %s\n", time.Since(start))
 	if err != nil {
-		glog.Errorf("%v\n", err)
+		fmt.Printf("@@@@ Reconcile error %v\n", err)
 		ctx.Top.(Statuser).SetErrorStatus(err.Error())
 	}
 
 	// Check if an update to the status subresource is required.
 	if !reflect.DeepEqual(ctx.Top.(Statuser).GetStatus(), cleanTop.(Statuser).GetStatus()) {
 		// Update the top object status.
-		glog.V(10).Infof("[%s] Reconcile: Updating Status", request.NamespacedName)
-		err = cr.client.Status().Update(ctx.Context, ctx.Top)
+		fmt.Printf("[%s] Reconcile: Updating Status\n", request.NamespacedName)
+		err = cr.modifyStatus(ctx, statusModifiers)
 		if err != nil {
-			// Something went wrong, we definitely want to rerun, unless ...
-			oldRequeue := result.Requeue
 			result.Requeue = true
-			if errors.IsNotFound(err) {
-				// Older Kubernetes which doesn't support status subobjects, so use a GET+UPDATE
-				// because the controller-runtime client doesn't support PATCH calls.
-				freshTop := cr.top.DeepCopyObject()
-				err = cr.client.Get(ctx.Context, request.NamespacedName, freshTop)
-				if err != nil {
-					// What?
-					return result, err
-				}
-				freshTop.(Statuser).SetStatus(ctx.Top.(Statuser).GetStatus())
-				err = cr.client.Update(ctx.Context, freshTop)
-				if err != nil {
-					// Update failed, probably another update got there first.
-					return result, err
-				} else {
-					// Update worked, so no error for the final return.
-					result.Requeue = oldRequeue
-					err = nil
-				}
-			}
+			return result, err
 		}
 	}
 
-	return result, err
+	return result, nil
 }
 
-func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (reconcile.Result, error) {
+func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (reconcile.Result, []StatusModifier, error) {
 	instance := ctx.Top.(metav1.Object)
 	ready := []Component{}
 	for _, component := range cr.components {
@@ -174,8 +158,12 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (recon
 		}
 	}
 	res := reconcile.Result{}
+	statusModifiers := []StatusModifier{}
 	for _, component := range ready {
+		fmt.Printf("### Reconciling %#v\n", component)
+		start := time.Now()
 		innerRes, err := component.Reconcile(ctx)
+		fmt.Printf("### Done reconciling %#v, took %s\n", component, time.Since(start))
 		// Update result. This should be checked before the err!=nil because sometimes
 		// we want to requeue immediately on error.
 		if innerRes.Requeue {
@@ -184,12 +172,131 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (recon
 		if innerRes.RequeueAfter != 0 && (res.RequeueAfter == 0 || res.RequeueAfter > innerRes.RequeueAfter) {
 			res.RequeueAfter = innerRes.RequeueAfter
 		}
+		if innerRes.StatusModifier != nil {
+			statusModifiers = append(statusModifiers, innerRes.StatusModifier)
+			statusErr := innerRes.StatusModifier(ctx.Top)
+			if statusErr != nil {
+				glog.Errorf("[%s/%s] Error running status modifier from %#v: %s\n", instance.GetNamespace(), instance.GetName(), component, statusErr)
+				if err == nil {
+					// If we already had a real error, don't mask it, otherwise propagate this error.
+					err = errors.Wrap(statusErr, "Error running initial status modifier")
+				}
+			}
+		}
 		if err != nil {
-			return res, err
+			return res, statusModifiers, err
 		}
 	}
-	return res, nil
+	return res, statusModifiers, nil
 }
+
+func (cr *componentReconciler) modifyStatus(ctx *ComponentContext, statusModifiers []StatusModifier) error {
+	// Try for the fast path of a single save using the subresource
+	err := ctx.Status().Update(ctx.Context, ctx.Top)
+	if err == nil {
+		// No error, fast path success!
+		return nil
+	}
+
+	// Something went wrong so we have to do a re-get an apply of the modifiers.
+	for tries := 0; tries < 5; tries++ {
+		err = cr.updateStatus(ctx, ctx.Top, func(instance runtime.Object) error {
+			for _, mod := range statusModifiers {
+				err := mod(instance)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err == nil {
+			// Success!
+			return nil
+		}
+		// Leave err set so we can wrap the final error below.
+	}
+
+	instanceObj := ctx.Top.(metav1.Object)
+	return errors.Wrapf(err, "unable to update status for %s/%s, too many failures", instanceObj.GetNamespace(), instanceObj.GetName())
+}
+
+func (cr *componentReconciler) updateStatus(ctx *ComponentContext, instance runtime.Object, mutateFn func(runtime.Object) error) error {
+	// Get a fresh copy to replay changes against.
+	instanceObj := instance.(metav1.Object)
+	freshCopy := instance.DeepCopyObject()
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instanceObj.GetName(), Namespace: instanceObj.GetNamespace()}, freshCopy)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			// Object was deleted already, don't keep retrying, just ignore the error and move on.
+			// This is kind of questionable, hopefully we don't regret it in the future.
+			return nil
+		}
+		return errors.Wrapf(err, "error getting %s/%s for object status", instanceObj.GetNamespace(), instanceObj.GetName())
+	}
+
+	// Do stuff.
+	err = mutateFn(freshCopy)
+	if err != nil {
+		return nil
+	}
+
+	// Try to save again, first with new API and then with old.
+	err = ctx.Status().Update(ctx.Context, freshCopy)
+	if err != nil && kerrors.IsNotFound(err) {
+		err = ctx.Update(ctx.Context, freshCopy)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "error updating %s/%s for object status", instanceObj.GetNamespace(), instanceObj.GetName())
+	}
+	return nil
+	// err := ctx.Status().Update(ctx.Context, instance)
+	// if err != nil {
+	// 	if kerrors.IsNotFound(err) {
+	// 		// Not found usually means that we're on old Kubernetes.
+	// 		return cr.updateStatusOldSchool(ctx, instance)
+	// 	}
+	// 	// Probably another object save already happened, modifyStatus will try again.
+	// 	instanceObj := ctx.Top.(metav1.Object)
+	// 	return errors.Wrapf(err, "error updating %s/%s object status", instanceObj.GetNamespace(), instanceObj.GetName())
+	// }
+	// return nil
+}
+
+// // controller-runtime doesn't (yet) support PATCH calls so do a GET+PUT instead.
+// func (cr *componentReconciler) updateStatusOldSchool(ctx *ComponentContext, instance runtime.Object) error {
+// 	instanceObj := ctx.Top.(metav1.Object)
+// 	freshCopy, err := cr.getForStatus(ctx, instance)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if freshCopy == nil {
+// 		// Don't even try.
+// 		return nil
+// 	}
+// 	// Copy over the status data.
+// 	freshCopy.(Statuser).SetStatus(instance.(Statuser).GetStatus())
+// 	err = cr.client.Update(ctx.Context, freshCopy)
+// 	if err != nil {
+// 		// This usually means another object save happened during the reconcile, modifyStatus will try again.
+// 		return errors.Wrapf(err, "error updating %s/%s for oldschool object status", instanceObj.GetNamespace(), instanceObj.GetName())
+// 	}
+// 	return nil
+// }
+
+// func (cr *componentReconciler) getForStatus(ctx *ComponentContext, instance runtime.Object) (runtime.Object, error) {
+// 	instanceObj := instance.(metav1.Object)
+// 	freshCopy := instance.DeepCopyObject()
+// 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instanceObj.GetName(), Namespace: instanceObj.GetNamespace()}, freshCopy)
+// 	if err != nil {
+// 		if kerrors.IsNotFound(err) {
+// 			// Object was deleted already, don't keep retrying, just ignore the error and move on.
+// 			// This is kind of questionable, hopefully we don't regret it in the future.
+// 			return nil, nil
+// 		}
+// 		return nil, errors.Wrapf(err, "error getting %s/%s for object status", instanceObj.GetNamespace(), instanceObj.GetName())
+// 	}
+// 	return freshCopy, nil
+// }
 
 // componentReconciler implements inject.Client.
 // A client will be automatically injected.
