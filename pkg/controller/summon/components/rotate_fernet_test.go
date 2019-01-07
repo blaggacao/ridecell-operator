@@ -31,8 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const customTimeLayout = "Mon-Jan-02-15-04-05-2006"
-
 var _ = Describe("rotate_fernet Component", func() {
 
 	BeforeEach(func() {

@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,6 +32,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+const customTimeLayout = "2006-01-02T15-04-05"
 
 var _ = Describe("app_secrets Component", func() {
 
@@ -56,11 +59,21 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
+			Data:       map[string][]byte{},
+		}
+
 		postgresSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{},
 		}
-		ctx.Client = fake.NewFakeClient(postgresSecret)
+
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{},
+		}
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
 		_, err := comp.Reconcile(ctx)
 		Expect(err.Error()).To(Equal("app_secrets: Postgres password not found in secret"))
 	})
@@ -70,12 +83,24 @@ var _ = Describe("app_secrets Component", func() {
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"filler": []byte("test")},
+		}
+
 		postgresSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{"password": []byte("postgresPassword")},
 		}
 
-		ctx.Client = fake.NewFakeClient(postgresSecret)
+		formattedTime := time.Time.Format(time.Now().UTC(), customTimeLayout)
+
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{formattedTime: []byte("lorem ipsum")},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -92,5 +117,70 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(string(parsedYaml["OUTBOUNDSMS_URL"])).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(string(parsedYaml["SMS_WEBHOOK_URL"])).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(string(parsedYaml["CELERY_BROKER_URL"])).To(Equal("redis://foo-redis/2"))
+	})
+
+	It("reconciles with existing fernet keys", func() {
+		comp := summoncomponents.NewAppSecret()
+
+		// Is there a way I could write this setup in not such a verbose way?
+		now := time.Now().UTC()
+		unsortedTimes := make(map[string][]byte)
+
+		durationOne, _ := time.ParseDuration("-1h")
+		durationTwo, _ := time.ParseDuration("-2h")
+		durationThree, _ := time.ParseDuration("-3h")
+		durationFour, _ := time.ParseDuration("-4h")
+		durationFive, _ := time.ParseDuration("-5h")
+
+		timeOne := now.Add(durationOne)
+		timeTwo := now.Add(durationTwo)
+		timeThree := now.Add(durationThree)
+		timeFour := now.Add(durationFour)
+		timeFive := now.Add(durationFive)
+
+		unsortedTimes[time.Time.Format(timeOne, customTimeLayout)] = []byte("1")
+		unsortedTimes[time.Time.Format(timeTwo, customTimeLayout)] = []byte("2")
+		unsortedTimes[time.Time.Format(timeThree, customTimeLayout)] = []byte("3")
+		unsortedTimes[time.Time.Format(timeFour, customTimeLayout)] = []byte("4")
+		unsortedTimes[time.Time.Format(timeFive, customTimeLayout)] = []byte("5")
+
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       unsortedTimes,
+		}
+
+		//Set status so that IsReconcileable returns true
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+
+		postgresSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{"password": []byte("postgresPassword")},
+		}
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"filler": []byte("test")},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		fetchSecret := &corev1.Secret{}
+		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		byteData := fetchSecret.Data["summon-platform.yml"]
+		var parsedYaml map[string][]byte
+		err = yaml.Unmarshal(byteData, &parsedYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		var stringSlices []string
+		err = yaml.Unmarshal(parsedYaml["FERNET_KEYS"], &stringSlices)
+		Expect(err).ToNot(HaveOccurred())
+
+		expectedSlices := []string{"1", "2", "3", "4", "5"}
+		Expect(stringSlices).To(Equal(expectedSlices))
+
 	})
 })

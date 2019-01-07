@@ -18,6 +18,8 @@ package components
 
 import (
 	"fmt"
+	"sort"
+	"time"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
@@ -34,6 +36,25 @@ import (
 )
 
 type appSecretComponent struct{}
+
+type fernetKeyEntry struct {
+	Data []byte
+	Date time.Time
+}
+
+type fernetSlice []fernetKeyEntry
+
+func (p fernetSlice) Len() int {
+	return len(p)
+}
+
+func (p fernetSlice) Less(i, j int) bool {
+	return p[i].Date.Before(p[j].Date)
+}
+
+func (p fernetSlice) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
 
 func NewAppSecret() *appSecretComponent {
 	return &appSecretComponent{}
@@ -73,10 +94,25 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 		return reconcile.Result{}, errors.New("app_secrets: Postgres password not found in secret")
 	}
 
+	fernetKeys := &corev1.Secret{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetKeys)
+	if err != nil {
+		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+	}
+	if len(fernetKeys.Data) == 0 {
+		return reconcile.Result{}, errors.New("app_secrets: Fernet keys map is empty")
+	}
+
+	formattedFernetKeys, err := comp.formatFernetKeys(fernetKeys.Data)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	appSecrets.Data["DATABASE_URL"] = []byte(fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name))
 	appSecrets.Data["OUTBOUNDSMS_URL"] = []byte(fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name))
 	appSecrets.Data["SMS_WEBHOOK_URL"] = []byte(fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name))
 	appSecrets.Data["CELERY_BROKER_URL"] = []byte(fmt.Sprintf("redis://%s-redis/2", instance.Name))
+	appSecrets.Data["FERNET_KEYS"] = formattedFernetKeys
 
 	parsedYaml, err := yaml.Marshal(appSecrets.Data)
 	if err != nil {
@@ -106,4 +142,34 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]byte, error) {
+	var unsortedArray []fernetKeyEntry
+	for k, v := range fernetData {
+		parsedTime, err := time.Parse(customTimeLayout, k)
+		if err != nil {
+			return nil, errors.New("app_secrets: Failed to parse time for fernet keys")
+		}
+		unsortedArray = append(unsortedArray, fernetKeyEntry{Date: parsedTime, Data: v})
+	}
+
+	sortedTimes := make(fernetSlice, 0, len(unsortedArray))
+	for _, d := range unsortedArray {
+		sortedTimes = append(sortedTimes, d)
+	}
+
+	sort.Sort(sort.Reverse(sortedTimes))
+
+	var outputSlice []string
+	for _, v := range sortedTimes {
+		outputSlice = append(outputSlice, string(v.Data))
+	}
+
+	output, err := yaml.Marshal(outputSlice)
+	if err != nil {
+		return nil, errors.Wrapf(err, "app_secrets: Failed to marshal fernet keys into []byte")
+	}
+
+	return output, nil
 }

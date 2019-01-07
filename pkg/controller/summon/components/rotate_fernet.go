@@ -37,11 +37,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-const randCharSet = "abcdefghijklmnopqrstuvwxyz" +
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" +
-	"!@#$%^&*()-_+="
-
-const customTimeLayout = "Mon-Jan-02-15-04-05-2006"
+const customTimeLayout = "2006-01-02T15-04-05"
 
 type fernetRotateComponent struct{}
 
@@ -79,7 +75,7 @@ func (_ *fernetRotateComponent) IsReconcilable(ctx *components.ComponentContext)
 		}
 	}
 	latestTimePlus := latestTime.Add(instance.Spec.FernetKeyRotation)
-	if latestTimePlus.Before(time.Now()) {
+	if latestTimePlus.Before(time.Now().UTC()) {
 		return true
 	}
 	return false
@@ -89,7 +85,7 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Generate new timeStamp string
-	timeStamp := time.Time.Format(time.Now(), customTimeLayout)
+	timeStamp := time.Time.Format(time.Now().UTC(), customTimeLayout)
 
 	// Generate random string
 	rawKey := make([]byte, 64)
