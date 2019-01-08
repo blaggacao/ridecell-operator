@@ -20,7 +20,6 @@ import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -64,7 +63,7 @@ func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContex
 	return true
 }
 
-func (comp *statefulsetComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *statefulsetComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*appsv1.StatefulSet)
 		existing := existingObj.(*appsv1.StatefulSet)

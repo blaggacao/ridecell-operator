@@ -19,7 +19,6 @@ package components
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -43,7 +42,7 @@ func (_ *serviceComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *serviceComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*corev1.Service)
 		existing := existingObj.(*corev1.Service)
