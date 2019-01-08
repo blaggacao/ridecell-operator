@@ -33,7 +33,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const customTimeLayout = "2006-01-02T15-04-05"
+type appSecretData struct {
+	FERNET_KEYS       []string `yaml:"FERNET_KEYS,omitempty"`
+	DATABASE_URL      []byte   `yaml:"DATABASE_URL,omitempty"`
+	OUTBOUNDSMS_URL   []byte   `yaml:"OUTBOUNDSMS_URL,omitempty"`
+	SMS_WEBHOOK_URL   []byte   `yaml:"SMS_WEBHOOK_URL,omitempty"`
+	CELERY_BROKER_URL []byte   `yaml:"CELERY_BROKER_URL,omitempty"`
+}
 
 var _ = Describe("app_secrets Component", func() {
 
@@ -93,7 +99,7 @@ var _ = Describe("app_secrets Component", func() {
 			Data:       map[string][]byte{"password": []byte("postgresPassword")},
 		}
 
-		formattedTime := time.Time.Format(time.Now().UTC(), customTimeLayout)
+		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
 
 		fernetKeys := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
@@ -109,14 +115,14 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
-		var parsedYaml map[string][]byte
+		var parsedYaml appSecretData
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(parsedYaml["DATABASE_URL"])).To(Equal("postgis://summon:postgresPassword@foo-database/summon"))
-		Expect(string(parsedYaml["OUTBOUNDSMS_URL"])).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
-		Expect(string(parsedYaml["SMS_WEBHOOK_URL"])).To(Equal("https://foo.ridecell.us/sms/receive/"))
-		Expect(string(parsedYaml["CELERY_BROKER_URL"])).To(Equal("redis://foo-redis/2"))
+		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://summon:postgresPassword@foo-database/summon"))
+		Expect(string(parsedYaml.OUTBOUNDSMS_URL)).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
+		Expect(string(parsedYaml.SMS_WEBHOOK_URL)).To(Equal("https://foo.ridecell.us/sms/receive/"))
+		Expect(string(parsedYaml.CELERY_BROKER_URL)).To(Equal("redis://foo-redis/2"))
 	})
 
 	It("reconciles with existing fernet keys", func() {
@@ -138,11 +144,11 @@ var _ = Describe("app_secrets Component", func() {
 		timeFour := now.Add(durationFour)
 		timeFive := now.Add(durationFive)
 
-		unsortedTimes[time.Time.Format(timeOne, customTimeLayout)] = []byte("1")
-		unsortedTimes[time.Time.Format(timeTwo, customTimeLayout)] = []byte("2")
-		unsortedTimes[time.Time.Format(timeThree, customTimeLayout)] = []byte("3")
-		unsortedTimes[time.Time.Format(timeFour, customTimeLayout)] = []byte("4")
-		unsortedTimes[time.Time.Format(timeFive, customTimeLayout)] = []byte("5")
+		unsortedTimes[time.Time.Format(timeOne, summoncomponents.CustomTimeLayout)] = []byte("1")
+		unsortedTimes[time.Time.Format(timeTwo, summoncomponents.CustomTimeLayout)] = []byte("2")
+		unsortedTimes[time.Time.Format(timeThree, summoncomponents.CustomTimeLayout)] = []byte("3")
+		unsortedTimes[time.Time.Format(timeFour, summoncomponents.CustomTimeLayout)] = []byte("4")
+		unsortedTimes[time.Time.Format(timeFive, summoncomponents.CustomTimeLayout)] = []byte("5")
 
 		fernetKeys := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
@@ -159,7 +165,7 @@ var _ = Describe("app_secrets Component", func() {
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
-			Data:       map[string][]byte{"filler": []byte("test")},
+			Data:       map[string][]byte{},
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
@@ -171,13 +177,11 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
-		var parsedYaml map[string][]byte
+		var parsedYaml appSecretData
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		var stringSlices []string
-		err = yaml.Unmarshal(parsedYaml["FERNET_KEYS"], &stringSlices)
-		Expect(err).ToNot(HaveOccurred())
+		stringSlices := parsedYaml.FERNET_KEYS
 
 		expectedSlices := []string{"1", "2", "3", "4", "5"}
 		Expect(stringSlices).To(Equal(expectedSlices))
