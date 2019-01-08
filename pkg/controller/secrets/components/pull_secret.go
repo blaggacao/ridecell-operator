@@ -22,12 +22,10 @@ import (
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -52,7 +50,7 @@ func (_ *pullSecretComponent) IsReconcilable(_ *components.ComponentContext) boo
 	return true
 }
 
-func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*secretsv1beta1.PullSecret)
 
 	operatorNamespace := os.Getenv("NAMESPACE")
@@ -60,20 +58,14 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		var err error
 		operatorNamespace, err = getInClusterNamespace()
 		if err != nil {
-			instance.Status.Status = secretsv1beta1.StatusError
-			return reconcile.Result{}, err
+			return components.Result{}, err
 		}
 	}
 
 	target := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecretName, Namespace: operatorNamespace}, target)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			instance.Status.Status = secretsv1beta1.StatusErrorSecretNotFound
-		} else {
-			instance.Status.Status = secretsv1beta1.StatusError
-		}
-		return reconcile.Result{Requeue: true}, err
+		return components.Result{Requeue: true}, err
 	}
 
 	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecretName, Namespace: instance.Namespace}}
@@ -82,7 +74,6 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		// Set owner ref.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
 		if err != nil {
-			instance.Status.Status = secretsv1beta1.StatusError
 			return err
 		}
 		// Sync important fields.
@@ -93,12 +84,14 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 		return nil
 	})
 	if err != nil {
-		instance.Status.Status = secretsv1beta1.StatusError
-		return reconcile.Result{Requeue: true}, err
+		return components.Result{Requeue: true}, err
 	}
 
-	instance.Status.Status = secretsv1beta1.StatusReady
-	return reconcile.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*secretsv1beta1.PullSecret)
+		instance.Status.Status = secretsv1beta1.StatusReady
+		return nil
+	}}, nil
 }
 
 func getInClusterNamespace() (string, error) {

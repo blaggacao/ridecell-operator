@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -64,19 +63,16 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 	return true
 }
 
-func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	if instance.Spec.Version == instance.Status.MigrateVersion {
 		// Already migrated, update status and move on.
-		instance.Status.Status = summonv1beta1.StatusDeploying
-		return reconcile.Result{}, nil
+		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusDeploying)}, nil
 	}
-	// If we got this far, we're going to try to migrate (or already did).
-	instance.Status.Status = summonv1beta1.StatusMigrating
 
 	obj, err := ctx.GetTemplate(comp.templatePath, nil)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 	job := obj.(*batchv1.Job)
 
@@ -86,18 +82,18 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (rec
 		glog.Infof("Creating migration Job %s/%s\n", job.Namespace, job.Name)
 		err = controllerutil.SetControllerReference(instance, job, ctx.Scheme)
 		if err != nil {
-			return reconcile.Result{}, err
+			return components.Result{}, err
 		}
 		err = ctx.Create(ctx.Context, job)
 		if err != nil {
 			// If this fails, someone else might have started a migraton job between the Get and here, so just try again.
-			return reconcile.Result{Requeue: true}, errors.Wrapf(err, "migrations: error creation migration job %s/%s, might have lost the race condition", job.Namespace, job.Name)
+			return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: error creation migration job %s/%s, might have lost the race condition", job.Namespace, job.Name)
 		}
 		// Job is started, so we're done for now.
-		return reconcile.Result{}, nil
+		return components.Result{StatusModifier: setStatus(summonv1beta1.StatusMigrating)}, nil
 	} else if err != nil {
 		// Some other real error, bail.
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 
 	// If we get this far, the job previously started at some point and might be done.
@@ -107,7 +103,7 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (rec
 		glog.Infof("[%s/%s] migrations: Found existing migration job with bad version %#v\n", instance.Namespace, instance.Name, existingVersion)
 		// This is from a bad (or broken if !ok) version, try to delete it and then run again.
 		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "migrations: found existing migration job %s/%s with bad version %#v", instance.Namespace, instance.Name, existingVersion)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: found existing migration job %s/%s with bad version %#v", instance.Namespace, instance.Name, existingVersion)
 	}
 
 	// Check if the job succeeded.
@@ -116,22 +112,28 @@ func (comp *migrationComponent) Reconcile(ctx *components.ComponentContext) (rec
 		glog.V(2).Infof("[%s/%s] Deleting migration Job %s/%s\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
 		err = ctx.Delete(ctx.Context, existing, client.PropagationPolicy(metav1.DeletePropagationBackground))
 		if err != nil {
-			return reconcile.Result{Requeue: true}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
+			return components.Result{Requeue: true}, errors.Wrapf(err, "migrations: error deleting successful migration job %s/%s", existing.Namespace, existing.Name)
 		}
 
 		glog.Infof("[%s/%s] migrations: Migration job succeeded, updating MigrateVersion from %s to %s\n", instance.Namespace, instance.Name, instance.Status.MigrateVersion, instance.Spec.Version)
-		instance.Status.MigrateVersion = instance.Spec.Version
+		// Store migrate version in the closure to avoid concurrent edits to Spec.Version resulting in incorrectly advancing MigrateVersion.
+		migrateVersion := instance.Spec.Version
 		// Onward to deploying!
-		instance.Status.Status = summonv1beta1.StatusDeploying
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Status = summonv1beta1.StatusDeploying
+			instance.Status.MigrateVersion = migrateVersion
+			return nil
+		}}, nil
 	}
 
 	// ... Or if the job failed.
 	if existing.Status.Failed > 0 {
 		// If it was an outdated job, we would have already deleted it, so this means it's a failed migration for the current version.
 		glog.Errorf("[%s/%s] Migration job failed, leaving job %s/%s for debugging purposes\n", instance.Namespace, instance.Name, existing.Namespace, existing.Name)
-		return reconcile.Result{}, errors.Errorf("migrations: migration job %s/%s failed", existing.Namespace, existing.Name)
+		return components.Result{}, errors.Errorf("migrations: migration job %s/%s failed", existing.Namespace, existing.Name)
 	}
 
 	// Job is still running, will get reconciled when it finishes.
-	return reconcile.Result{}, nil
+	return components.Result{StatusModifier: setStatus(summonv1beta1.StatusMigrating)}, nil
 }

@@ -20,17 +20,19 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("notifications Component", func() {
@@ -122,8 +124,7 @@ var _ = Describe("notifications Component", func() {
 		instance.Spec.SlackAPIEndpoint = mockServer.URL
 		comp := summoncomponents.NewNotification()
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+
 		Expect(instance.Spec.Version).To(Equal(instance.Status.Notification.NotifyVersion))
 	})
 
@@ -149,8 +150,7 @@ var _ = Describe("notifications Component", func() {
 		comp := summoncomponents.NewNotification()
 
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.Status.Notification.LastErrorHash).To(Equal("746573744572726f72da39a3ee5e6b4b0d3255bfef95601890afd80709"))
 	})

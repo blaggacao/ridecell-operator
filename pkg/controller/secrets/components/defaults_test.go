@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	secretscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/secrets/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("PullSecret Defaults Component", func() {
@@ -28,15 +29,13 @@ var _ = Describe("PullSecret Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		instance.Spec.PullSecretName = "foo-secret"
 		comp := secretscomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.PullSecretName).To(Equal("foo-secret"))
 	})
 
 	It("sets a default secret", func() {
 		comp := secretscomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.PullSecretName).To(Equal("pull-secret"))
 	})
 

@@ -20,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -44,7 +43,7 @@ func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	var existing *postgresv1.Postgresql
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
@@ -54,8 +53,13 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reco
 		existing.Spec = goal.Spec
 		return nil
 	})
-	instance.Status.PostgresStatus = existing.Status
+	setPostgresStatus := func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta1.SummonPlatform)
+		instance.Status.PostgresStatus = existing.Status
+		return nil
+	}
 	if err != nil {
+		res.StatusModifier = setPostgresStatus
 		return res, err
 	}
 	if !existing.Status.Success() {
@@ -65,11 +69,15 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (reco
 		} else {
 			err = errors.Errorf("postgres: status is %s: %s", existing.Status, existing.Error)
 		}
-		return reconcile.Result{}, err
+		return components.Result{StatusModifier: setPostgresStatus}, err
 	}
 	if existing.Status != postgresv1.ClusterStatusUnknown {
 		// DB creation was started, and we already checked if something went wrong so we are at least up to initializing.
-		instance.Status.Status = summonv1beta1.StatusInitializing
+		res.StatusModifier = func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Status = summonv1beta1.StatusInitializing
+			return setPostgresStatus(obj)
+		}
 	}
 	return res, err
 }

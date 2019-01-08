@@ -131,8 +131,7 @@ var _ = Describe("Summon controller", func() {
 		job := &batchv1.Job{}
 		Eventually(func() error {
 			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: helpers.Namespace}, job)
-		}, timeout).
-			Should(Succeed())
+		}, timeout).Should(Succeed())
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
@@ -143,8 +142,7 @@ var _ = Describe("Summon controller", func() {
 		deploy := &appsv1.Deployment{}
 		Eventually(func() error {
 			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, deploy)
-		}, timeout).
-			Should(Succeed())
+		}, timeout).Should(Succeed())
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "gunicorn.app.wsgiapp", "-b", "0.0.0.0:8000", "summon_platform.wsgi", "--log-level=debug"}))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(BeEquivalentTo(8000))

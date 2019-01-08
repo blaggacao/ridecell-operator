@@ -18,7 +18,6 @@ package components
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -38,7 +37,7 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresExtension)
 
 	// Fill in defaults.
@@ -55,5 +54,5 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		instance.Spec.Database.PasswordSecretRef.Key = "password"
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }

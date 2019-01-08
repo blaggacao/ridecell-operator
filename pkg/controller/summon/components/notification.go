@@ -28,7 +28,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -85,7 +84,7 @@ func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentConte
 	return false
 }
 
-func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	slackURL := instance.Spec.SlackAPIEndpoint
@@ -96,11 +95,11 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	secret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.NotificationSecretRef.Name, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "notifications: Unable to load slackAPIKey secret %s/%s", instance.Namespace, instance.Spec.NotificationSecretRef.Name)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "notifications: Unable to load slackAPIKey secret %s/%s", instance.Namespace, instance.Spec.NotificationSecretRef.Name)
 	}
 	apiKeyByte, ok := secret.Data[instance.Spec.NotificationSecretRef.Key]
 	if !ok {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"%s\"", instance.Namespace, instance.Spec.NotificationSecretRef.Name, instance.Spec.NotificationSecretRef.Key)
+		return components.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"%s\"", instance.Namespace, instance.Spec.NotificationSecretRef.Name, instance.Spec.NotificationSecretRef.Key)
 	}
 	apiKey := string(apiKeyByte)
 
@@ -108,36 +107,48 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 
 	payload, err := json.Marshal(rawPayload)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
+		return components.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
 	}
 
 	resp, err := http.Post(slackURL, "application/json", bytes.NewBuffer(payload))
 	// Test if the request was actually sent, and make sure we got a 200
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
+		return components.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
 	}
 	// Set body to close after function call to avoid errors
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return reconcile.Result{}, errors.Errorf("notifications: Failed to read body from non 200 HTTP StatusCode")
+			return components.Result{}, errors.Errorf("notifications: Failed to read body from non 200 HTTP StatusCode")
 		}
-		return reconcile.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v, body of response = %#v", resp.StatusCode, body)
+		return components.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v, body of response = %#v", resp.StatusCode, body)
 	}
 
 	// Update NotifyVersion if it needs to be changed.
+	updateVersion := false
+	notifyVersion := instance.Spec.Version
 	if instance.Status.Status == summonv1beta1.StatusReady && comp.isMismatchedVersion(ctx) {
-		instance.Status.Notification.NotifyVersion = instance.Spec.Version
+		updateVersion = true
 	}
 
 	// Update LastErrorHash if it needs to be updated.
+	updateErrorHash := false
 	encodedHash := comp.hashStatus(instance.Status.Message)
 	if instance.Status.Status == summonv1beta1.StatusError && comp.isMismatchedError(ctx, encodedHash) {
-		instance.Status.Notification.LastErrorHash = encodedHash
+		updateErrorHash = true
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta1.SummonPlatform)
+		if updateVersion {
+			instance.Status.Notification.NotifyVersion = notifyVersion
+		}
+		if updateErrorHash {
+			instance.Status.Notification.LastErrorHash = encodedHash
+		}
+		return nil
+	}}, nil
 }
 
 func (comp *notificationComponent) hashStatus(status string) string {

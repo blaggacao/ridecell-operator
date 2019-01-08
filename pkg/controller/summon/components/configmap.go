@@ -21,7 +21,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -47,7 +46,7 @@ func (_ *configmapComponent) IsReconcilable(_ *components.ComponentContext) bool
 	return true
 }
 
-func (comp *configmapComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *configmapComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Create the map that will be the summon-platform.yml
@@ -59,7 +58,7 @@ func (comp *configmapComponent) Reconcile(ctx *components.ComponentContext) (rec
 	// Render to JSON (which is a subset of YAML).
 	b, err := json.Marshal(config)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "configmap: unable to serialize config JSON for %s/%s", instance.Namespace, instance.Name)
+		return components.Result{}, errors.Wrapf(err, "configmap: unable to serialize config JSON for %s/%s", instance.Namespace, instance.Name)
 	}
 
 	// Set up the extra data map for the template.

@@ -30,6 +30,7 @@ import (
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("SummonPlatform Migrations Component", func() {
@@ -100,8 +101,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 		Context("with no migration job existing", func() {
 			It("creates a migration job", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
-				_, err := comp.Reconcile(ctx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(comp).To(ReconcileContext(ctx))
 
 				job := &batchv1.Job{}
 				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
@@ -124,8 +124,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 			It("still has a migration job", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
-				_, err := comp.Reconcile(ctx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(comp).To(ReconcileContext(ctx))
 
 				job := &batchv1.Job{}
 				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
@@ -151,8 +150,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 			It("deletes the migration", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
-				_, err := comp.Reconcile(ctx)
-				Expect(err).NotTo(HaveOccurred())
+				Expect(comp).To(ReconcileContext(ctx))
 
 				// Pending controller-runtime #213
 				jobs := &metav1.List{}
@@ -180,8 +178,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 			It("leaves the migration", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
-				_, err := comp.Reconcile(ctx)
-				Expect(err).To(HaveOccurred())
+				Expect(comp).NotTo(ReconcileContext(ctx))
 
 				job := &batchv1.Job{}
 				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)

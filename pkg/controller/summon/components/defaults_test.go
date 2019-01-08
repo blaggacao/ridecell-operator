@@ -23,6 +23,7 @@ import (
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 func intp(n int32) *int32 {
@@ -41,8 +42,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		}
 
 		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
 		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -61,8 +61,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		}
 
 		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.ridecell.us"))
 		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -81,8 +80,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		}
 
 		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
 		Expect(instance.Spec.PullSecret).To(Equal("pull-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(2)))
@@ -101,8 +99,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		}
 
 		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
 		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(1)))
@@ -122,8 +119,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		}
 
 		comp := summoncomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Hostname).To(Equal("foo.example.com"))
 		Expect(instance.Spec.PullSecret).To(Equal("foo-secret"))
 		Expect(instance.Spec.WebReplicas).To(PointTo(BeEquivalentTo(0)))

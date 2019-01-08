@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -43,7 +42,7 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// Fill in defaults.
@@ -96,7 +95,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	defVal("WEB_URL", "https://%s", instance.Spec.Hostname)
 	defVal("NEWRELIC_NAME", "%s-summon-platform", instance.Name)
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }
 
 func defConfig(key string, value interface{}) {
