@@ -87,7 +87,7 @@ type SummonPlatformSpec struct {
 	NotificationSecretRef NotificationSecretRef `json:"secretRef,omitempty"`
 	// Fernet Key Rotation Time Setting
 	// +optional
-	FernetKeyRotation time.Duration `json:"fernetKeyRotation,omitempty"`
+	FernetKeyLifetime time.Duration `json:"fernetKeyRotation,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
