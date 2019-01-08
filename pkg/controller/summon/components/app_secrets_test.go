@@ -33,7 +33,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type appSecretData struct {
+// This is just a subset of the secrets contained in the used object for testing.
+type testAppSecretData struct {
 	FERNET_KEYS       []string `yaml:"FERNET_KEYS,omitempty"`
 	DATABASE_URL      []byte   `yaml:"DATABASE_URL,omitempty"`
 	OUTBOUNDSMS_URL   []byte   `yaml:"OUTBOUNDSMS_URL,omitempty"`
@@ -115,7 +116,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
-		var parsedYaml appSecretData
+		var parsedYaml testAppSecretData
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -177,7 +178,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
-		var parsedYaml appSecretData
+		var parsedYaml testAppSecretData
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
