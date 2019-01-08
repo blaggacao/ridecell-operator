@@ -27,7 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-const fernetKeysLifespan = "8760h"
+const defaultFernetKeysLifespan = "8760h"
 
 // Treat this as a const, no touchy.
 var zeroSeconds time.Duration
@@ -77,7 +77,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	}
 	if instance.Spec.FernetKeyLifetime == zeroSeconds {
 		// This is set to rotate fernet keys every year.
-		parsedTimeDuration, _ := time.ParseDuration(fernetKeysLifespan)
+		parsedTimeDuration, _ := time.ParseDuration(defaultFernetKeysLifespan)
 		instance.Spec.FernetKeyLifetime = parsedTimeDuration
 	}
 
