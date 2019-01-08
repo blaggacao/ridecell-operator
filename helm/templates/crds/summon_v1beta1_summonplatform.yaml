@@ -26,7 +26,7 @@ spec:
           properties:
             config:
               type: object
-            fernetKeyRotation:
+            fernetKeyLifetime:
               format: int64
               type: integer
             hostname:
