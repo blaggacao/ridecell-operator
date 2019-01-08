@@ -133,7 +133,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 		if err != nil {
 			return errors.Wrapf(err, "app_secrets: Failed to set controller reference")
 		}
-		existing.ObjectMeta = newSecret.ObjectMeta
+		existing.Labels = newSecret.Labels
+		existing.Annotations = newSecret.Annotations
 		existing.Type = newSecret.Type
 		existing.Data = newSecret.Data
 		return nil
