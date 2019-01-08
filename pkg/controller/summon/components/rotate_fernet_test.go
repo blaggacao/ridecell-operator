@@ -35,98 +35,46 @@ var _ = Describe("rotate_fernet Component", func() {
 
 	BeforeEach(func() {
 		timeDuration, _ := time.ParseDuration("8760h")
-		instance.Spec.FernetKeyRotation = timeDuration
+		instance.Spec.FernetKeyLifetime = timeDuration
 	})
 
-	Describe("IsReconcilable", func() {
+	It("create a new secret if not present", func() {
+		comp := summoncomponents.NewFernetRotate()
+		ctx.Client = fake.NewFakeClient()
 
-		It("With no secret set", func() {
-			comp := summoncomponents.NewFernetRotate()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		})
+		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
 
-		It("timestamp that shouldnt trigger reconcile", func() {
-			comp := summoncomponents.NewFernetRotate()
-
-			timeStamp := time.Time.Format(time.Now(), customTimeLayout)
-			fernetSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
-				Data: map[string][]byte{
-					timeStamp: []byte("fake")},
-			}
-
-			ctx.Client = fake.NewFakeClient(fernetSecret)
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
-		})
-
-		It("timestamp that should trigger reconcile", func() {
-			comp := summoncomponents.NewFernetRotate()
-
-			timeDuration, _ := time.ParseDuration("-8761h")
-			timeNow := time.Now()
-			negativeTime := timeNow.Add(timeDuration)
-			timeStamp := time.Time.Format(negativeTime, customTimeLayout)
-
-			fernetSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
-				Data: map[string][]byte{
-					timeStamp: []byte("fake")},
-			}
-
-			ctx.Client = fake.NewFakeClient(fernetSecret)
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		})
+		fernetSecret := &corev1.Secret{}
+		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetSecret)
+		Expect(fernetSecret.Data).To(HaveLen(1))
+		for _, v := range fernetSecret.Data {
+			Expect(v).To(HaveLen(86))
+		}
 	})
 
-	Describe("Reconcile tests", func() {
+	It("Adds a new key if the old one is expired", func() {
+		comp := summoncomponents.NewFernetRotate()
 
-		It("create a new secret if not present", func() {
-			comp := summoncomponents.NewFernetRotate()
-			ctx.Client = fake.NewFakeClient()
+		timeDuration, _ := time.ParseDuration("-8761h")
+		timeNow := time.Now()
+		negativeTime := timeNow.Add(timeDuration)
+		timeStamp := time.Time.Format(negativeTime, summoncomponents.CustomTimeLayout)
 
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-			_, err := comp.Reconcile(ctx)
-			Expect(err).ToNot(HaveOccurred())
+		fernetSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				timeStamp: []byte("SfrtdqmOy+KTaKfLy8Cr62R9HWPEHRu+xr7Vo/Ld1EMHy4omdUUgvJ/ke+PikYthTh7lnrYeQpD3e8EUK1WhEg")},
+		}
+		ctx.Client = fake.NewFakeClient(fernetSecret)
+		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
 
-			fernetSecret := &corev1.Secret{}
-			ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetSecret)
-
-			var validData bool
-			for _, v := range fernetSecret.Data {
-				if len(v) == 86 {
-					validData = true
-				}
-			}
-			Expect(validData).To(Equal(true))
-		})
-
-		It("Adds a new secret if old one is expired", func() {
-			comp := summoncomponents.NewFernetRotate()
-
-			timeDuration, _ := time.ParseDuration("-8761h")
-			timeNow := time.Now()
-			negativeTime := timeNow.Add(timeDuration)
-			timeStamp := time.Time.Format(negativeTime, customTimeLayout)
-
-			fernetSecret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
-				Data: map[string][]byte{
-					timeStamp: []byte("SfrtdqmOy+KTaKfLy8Cr62R9HWPEHRu+xr7Vo/Ld1EMHy4omdUUgvJ/ke+PikYthTh7lnrYeQpD3e8EUK1WhEg")},
-			}
-			ctx.Client = fake.NewFakeClient(fernetSecret)
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-
-			_, err := comp.Reconcile(ctx)
-			Expect(err).ToNot(HaveOccurred())
-			fetchSecret := &corev1.Secret{}
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
-			Expect(err).ToNot(HaveOccurred())
-
-			var count int
-			for _, _ = range fetchSecret.Data {
-				count += 1
-			}
-			Expect(count).To(Equal(2))
-		})
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		fetchSecret := &corev1.Secret{}
+		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchSecret.Data).To(HaveLen(2))
 	})
 })

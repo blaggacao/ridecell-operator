@@ -37,7 +37,8 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-const customTimeLayout = "2006-01-02T15-04-05"
+// Cannot use ":" in k8s secret keys, so we've resorted to using this.
+const CustomTimeLayout = "2006-01-02T15-04-05Z"
 
 type fernetRotateComponent struct{}
 
@@ -51,41 +52,42 @@ func (comp *fernetRotateComponent) WatchTypes() []runtime.Object {
 	}
 }
 
-func (_ *fernetRotateComponent) IsReconcilable(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
-	fernetSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetSecret)
-	// If secret doesn't exist reconcile to create new
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return true
-		}
-		return false
-	}
-
-	var latestTime time.Time
-	for k, _ := range fernetSecret.Data {
-		parsedKey, err := time.Parse(customTimeLayout, k)
-		if err != nil {
-			return false
-		}
-		if parsedKey.After(latestTime) {
-			latestTime = parsedKey
-		}
-	}
-	latestTimePlus := latestTime.Add(instance.Spec.FernetKeyRotation)
-	if latestTimePlus.Before(time.Now().UTC()) {
-		return true
-	}
-	return false
+func (_ *fernetRotateComponent) IsReconcilable(_ *components.ComponentContext) bool {
+	// The time comparisons done in the Reconcilable block below should be moved up here.
+	return true
 }
 
 func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
+	// The following block checking the times of the keys should be in IsReconcilable, we cannot however return errors there so it is being moved here.
+	fetchSecret := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+
+	// If secret doesn't exist reconcile to create new
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return reconcile.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to retrieve default secrets object")
+		}
+	}
+
+	var latestTime time.Time
+	for k, _ := range fetchSecret.Data {
+		parsedKey, err := time.Parse(CustomTimeLayout, k)
+		if err != nil {
+			return reconcile.Result{}, errors.Wrapf(err, "rotate_fernet: Error while parsing time string")
+		}
+		if parsedKey.After(latestTime) {
+			latestTime = parsedKey
+		}
+	}
+	latestTimePlus := latestTime.Add(instance.Spec.FernetKeyLifetime)
+	if !latestTimePlus.Before(time.Now().UTC()) {
+		return reconcile.Result{}, nil
+	}
+
 	// Generate new timeStamp string
-	timeStamp := time.Time.Format(time.Now().UTC(), customTimeLayout)
+	timeStamp := time.Time.Format(time.Now().UTC(), CustomTimeLayout)
 
 	// Generate random string
 	rawKey := make([]byte, 64)
@@ -93,8 +95,6 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	newKey := make([]byte, base64.RawStdEncoding.EncodedLen(64))
 	base64.RawStdEncoding.Encode(newKey, rawKey)
 
-	fetchSecret := &corev1.Secret{}
-	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			fetchSecret = &corev1.Secret{
