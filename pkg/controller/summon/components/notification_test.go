@@ -20,12 +20,14 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
@@ -116,7 +118,7 @@ var _ = Describe("notifications Component", func() {
 		}
 		ctx.Client = fake.NewFakeClient(apiKeySecret)
 
-		mockServer := getMockHTTPServer(fakeAPIKey, "", "#36a64f", "Deployed")
+		mockServer := getMockHTTPServer(fakeAPIKey, "", "#36a64f", "Deployed", instance.Spec.SlackChannelName, false)
 		defer mockServer.Close()
 		// Set SlackAPIEndpoint to the mock server we just created
 		instance.Spec.SlackAPIEndpoint = mockServer.URL
@@ -141,7 +143,7 @@ var _ = Describe("notifications Component", func() {
 		}
 		ctx.Client = fake.NewFakeClient(apiKeySecret)
 
-		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error")
+		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error", instance.Spec.SlackChannelName, false)
 		defer mockServer.Close()
 		// Set SlackAPIEndpoint to the mock server we just created
 		instance.Spec.SlackAPIEndpoint = mockServer.URL
@@ -154,9 +156,93 @@ var _ = Describe("notifications Component", func() {
 
 		Expect(instance.Status.Notification.LastErrorHash).To(Equal("746573744572726f72da39a3ee5e6b4b0d3255bfef95601890afd80709"))
 	})
+
+	It("reconciles with invalid slack auth", func() {
+		// Create an apikey
+		fakeAPIKey := "testAPIKey"
+		errorMessage := "testError"
+		instance.Status.Status = summonv1beta1.StatusError
+		instance.Status.Message = errorMessage
+		apiKeySecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
+			Data: map[string][]byte{
+				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(apiKeySecret)
+
+		mockServer := getMockHTTPServer("mismatchedAPIKey", errorMessage, "#FF0000", "Error", "", false)
+		defer mockServer.Close()
+		// Set SlackAPIEndpoint to the mock server we just created
+		instance.Spec.SlackAPIEndpoint = mockServer.URL
+
+		comp := summoncomponents.NewNotification()
+
+		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("notifications: invalid auth token for slack request"))
+	})
+
+	It("reconcile joins slack channel that bot isnt in", func() {
+		// Create an apikey
+		fakeAPIKey := "testAPIKey"
+		errorMessage := "testError"
+		instance.Status.Status = summonv1beta1.StatusError
+		instance.Status.Message = errorMessage
+		instance.Spec.SlackChannelName = "testChannel"
+		apiKeySecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
+			Data: map[string][]byte{
+				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(apiKeySecret)
+
+		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error", "testChannel", true)
+		defer mockServer.Close()
+		// Set SlackAPIEndpoint to the mock server we just created
+		instance.Spec.SlackAPIEndpoint = mockServer.URL
+
+		comp := summoncomponents.NewNotification()
+
+		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		result, err := comp.Reconcile(ctx)
+		Expect(err).To(HaveOccurred())
+		Expect(result.Requeue).To(Equal(true))
+		Expect(err.Error()).To(Equal("notifications: bot is not in slack channel, sent join request and requeued"))
+	})
+
+	It("reconcile joins slack channel that does not exist", func() {
+		// Create an apikey
+		fakeAPIKey := "testAPIKey"
+		errorMessage := "testError"
+		instance.Status.Status = summonv1beta1.StatusError
+		instance.Status.Message = errorMessage
+		instance.Spec.SlackChannelName = "testChannel"
+		apiKeySecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
+			Data: map[string][]byte{
+				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(apiKeySecret)
+
+		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error", "mismatched channel", true)
+		defer mockServer.Close()
+		// Set SlackAPIEndpoint to the mock server we just created
+		instance.Spec.SlackAPIEndpoint = mockServer.URL
+
+		comp := summoncomponents.NewNotification()
+
+		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("notifications: error in joinSlackChannel: channel_not_found"))
+	})
 })
 
-func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor string, messageTitle string) *httptest.Server {
+func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor string, messageTitle string, expectedChannel string, notInChannel bool) *httptest.Server {
 	// Create HTTP test server
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// This was added so that ginkgo can catch a panic if the Expect() in this block fails
@@ -168,8 +254,7 @@ func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor strin
 			badRequest = true
 		}
 		expectedPayload := &summoncomponents.Payload{
-			Channel: instance.Spec.SlackChannelName,
-			Token:   fakeAPIKey,
+			Channel: expectedChannel,
 			Text:    messageText,
 			Attachments: []summoncomponents.Attachments{
 				{
@@ -193,13 +278,38 @@ func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor strin
 			badRequest = true
 		}
 
-		Expect(payload).To(Equal(expectedPayload))
+		Expect(r.Header.Get("Content-type")).To(Equal("application/json"))
+
+		mockResponse := make(map[string]interface{})
+		// Hacky mess ahead
+		if r.Header.Get("Authorization") != fmt.Sprintf("Bearer %s", fakeAPIKey) {
+			// simulate invalid_auth slack response
+			mockResponse["ok"] = false
+			mockResponse["error"] = "invalid_auth"
+		} else if payload.Channel != "" && payload.Name == "" && notInChannel {
+			// simulate not_in_channel slack response
+			mockResponse["ok"] = false
+			mockResponse["error"] = "not_in_channel"
+		} else if payload.Name != "" && payload.Name != expectedPayload.Channel {
+			// simulate slack channel not found
+			mockResponse["ok"] = false
+			mockResponse["error"] = "channel_not_found"
+		} else if payload.Name != "" && payload.Name == expectedPayload.Channel {
+			// simulate join slack channel
+			mockResponse["ok"] = true
+		} else {
+			Expect(payload).To(Equal(expectedPayload))
+			mockResponse["ok"] = true
+		}
 
 		if badRequest {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
+		mockBody, err := json.Marshal(mockResponse)
+		Expect(err).ToNot(HaveOccurred())
+		w.Write(mockBody)
 	}))
 	return testServer
 }
