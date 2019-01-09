@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -56,7 +57,7 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Extensions not installed yet.
 		return false
 	}
-	if instance.Status.PullSecretStatus != summonv1beta1.StatusReady {
+	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		// Pull secret not ready yet.
 		return false
 	}

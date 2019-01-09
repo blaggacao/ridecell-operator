@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
@@ -45,9 +46,14 @@ var _ = Describe("Summon controller", func() {
 
 	BeforeEach(func() {
 		helpers = testHelpers.SetupTest()
-
 		pullSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "pull-secret", Namespace: helpers.OperatorNamespace}, Type: "kubernetes.io/dockerconfigjson", StringData: map[string]string{".dockerconfigjson": "{\"auths\": {}}"}}
 		err := helpers.Client.Create(context.TODO(), pullSecret)
+		Expect(err).NotTo(HaveOccurred())
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: helpers.Namespace},
+			Data: map[string][]byte{
+				"filler": []byte{}}}
+		err = helpers.Client.Create(context.TODO(), appSecrets)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -87,6 +93,16 @@ var _ = Describe("Summon controller", func() {
 		err := c.Create(context.TODO(), instance)
 		Expect(err).NotTo(HaveOccurred())
 		err = c.Status().Update(context.TODO(), instance)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the pull_secret object.
+		pullsecret := &secretsv1beta1.PullSecret{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-pullsecret", Namespace: helpers.Namespace}, pullsecret)
+		}, timeout).
+			Should(Succeed())
+		pullsecret.Status.Status = secretsv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), pullsecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Check the Postgresql object.
@@ -194,6 +210,16 @@ var _ = Describe("Summon controller", func() {
 			},
 		}
 		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set the status of PullSecret to ready.
+		pullsecret := &secretsv1beta1.PullSecret{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-pullsecret", Namespace: helpers.Namespace}, pullsecret)
+		}, timeout).
+			Should(Succeed())
+		pullsecret.Status.Status = secretsv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), pullsecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Set the status of the DB to ready.

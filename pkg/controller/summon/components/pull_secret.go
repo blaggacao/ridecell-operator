@@ -19,32 +19,27 @@ package components
 // TODO: This whole thing should probably be its own custom resource.
 
 import (
-	"io/ioutil"
-	"os"
-
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 const inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 
-type pullSecretComponent struct{}
+type pullSecretComponent struct {
+	templatePath string
+}
 
-func NewPullSecret() *pullSecretComponent {
-	return &pullSecretComponent{}
+func NewPullSecret(templatePath string) *pullSecretComponent {
+	return &pullSecretComponent{templatePath: templatePath}
 }
 
 func (comp *pullSecretComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{
-		&corev1.Secret{},
+		&secretsv1beta1.PullSecret{},
 	}
 }
 
@@ -55,63 +50,14 @@ func (_ *pullSecretComponent) IsReconcilable(_ *components.ComponentContext) boo
 
 func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
-	operatorNamespace := os.Getenv("NAMESPACE")
-	if operatorNamespace == "" {
-		var err error
-		operatorNamespace, err = getInClusterNamespace()
-		if err != nil {
-			instance.Status.PullSecretStatus = summonv1beta1.StatusError
-			return reconcile.Result{}, err
-		}
-	}
-
-	target := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PullSecret, Namespace: operatorNamespace}, target)
-	if err != nil {
-		instance.Status.PullSecretStatus = summonv1beta1.StatusError
-		return reconcile.Result{Requeue: true}, err
-	}
-
-	fetchTarget := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecret, Namespace: instance.Namespace}}
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
-		// Set owner ref.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			instance.Status.PullSecretStatus = summonv1beta1.StatusError
-			return err
-		}
-		// Sync important fields.
-		existing.ObjectMeta.Labels = target.ObjectMeta.Labels
-		existing.ObjectMeta.Annotations = target.ObjectMeta.Annotations
-		existing.Type = target.Type
-		existing.Data = target.Data
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*secretsv1beta1.PullSecret)
+		existing := existingObj.(*secretsv1beta1.PullSecret)
+		// Copy the Spec over.
+		existing.Spec = goal.Spec
+		instance.Status.PullSecretStatus = existing.Status.Status
 		return nil
 	})
-	if err != nil {
-		instance.Status.PullSecretStatus = summonv1beta1.StatusError
-		return reconcile.Result{Requeue: true}, err
-	}
+	return res, err
 
-	instance.Status.PullSecretStatus = summonv1beta1.StatusReady
-	return reconcile.Result{}, nil
-}
-
-func getInClusterNamespace() (string, error) {
-	// Check whether the namespace file exists.
-	// If not, we are not running in cluster so can't guess the namespace.
-	_, err := os.Stat(inClusterNamespacePath)
-	if os.IsNotExist(err) {
-		return "", errors.New("not running in-cluster, please specify $NAMESPACE")
-	} else if err != nil {
-		return "", errors.Wrap(err, "error checking namespace file")
-	}
-
-	// Load the namespace file and return itss content
-	namespace, err := ioutil.ReadFile(inClusterNamespacePath)
-	if err != nil {
-		return "", errors.Wrap(err, "error reading namespace file")
-	}
-	return string(namespace), nil
 }

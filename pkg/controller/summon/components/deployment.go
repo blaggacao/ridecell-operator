@@ -21,6 +21,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -43,7 +44,7 @@ func (comp *deploymentComponent) WatchTypes() []runtime.Object {
 func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	// Check on the pull secret. Not technically needed in some cases, but just wait.
-	if instance.Status.PullSecretStatus != summonv1beta1.StatusReady {
+	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		return false
 	}
 	// If we don't need the database, we're ready.
