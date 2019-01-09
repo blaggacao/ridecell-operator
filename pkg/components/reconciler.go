@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"time"
 
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
@@ -125,18 +124,18 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	cleanTop := ctx.Top.DeepCopyObject()
 
 	// Reconcile all the components.
-	start := time.Now()
+	// start := time.Now()
 	result, statusModifiers, err := cr.reconcileComponents(ctx)
-	fmt.Printf("$$$ Reconcile took %s\n", time.Since(start))
+	// fmt.Printf("$$$ Reconcile took %s\n", time.Since(start))
 	if err != nil {
-		fmt.Printf("@@@@ Reconcile error %v\n", err)
+		// fmt.Printf("@@@@ Reconcile error %v\n", err)
 		ctx.Top.(Statuser).SetErrorStatus(err.Error())
 	}
 
 	// Check if an update to the status subresource is required.
 	if !reflect.DeepEqual(ctx.Top.(Statuser).GetStatus(), cleanTop.(Statuser).GetStatus()) {
 		// Update the top object status.
-		fmt.Printf("[%s] Reconcile: Updating Status\n", request.NamespacedName)
+		glog.V(2).Infof("[%s] Reconcile: Updating Status\n", request.NamespacedName)
 		err = cr.modifyStatus(ctx, statusModifiers)
 		if err != nil {
 			result.Requeue = true
@@ -160,10 +159,10 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (recon
 	res := reconcile.Result{}
 	statusModifiers := []StatusModifier{}
 	for _, component := range ready {
-		fmt.Printf("### Reconciling %#v\n", component)
-		start := time.Now()
+		// fmt.Printf("### Reconciling %#v\n", component)
+		// start := time.Now()
 		innerRes, err := component.Reconcile(ctx)
-		fmt.Printf("### Done reconciling %#v, took %s\n", component, time.Since(start))
+		// fmt.Printf("### Done reconciling %#v, took %s\n", component, time.Since(start))
 		// Update result. This should be checked before the err!=nil because sometimes
 		// we want to requeue immediately on error.
 		if innerRes.Requeue {
