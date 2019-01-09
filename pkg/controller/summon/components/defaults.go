@@ -75,10 +75,8 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 	if instance.Spec.Secret == "" {
 		if instance.Namespace == "dev" || instance.Namespace == "qa" {
 			instance.Spec.Secret = instance.Namespace
-		} else if instance.Namespace == "prod" || instance.Namespace == "uat" {
-			instance.Spec.Secret = instance.Name
 		} else {
-			instance.Spec.Secret = "default-secret"
+			instance.Spec.Secret = instance.Name
 		}
 	}
 	if instance.Spec.PullSecret == "" {
