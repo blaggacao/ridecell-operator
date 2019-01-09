@@ -55,7 +55,7 @@ type SummonPlatformSpec struct {
 	// Summon image version to deploy.
 	Version string `json:"version"`
 	// Name of the secret to use for secret values.
-	Secret string `json:"secret"`
+	Secret string `json:"secret,omitempty"`
 	// Name of the secret to use for image pulls. Defaults to `"pull-secret"`.
 	// +optional
 	PullSecret string `json:"pullSecret,omitempty"`

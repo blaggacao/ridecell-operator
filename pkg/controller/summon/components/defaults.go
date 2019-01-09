@@ -71,6 +71,13 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.StaticReplicas == nil {
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
+	if instance.Spec.Secret == "" {
+		if instance.Namespace == "dev" || instance.Namespace == "qa" {
+			instance.Spec.Secret = instance.Namespace
+		} else {
+			instance.Spec.Secret = instance.Name
+		}
+	}
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
 	}
