@@ -44,7 +44,6 @@ func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	var existing *postgresv1.Postgresql
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*postgresv1.Postgresql)

@@ -24,7 +24,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -45,11 +44,11 @@ func (_ *statusComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	if instance.Status.Status != summonv1beta1.StatusDeploying {
 		// If the migrations component didn't already set us to Deploying, don't even bother checking.
-		return reconcile.Result{}, nil
+		return components.Result{}, nil
 	}
 
 	// Grab all (important) Deployments and make sure they are all ready.
@@ -63,27 +62,27 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (reconc
 	// Go's lack of generics can fuck right off.
 	err := comp.get(ctx, "web", web)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 	err = comp.get(ctx, "daphne", daphne)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 	err = comp.get(ctx, "celeryd", celeryd)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 	err = comp.get(ctx, "channelworker", channelworker)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 	err = comp.get(ctx, "static", static)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 	err = comp.get(ctx, "celerybeat", celerybeat)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 
 	// The big check!
@@ -95,11 +94,16 @@ func (comp *statusComponent) Reconcile(ctx *components.ComponentContext) (reconc
 		// Note this one is different, available vs ready.
 		celerybeat.Spec.Replicas != nil && celerybeat.Status.ReadyReplicas == *celerybeat.Spec.Replicas {
 		// TODO: Add an actual HTTP self check in here.
-		instance.Status.Status = summonv1beta1.StatusReady
-		instance.Status.Message = fmt.Sprintf("Cluster %s ready", instance.Name)
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*summonv1beta1.SummonPlatform)
+			instance.Status.Status = summonv1beta1.StatusReady
+			instance.Status.Message = fmt.Sprintf("Cluster %s ready", instance.Name)
+			return nil
+		}}, nil
 	}
 
-	return reconcile.Result{}, nil
+	// Not ready, alas.
+	return components.Result{}, nil
 }
 
 // Short helper because we need to do this 6 times.

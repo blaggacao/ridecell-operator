@@ -17,14 +17,17 @@ limitations under the License.
 package components
 
 import (
-  summonv1beta "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	summonv1beta "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 // Helper function for use as a StatusModifier which just sets the main status.
 func setStatus(status string) components.StatusModifier {
-  return func(obj runtime.Object) error {
-    instance := obj.(*summonv1beta.SummonPlatform)
-    instance.Status.Status = status
-    return nil
-  }
+	return func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta.SummonPlatform)
+		instance.Status.Status = status
+		return nil
+	}
 }

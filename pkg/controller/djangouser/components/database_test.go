@@ -196,7 +196,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
 
-  It("errors if the auth_user insert fails", func() {
+	It("errors if the auth_user insert fails", func() {
 		dbSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: "default"},
 			Data: map[string][]byte{

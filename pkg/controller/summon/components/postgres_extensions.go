@@ -49,8 +49,6 @@ func (_ *postgresExtensionsComponent) IsReconcilable(ctx *components.ComponentCo
 }
 
 func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
 	var existingPostgis *dbv1beta1.PostgresExtension
 	var existingPostgisToplogy *dbv1beta1.PostgresExtension
 

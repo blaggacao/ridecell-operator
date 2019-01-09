@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
-  . "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("DjangoUser Secret Component", func() {
@@ -37,7 +37,7 @@ var _ = Describe("DjangoUser Secret Component", func() {
 
 	It("creates a password if no secret exists", func() {
 		comp := djangousercomponents.NewSecret()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		secret := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, secret)
 		Expect(err).NotTo(HaveOccurred())
@@ -53,7 +53,7 @@ var _ = Describe("DjangoUser Secret Component", func() {
 		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		newSecret := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
 		Expect(err).NotTo(HaveOccurred())
@@ -72,7 +72,7 @@ var _ = Describe("DjangoUser Secret Component", func() {
 		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		newSecret := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
 		Expect(err).NotTo(HaveOccurred())

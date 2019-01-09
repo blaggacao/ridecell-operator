@@ -105,7 +105,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 
 				job := &batchv1.Job{}
-				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
 			})
@@ -128,7 +128,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				Expect(comp).To(ReconcileContext(ctx))
 
 				job := &batchv1.Job{}
-				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
 			})
@@ -155,7 +155,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 				// Pending controller-runtime #213
 				jobs := &metav1.List{}
-				err = ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
+				err := ctx.Client.List(context.TODO(), &client.ListOptions{Raw: &metav1.ListOptions{TypeMeta: metav1.TypeMeta{APIVersion: "batch/v1", Kind: "Job"}}}, jobs)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(jobs.Items).To(BeEmpty())
 				Expect(instance.Status.MigrateVersion).To(Equal("1.2.3"))
@@ -182,7 +182,7 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 				Expect(comp).NotTo(ReconcileContext(ctx))
 
 				job := &batchv1.Job{}
-				err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
+				err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: "default"}, job)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(instance.Status.MigrateVersion).To(Equal(""))
 			})

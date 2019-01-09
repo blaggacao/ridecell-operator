@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
@@ -75,37 +74,37 @@ func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bo
 	return true
 }
 
-func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	rawAppSecrets := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.Secret, Namespace: instance.Namespace}, rawAppSecrets)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get existing app secrets")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get existing app secrets")
 	}
 
 	postgresSecret := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
 	}
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
-		return reconcile.Result{}, errors.New("app_secrets: Postgres password not found in secret")
+		return components.Result{}, errors.New("app_secrets: Postgres password not found in secret")
 	}
 
 	fernetKeys := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetKeys)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
 	}
 	if len(fernetKeys.Data) == 0 {
-		return reconcile.Result{}, errors.New("app_secrets: Fernet keys map is empty")
+		return components.Result{}, errors.New("app_secrets: Fernet keys map is empty")
 	}
 
 	formattedFernetKeys, err := comp.formatFernetKeys(fernetKeys.Data)
 	if err != nil {
-		return reconcile.Result{}, err
+		return components.Result{}, err
 	}
 
 	appSecretsData := map[string]interface{}{}
@@ -118,7 +117,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 
 	parsedYaml, err := yaml.Marshal(appSecretsData)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
 	}
 
 	newSecret := &corev1.Secret{
@@ -141,10 +140,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	})
 
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "app_secrets: Failed to update secret object")
+		return components.Result{}, errors.Wrapf(err, "app_secrets: Failed to update secret object")
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }
 
 func (_ *appSecretComponent) formatFernetKeys(fernetData map[string][]byte) ([]string, error) {

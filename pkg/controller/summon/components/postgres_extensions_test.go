@@ -37,7 +37,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		ext := &dbv1beta1.PostgresExtension{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: "default"}, ext)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: "default"}, ext)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis"))
 
@@ -65,7 +65,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		comp := summoncomponents.NewPostgresExtensions()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusError))
 		Expect(instance.Status.Message).To(Equal("postgis: Unable to floop the foobar"))
@@ -85,7 +85,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		comp := summoncomponents.NewPostgresExtensions()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusError))
 		Expect(instance.Status.Message).To(Equal("postgis_topology: Unable to floop the other foobar"))
@@ -105,7 +105,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		comp := summoncomponents.NewPostgresExtensions()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(""))
 		Expect(instance.Status.Message).To(Equal(""))
@@ -132,7 +132,7 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		comp := summoncomponents.NewPostgresExtensions()
 		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal("Initializing"))
 		Expect(instance.Status.Message).To(Equal(""))

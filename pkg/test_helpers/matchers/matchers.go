@@ -35,7 +35,7 @@ func ReconcileContext(ctx *components.ComponentContext) types.GomegaMatcher {
 
 type reconcileContextMatcher struct {
 	ctx *components.ComponentContext
-  err error
+	err error
 }
 
 // Match implements GomegaMatcher
@@ -49,7 +49,7 @@ func (matcher *reconcileContextMatcher) Match(actual interface{}) (bool, error) 
 	// Run the reconcile.
 	result, err := comp.Reconcile(matcher.ctx)
 	if err != nil {
-    matcher.err = err
+		matcher.err = err
 		return false, nil
 	}
 
@@ -57,7 +57,7 @@ func (matcher *reconcileContextMatcher) Match(actual interface{}) (bool, error) 
 	if result.StatusModifier != nil {
 		err = result.StatusModifier(matcher.ctx.Top)
 		if err != nil {
-      matcher.err = err
+			matcher.err = err
 			return false, nil
 		}
 	}

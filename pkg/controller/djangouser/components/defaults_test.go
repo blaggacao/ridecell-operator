@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	ducomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
-  . "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("DjangoUser Defaults Component", func() {
@@ -30,7 +30,7 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := ducomponents.NewDefaults()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Email).To(Equal("foo@bar.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo-credentials"))
 	})
@@ -39,7 +39,7 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 		instance.Spec.Email = "foo@bar.com"
 
 		comp := ducomponents.NewDefaults()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Email).To(Equal("foo@bar.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo.bar.com-credentials"))
 	})
@@ -48,14 +48,14 @@ var _ = Describe("DjangoUser Defaults Component", func() {
 		instance.Spec.PasswordSecret = "foo-credentials"
 
 		comp := ducomponents.NewDefaults()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Email).To(Equal("foo@example.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo-credentials"))
 	})
 
 	It("sets a default email and password secret", func() {
 		comp := ducomponents.NewDefaults()
-    Expect(comp).To(ReconcileContext(ctx))
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.Email).To(Equal("foo@example.com"))
 		Expect(instance.Spec.PasswordSecret).To(Equal("foo.example.com-credentials"))
 	})
