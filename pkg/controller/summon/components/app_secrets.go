@@ -114,7 +114,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
 	}
 	val, ok := secretKey.Data["SECRET_KEY"]
-	if !ok {
+	if !ok || len(val) == 0 {
 		return reconcile.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 

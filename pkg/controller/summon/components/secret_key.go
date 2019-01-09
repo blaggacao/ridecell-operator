@@ -64,8 +64,8 @@ func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (rec
 	}
 
 	// See if there is data in the secret
-	_, ok := fetchSecret.Data["SECRET_KEY"]
-	if ok {
+	val, ok := fetchSecret.Data["SECRET_KEY"]
+	if ok && len(val) != 0 {
 		return reconcile.Result{}, nil
 	}
 
