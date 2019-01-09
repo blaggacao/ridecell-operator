@@ -73,7 +73,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
 	if instance.Spec.Secret == "" {
-		instance.Spec.Secret = fmt.Sprintf("%s.secret", instance.Name)
+		if instance.Namespace == "dev" || instance.Namespace == "qa" {
+			instance.Spec.Secret = instance.Namespace
+		} else if instance.Namespace == "prod" || instance.Namespace == "uat" {
+			instance.Spec.Secret = instance.Name
+		}
 	}
 	if instance.Spec.PullSecret == "" {
 		instance.Spec.PullSecret = "pull-secret"
