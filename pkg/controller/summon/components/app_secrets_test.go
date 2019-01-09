@@ -44,10 +44,6 @@ type testAppSecretData struct {
 
 var _ = Describe("app_secrets Component", func() {
 
-	BeforeEach(func() {
-		instance.Spec.Secret = "testsecret"
-	})
-
 	It("Unreconcilable when db not ready", func() {
 		comp := summoncomponents.NewAppSecret()
 		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
