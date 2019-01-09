@@ -44,6 +44,10 @@ type testAppSecretData struct {
 
 var _ = Describe("app_secrets Component", func() {
 
+	BeforeEach(func() {
+		instance.Spec.Secret = "testsecret"
+	})
+
 	It("Unreconcilable when db not ready", func() {
 		comp := summoncomponents.NewAppSecret()
 		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
@@ -65,7 +69,6 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile with a blank postgres password", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.Secret = instance.Namespace
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
@@ -90,7 +93,6 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.Secret = instance.Namespace
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
@@ -160,7 +162,6 @@ var _ = Describe("app_secrets Component", func() {
 
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.Secret = instance.Namespace
 
 		postgresSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
