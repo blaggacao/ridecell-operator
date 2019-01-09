@@ -67,7 +67,7 @@ var _ = Describe("app_secrets Component", func() {
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
 			Data:       map[string][]byte{},
 		}
 
@@ -91,7 +91,7 @@ var _ = Describe("app_secrets Component", func() {
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
 			Data:       map[string][]byte{"filler": []byte("test")},
 		}
 
@@ -165,7 +165,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
 			Data:       map[string][]byte{},
 		}
 
