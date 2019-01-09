@@ -52,7 +52,6 @@ spec:
               type: string
           required:
           - version
-          - secret
           type: object
         status:
           properties:
