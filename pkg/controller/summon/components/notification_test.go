@@ -124,6 +124,7 @@ var _ = Describe("notifications Component", func() {
 		instance.Spec.SlackAPIEndpoint = mockServer.URL
 		comp := summoncomponents.NewNotification()
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		Expect(comp).To(ReconcileContext(ctx))
 
 		Expect(instance.Spec.Version).To(Equal(instance.Status.Notification.NotifyVersion))
 	})

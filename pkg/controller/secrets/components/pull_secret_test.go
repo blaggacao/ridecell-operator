@@ -42,7 +42,6 @@ var _ = Describe("pull_secret Component", func() {
 	It("Runs reconcile with no value set", func() {
 		comp := secretscomponents.NewSecret()
 		Expect(comp).NotTo(ReconcileContext(ctx))
-		Expect(instance.Status.Status).To(Equal(secretsv1beta1.StatusErrorSecretNotFound))
 	})
 
 	It("Sets valid secret, runs reconcile", func() {
