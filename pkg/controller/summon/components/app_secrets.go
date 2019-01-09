@@ -108,6 +108,16 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 		return reconcile.Result{}, err
 	}
 
+	secretKey := &corev1.Secret{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace}, secretKey)
+	if err != nil {
+		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+	}
+	val, ok := secretKey.Data["SECRET_KEY"]
+	if !ok {
+		return reconcile.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
+	}
+
 	appSecretsData := map[string]interface{}{}
 
 	appSecretsData["DATABASE_URL"] = []byte(fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name))
@@ -115,6 +125,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	appSecretsData["SMS_WEBHOOK_URL"] = []byte(fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name))
 	appSecretsData["CELERY_BROKER_URL"] = []byte(fmt.Sprintf("redis://%s-redis/2", instance.Name))
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
+	appSecretsData["SECRET_KEY"] = secretKey.Data["SECRET_KEY"]
 
 	parsedYaml, err := yaml.Marshal(appSecretsData)
 	if err != nil {

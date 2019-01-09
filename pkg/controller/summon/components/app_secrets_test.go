@@ -80,7 +80,14 @@ var _ = Describe("app_secrets Component", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{},
 		}
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
+
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
 		_, err := comp.Reconcile(ctx)
 		Expect(err.Error()).To(Equal("app_secrets: Postgres password not found in secret"))
 	})
@@ -107,7 +114,14 @@ var _ = Describe("app_secrets Component", func() {
 			Data:       map[string][]byte{formattedTime: []byte("lorem ipsum")},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -169,7 +183,14 @@ var _ = Describe("app_secrets Component", func() {
 			Data:       map[string][]byte{},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -187,5 +208,63 @@ var _ = Describe("app_secrets Component", func() {
 		expectedSlices := []string{"1", "2", "3", "4", "5"}
 		Expect(stringSlices).To(Equal(expectedSlices))
 
+	})
+
+	It("runs reconcile with no secret_key", func() {
+		comp := summoncomponents.NewAppSecret()
+		//Set status so that IsReconcileable returns true
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"filler": []byte("test")},
+		}
+
+		postgresSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{"password": []byte("postgresPassword")},
+		}
+
+		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
+
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{formattedTime: []byte("lorem ipsum")},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
+		_, err := comp.Reconcile(ctx)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal(`app_secrets: Unable to get SECRET_KEY: secrets "foo.secret-key" not found`))
+	})
+
+	It("runs reconcile with all values set", func() {
+		comp := summoncomponents.NewAppSecret()
+
+		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{formattedTime: []byte("filler value")},
+		}
+
+		postgresSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{"password": []byte("postgresPassword")},
+		}
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
+			Data:       map[string][]byte{},
+		}
+
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
