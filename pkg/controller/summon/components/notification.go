@@ -21,6 +21,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -34,31 +35,33 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-const defaultSlackEndpoint = "https://slack.com/api/chat.postMessage"
+const defaultSlackEndpoint = "https://slack.com/api/"
 
 type notificationComponent struct{}
 
 // Fields is nested inside of of Attachments for building Json payload
 type Fields struct {
-	Title string `json:"title"`
-	Value string `json:"value"`
+	Title string `json:"title,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // Attachments is nested inside of Payload for building Json payload
 type Attachments struct {
-	Color      string   `json:"color"`
-	AuthorName string   `json:"author_name"`
-	Title      string   `json:"title"`
-	TitleLink  string   `json:"title_link"`
-	Fields     []Fields `json:"fields"`
+	Color      string   `json:"color,omitempty"`
+	AuthorName string   `json:"author_name,omitempty"`
+	Title      string   `json:"title,omitempty"`
+	TitleLink  string   `json:"title_link,omitempty"`
+	Fields     []Fields `json:"fields,omitempty"`
 }
 
 // Payload is the base structure for building Json payload
 type Payload struct {
-	Channel     string        `json:"channel"`
-	Token       string        `json:"token"`
-	Text        string        `json:"text"`
-	Attachments []Attachments `json:"attachments"`
+	Channel     string        `json:"channel,omitempty"`
+	Text        string        `json:"text,omitempty"`
+	Name        string        `json:"name,omitempty"`
+	AsUser      bool          `json:"AsUser,omitempty"`
+	Attachments []Attachments `json:"attachments,omitempty"`
+	Validate    bool          `json:"valdiate,omitempty"`
 }
 
 func NewNotification() *notificationComponent {
@@ -89,8 +92,16 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	slackURL := instance.Spec.SlackAPIEndpoint
+	var slackMessageURL string
+	var slackJoinChannelURL string
+	// If this is not set, use the actual endpoint + api path
+	// Else use the mock http server
 	if slackURL == "" {
-		slackURL = defaultSlackEndpoint
+		slackMessageURL = fmt.Sprintf("%schat.postMessage", defaultSlackEndpoint)
+		slackJoinChannelURL = fmt.Sprintf("%schannels.join", defaultSlackEndpoint)
+	} else {
+		slackMessageURL = slackURL
+		slackJoinChannelURL = slackURL
 	}
 	// Try to find the Slack API Key
 	secret := &corev1.Secret{}
@@ -104,26 +115,65 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 	apiKey := string(apiKeyByte)
 
-	rawPayload := comp.formatPayload(ctx, apiKey)
-
+	// Create our POST payload
+	rawPayload := comp.formatPayload(ctx)
 	payload, err := json.Marshal(rawPayload)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
 	}
 
-	resp, err := http.Post(slackURL, "application/json", bytes.NewBuffer(payload))
+	// create POST request with payload, add headers, execute
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", slackMessageURL, bytes.NewBuffer(payload))
+	if err != nil {
+		return reconcile.Result{}, errors.Wrapf(err, "notifications: failed to create post request")
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	req.Header.Add("Content-type", "application/json")
+
+	resp, err := client.Do(req)
 	// Test if the request was actually sent, and make sure we got a 200
 	if err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
 	}
 	// Set body to close after function call to avoid errors
 	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	// Slack almost always returns 200s, if this occurs it's likely not a code issue
 	if resp.StatusCode != http.StatusOK {
-		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return reconcile.Result{}, errors.Errorf("notifications: Failed to read body from non 200 HTTP StatusCode")
+			return reconcile.Result{}, errors.New("notifications: Failed to read body from non 200 HTTP StatusCode")
 		}
 		return reconcile.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v, body of response = %#v", resp.StatusCode, body)
+	}
+
+	// Unpackage response from our request
+	var jsonResponse map[string]interface{}
+	json.Unmarshal(body, &jsonResponse)
+
+	// If respStatus is not true slack returned us an error
+	respStatus, ok := jsonResponse["ok"]
+	if !ok || err != nil {
+		return reconcile.Result{}, errors.New(`notifications: could not find "ok" in slack response`)
+	}
+
+	if respStatus == false {
+		// This value is only returned when an error occurs
+		respError := jsonResponse["error"]
+		// If our slack api key is wrong exit reconcile
+		if respStatus == false && respError == "invalid_auth" {
+			return reconcile.Result{}, errors.New("notifications: invalid auth token for slack request")
+			// if our bot is not in the slack channel join it and requeue the reconcile
+			// Message should send on next attempt
+		} else if respStatus == false && respError == "not_in_channel" {
+			err = comp.joinSlackChannel(ctx, apiKey, slackJoinChannelURL)
+			if err != nil {
+				return reconcile.Result{}, errors.Wrapf(err, "notifications: error in joinSlackChannel")
+			}
+			return reconcile.Result{Requeue: true}, errors.New("notifications: bot is not in slack channel, sent join request and requeued")
+		}
 	}
 
 	// Update NotifyVersion if it needs to be changed.
@@ -157,7 +207,51 @@ func (comp *notificationComponent) isMismatchedError(ctx *components.ComponentCo
 	return instance.Status.Status == summonv1beta1.StatusError && errorHash != instance.Status.Notification.LastErrorHash
 }
 
-func (comp *notificationComponent) formatPayload(ctx *components.ComponentContext, apiKey string) Payload {
+func (comp *notificationComponent) joinSlackChannel(ctx *components.ComponentContext, slackAPIKey string, slackJoinChannelURL string) error {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	rawPayload := Payload{
+		Name:     instance.Spec.SlackChannelName,
+		Validate: true,
+	}
+	payload, err := json.Marshal(rawPayload)
+	if err != nil {
+		return err
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("POST", slackJoinChannelURL, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", slackAPIKey))
+	req.Header.Add("Content-type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	respBody := make(map[string]interface{})
+	json.Unmarshal(responseBody, &respBody)
+	respStatus, ok := respBody["ok"]
+	if !ok {
+		return errors.New(`unable to find "ok" in channel join request`)
+	}
+	respError := respBody["error"]
+	if respStatus == false {
+		return errors.Errorf("%s", respError)
+	}
+	return nil
+}
+
+func (comp *notificationComponent) formatPayload(ctx *components.ComponentContext) Payload {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	var messageColor, messageText, messageTitle string
 	if instance.Status.Status == summonv1beta1.StatusError {
@@ -172,7 +266,6 @@ func (comp *notificationComponent) formatPayload(ctx *components.ComponentContex
 
 	rawPayload := Payload{
 		Channel: instance.Spec.SlackChannelName,
-		Token:   apiKey,
 		Text:    messageText,
 		Attachments: []Attachments{
 			{
