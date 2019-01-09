@@ -308,6 +308,12 @@ var _ = Describe("Summon controller", func() {
 		}
 		err = c.Create(context.TODO(), dbSecret)
 		Expect(err).NotTo(HaveOccurred())
+		inSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
+			StringData: map[string]string{},
+		}
+		err = c.Create(context.TODO(), inSecret)
+		Expect(err).NotTo(HaveOccurred())
 
 		// Wait for the database to be created.
 		postgres := &postgresv1.Postgresql{}
@@ -353,6 +359,15 @@ var _ = Describe("Summon controller", func() {
 		}, timeout).Should(Succeed())
 		ext.Status.Status = dbv1beta1.StatusReady
 		err = c.Status().Update(context.TODO(), ext)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set the pull secret to ready.
+		pullSecret := &secretsv1beta1.PullSecret{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-pullsecret", Namespace: helpers.Namespace}, pullSecret)
+		}, timeout).Should(Succeed())
+		pullSecret.Status.Status = secretsv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), pullSecret)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Check the status again. Should be Migrating.
