@@ -26,10 +26,6 @@ import (
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-func intp(n int32) *int32 {
-	return &n
-}
-
 var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
