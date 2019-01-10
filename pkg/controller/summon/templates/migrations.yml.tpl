@@ -42,23 +42,13 @@ spec:
         volumeMounts:
         - name: config-volume
           mountPath: /etc/config
-        - name: secrets-orig
-          mountPath: /etc/secrets-orig
         - name: app-secrets
           mountPath: /etc/secrets
-        - name: postgres-credentials
-          mountPath: /postgres-credentials
 
       volumes:
         - name: config-volume
           configMap:
             name: {{ .Instance.Name }}-config
-        - name: secrets-orig
-          secret:
-            secretName: {{ .Instance.Spec.Secret }}
         - name: app-secrets
           secret:
             secretName: summon.{{ .Instance.Name }}.app-secrets
-        - name: postgres-credentials
-          secret:
-            secretName: summon.{{ .Instance.Name }}-database.credentials

@@ -37,6 +37,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewPostgresExtensions(),
 
 		// Secrets components
+		summoncomponents.NewSecretKey(),
 		summoncomponents.NewFernetRotate(),
 		summoncomponents.NewAppSecret(),
 

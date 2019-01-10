@@ -72,10 +72,10 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (co
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Set owner ref.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			return err
-		}
+		// err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
+		// if err != nil {
+		// 	return err
+		// }
 		// Sync important fields.
 		existing.ObjectMeta.Labels = target.ObjectMeta.Labels
 		existing.ObjectMeta.Annotations = target.ObjectMeta.Annotations
