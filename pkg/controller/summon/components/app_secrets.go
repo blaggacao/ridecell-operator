@@ -116,6 +116,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 
+	for k, v := range rawAppSecrets.Data {
+		appSecretsData[k] = string(v)
+	}
+
 	parsedYaml, err := yaml.Marshal(appSecretsData)
 	if err != nil {
 		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: yaml.Marshal failed")
