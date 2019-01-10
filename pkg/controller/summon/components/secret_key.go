@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -51,7 +50,7 @@ func (_ *secretKeyComponent) IsReconcilable(ctx *components.ComponentContext) bo
 	return true
 }
 
-func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	fetchSecret := &corev1.Secret{}
@@ -59,14 +58,14 @@ func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (rec
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			// Secret may or may not exist, unknown error occurs
-			return reconcile.Result{}, errors.Wrapf(err, "secret_key: Unable to get secret")
+			return components.Result{}, errors.Wrapf(err, "secret_key: Unable to get secret")
 		}
 	}
 
 	// See if there is data in the secret
 	val, ok := fetchSecret.Data["SECRET_KEY"]
 	if ok && len(val) != 0 {
-		return reconcile.Result{}, nil
+		return components.Result{}, nil
 	}
 
 	// Secret does not exist or has no data, make a new one.
@@ -99,8 +98,8 @@ func (comp *secretKeyComponent) Reconcile(ctx *components.ComponentContext) (rec
 	})
 
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "secret_key: Failed to update secret")
+		return components.Result{}, errors.Wrap(err, "secret_key: Failed to update secret")
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }

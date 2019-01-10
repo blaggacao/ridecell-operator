@@ -110,11 +110,11 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	secretKey := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace}, secretKey)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
 	}
 	val, ok := secretKey.Data["SECRET_KEY"]
 	if !ok || len(val) == 0 {
-		return reconcile.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
+		return components.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 
 	appSecretsData := map[string]interface{}{}
