@@ -80,11 +80,11 @@ func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (re
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchTarget, func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Set owner ref.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		if err != nil {
-			instance.Status.Status = secretsv1beta1.StatusError
-			return err
-		}
+		// err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
+		// if err != nil {
+		// 	instance.Status.Status = secretsv1beta1.StatusError
+		// 	return err
+		// }
 		// Sync important fields.
 		existing.ObjectMeta.Labels = target.ObjectMeta.Labels
 		existing.ObjectMeta.Annotations = target.ObjectMeta.Annotations
