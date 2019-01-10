@@ -17,25 +17,38 @@ spec:
     openAPIV3Schema:
       properties:
         apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
         kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           properties:
             config:
+              description: Summon-platform.yml configuration options.
               type: object
             fernetKeyLifetime:
+              description: Fernet Key Rotation Time Setting
               format: int64
               type: integer
             hostname:
+              description: Hostname to use for the instance. Defaults to $NAME.ridecell.us.
               type: string
             pullSecret:
+              description: Name of the secret to use for image pulls. Defaults to
+                `"pull-secret"`.
               type: string
             secret:
+              description: Name of the secret to use for secret values.
               type: string
             secretRef:
+              description: Slack API Key Secret Definition
               properties:
                 key:
                   type: string
@@ -45,35 +58,47 @@ spec:
               - name
               type: object
             slackApiEndpoint:
+              description: Slack API endpoint
               type: string
             slackChannelName:
+              description: Name of the slack channel for notifications. Defaults to
+                "".
               type: string
             version:
+              description: Summon image version to deploy.
               type: string
           required:
           - version
-          - secret
           type: object
         status:
           properties:
             message:
+              description: Message related to the current status.
               type: string
             migrateVersion:
+              description: Previous version for which migrations ran successfully.
               type: string
             notification:
+              description: Spec for Notification
               properties:
                 lastErrorHash:
                   type: string
                 notifyVersion:
+                  description: 'Important: Run "make" to regenerate code after modifying
+                    this file'
                   type: string
               type: object
             postgresExtensionStatus:
+              description: Status of the required Postgres extensions (collectively).
               type: string
             postgresStatus:
+              description: Current Postgresql status if one exists.
               type: string
             pullSecretStatus:
+              description: Status of the pull secret.
               type: string
             status:
+              description: Overall object status
               type: string
           type: object
   version: v1beta1

@@ -103,4 +103,23 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.StaticReplicas).To(PointTo(BeEquivalentTo(2)))
 	})
+
+	It("Sets a default Secret for dev", func() {
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Namespace = "dev"
+		comp := summoncomponents.NewDefaults()
+
+		_, err := comp.Reconcile(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance.Spec.Secret).To(Equal("dev"))
+	})
+
+	It("Sets a default Secret for prod", func() {
+		instance.Spec = summonv1beta1.SummonPlatformSpec{}
+		instance.Namespace = "prod"
+		comp := summoncomponents.NewDefaults()
+		_, err := comp.Reconcile(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance.Spec.Secret).To(Equal("foo"))
+	})
 })
