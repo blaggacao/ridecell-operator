@@ -142,6 +142,20 @@ func init() {
 	defConfig("AMAZON_S3_USED", false)
 	defConfig("AWS_REGION", "us-west-2")
 	defConfig("AWS_STORAGE_BUCKET_NAME", "")
+	defConfig("AUTH_SDK_AUTH_SERVICE_PUBLIC_KEY", `-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAsPk83VrFTv1yp8yY3j38
+DlK93nZzu6QH3VoKe8VcbuEP7eixlKIt91ID67KCRQGYV/sWquTxP1bmBUrku7tx
+nUXKs7NEchyMyhnq9/MaGenqv79QjpEzx1QikHplSPtp1Jj85ApWuECLgVfYuU1o
+CkH5DFmyd7An5NCFjuU8On76KMbb05Mxmw0T10UVlftchP+aCAKuuqUFxcX6oVmw
+kzWaFA13CCaeL2Vq1//ydYQtrhWEpx0fBsYq4nQsSz9wy37wbTcWVuyjMYG0Zyhh
+Oer7gwhEQS+4Fbn5vluU0v4Fwy5Vo2sGJtYbsdMsQZIc11FJ6dRCOgS+oXcCouwS
+a+KiQKrss4HuCovEwKxm3KgzaTOfgmVyf/39DUuBJ7cJuNe2mSJeRJvWSXBktTyS
+gGXvsQ1JVRqbEAC0htjy4nKoCawvrIs1lO0CjfpxO5vEv4SPazGenHTGtN6RRIjk
+PSQQAdjCUVnumveczncRwDkLmRWud7ijF74cqLgDAnUIeLJE3dqQv0Ff08R5Uh9b
+WoyKbZrC1Ie5bd6OGix+GWOFtAZ6FQJ7fFVeOjCQkHOnYJfnorj0nlKTQXCWsDjq
+waGIhRA2Oq1iha0fw8udSyUU+F0tWtaTAPrKe8VBWQPBwaWSzUjIP8Nb7EZBHLyP
+ZSo/8E5P29isb34ZQedtc1kCAwEAAQ==
+-----END PUBLIC KEY-----`)
 	defConfig("CARSHARING_V1_API_DISABLED", false)
 	defConfig("CLOUDFRONT_DISTRIBUTION", "")
 	defConfig("COMPRESS_ENABLED", false)
@@ -180,5 +194,4 @@ func init() {
 	defConfig("USE_GOOGLE_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("USE_SAML_AUTHENTICATION_FOR_RIDERS", false)
 	defConfig("XMLSEC_BINARY_LOCATION", "/usr/bin/xmlsec1")
-
 }
