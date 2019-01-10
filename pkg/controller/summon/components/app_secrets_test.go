@@ -36,10 +36,10 @@ import (
 // This is just a subset of the secrets contained in the used object for testing.
 type testAppSecretData struct {
 	FERNET_KEYS       []string `yaml:"FERNET_KEYS,omitempty"`
-	DATABASE_URL      []byte   `yaml:"DATABASE_URL,omitempty"`
-	OUTBOUNDSMS_URL   []byte   `yaml:"OUTBOUNDSMS_URL,omitempty"`
-	SMS_WEBHOOK_URL   []byte   `yaml:"SMS_WEBHOOK_URL,omitempty"`
-	CELERY_BROKER_URL []byte   `yaml:"CELERY_BROKER_URL,omitempty"`
+	DATABASE_URL      string   `yaml:"DATABASE_URL,omitempty"`
+	OUTBOUNDSMS_URL   string   `yaml:"OUTBOUNDSMS_URL,omitempty"`
+	SMS_WEBHOOK_URL   string   `yaml:"SMS_WEBHOOK_URL,omitempty"`
+	CELERY_BROKER_URL string   `yaml:"CELERY_BROKER_URL,omitempty"`
 }
 
 var _ = Describe("app_secrets Component", func() {

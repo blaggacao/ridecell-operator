@@ -110,10 +110,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (rec
 
 	appSecretsData := map[string]interface{}{}
 
-	appSecretsData["DATABASE_URL"] = []byte(fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name))
-	appSecretsData["OUTBOUNDSMS_URL"] = []byte(fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name))
-	appSecretsData["SMS_WEBHOOK_URL"] = []byte(fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name))
-	appSecretsData["CELERY_BROKER_URL"] = []byte(fmt.Sprintf("redis://%s-redis/2", instance.Name))
+	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name)
+	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
+	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
+	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 
 	parsedYaml, err := yaml.Marshal(appSecretsData)
