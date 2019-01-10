@@ -36,7 +36,10 @@ func NewStatus() *statusComponent {
 }
 
 func (comp *statusComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&appsv1.Deployment{},
+		&appsv1.StatefulSet{},
+	}
 }
 
 func (_ *statusComponent) IsReconcilable(_ *components.ComponentContext) bool {
