@@ -65,3 +65,6 @@ workflows:
         filters:
           branches:
             only: master
+
+build_parameters:
+  KUBEBUILDER_CONTROLPLANE_START_TIMEOUT: 300s
