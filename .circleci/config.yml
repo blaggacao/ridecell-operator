@@ -3,6 +3,8 @@ jobs:
   test:
     docker:
     - image: circleci/golang:1
+      environment:
+          KUBEBUILDER_CONTROLPLANE_START_TIMEOUT: 300s
     working_directory: /go/src/github.com/Ridecell/ridecell-operator
 
     steps:
@@ -21,8 +23,6 @@ jobs:
         key: v1-vendor-{{ checksum "Gopkg.lock" }}
         paths:
         - vendor/
-      environment:
-        KUBEBUILDER_CONTROLPLANE_START_TIMEOUT: 300s
   build:
     docker:
     - image: us.gcr.io/ridecell-public/docker-gcloud:2018-09-17
