@@ -161,7 +161,14 @@ var _ = Describe("app_secrets Component", func() {
 			Data:       map[string][]byte{formattedTime: []byte("lorem ipsum")},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
 
