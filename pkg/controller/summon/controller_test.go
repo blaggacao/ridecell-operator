@@ -39,7 +39,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-const timeout = time.Second * 10
+const timeout = time.Second * 30
 
 var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
@@ -147,8 +147,7 @@ var _ = Describe("Summon controller", func() {
 		job := &batchv1.Job{}
 		Eventually(func() error {
 			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: helpers.Namespace}, job)
-		}, timeout).
-			Should(Succeed())
+		}, timeout).Should(Succeed())
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
@@ -159,8 +158,7 @@ var _ = Describe("Summon controller", func() {
 		deploy := &appsv1.Deployment{}
 		Eventually(func() error {
 			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, deploy)
-		}, timeout).
-			Should(Succeed())
+		}, timeout).Should(Succeed())
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "gunicorn.app.wsgiapp", "-b", "0.0.0.0:8000", "summon_platform.wsgi", "--log-level=debug"}))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(BeEquivalentTo(8000))
@@ -181,7 +179,7 @@ var _ = Describe("Summon controller", func() {
 			Should(Succeed())
 		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("testsecret-tls"))
 
-		// Delete the Deployment and expect Reconcile to be called for Deployment deletion
+		// Delete the Deployment and expect it to come back.
 		Expect(c.Delete(context.TODO(), deploy)).NotTo(HaveOccurred())
 		Eventually(func() error {
 			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, deploy)
@@ -287,5 +285,137 @@ var _ = Describe("Summon controller", func() {
 			}
 			return nil
 		}, timeout).Should(Succeed())
+	})
+
+	It("manages the status correctly", func() {
+		c := helpers.Client
+
+		// Create a SummonPlatform and related objects.
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Version: "1-abcdef1-master",
+				Secret:  "statustester",
+			},
+		}
+		err := c.Create(context.TODO(), instance)
+		Expect(err).NotTo(HaveOccurred())
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.statustester-database.credentials", Namespace: helpers.Namespace},
+			StringData: map[string]string{
+				"password": "secretdbpass",
+			},
+		}
+		err = c.Create(context.TODO(), dbSecret)
+		Expect(err).NotTo(HaveOccurred())
+		inSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
+			StringData: map[string]string{},
+		}
+		err = c.Create(context.TODO(), inSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Wait for the database to be created.
+		postgres := &postgresv1.Postgresql{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-database", Namespace: helpers.Namespace}, postgres)
+		}, timeout).Should(Succeed())
+
+		// Check the status. Should not be set yet.
+		assertStatus := func(status string) {
+			Eventually(func() (string, error) {
+				err := c.Get(context.TODO(), types.NamespacedName{Name: "statustester", Namespace: helpers.Namespace}, instance)
+				return instance.Status.Status, err
+			}, timeout).Should(Equal(status))
+		}
+		assertStatus("")
+
+		// Set the database to Creating
+		postgres.Status = postgresv1.ClusterStatusCreating
+		err = c.Status().Update(context.TODO(), postgres)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the status again. Should be Initializing.
+		assertStatus(summonv1beta1.StatusInitializing)
+
+		// Set the database to Running
+		postgres.Status = postgresv1.ClusterStatusRunning
+		err = c.Status().Update(context.TODO(), postgres)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the status again. Should still be Initializing.
+		assertStatus(summonv1beta1.StatusInitializing)
+
+		// Set the postgres extensions to ready.
+		ext := &dbv1beta1.PostgresExtension{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-postgis", Namespace: helpers.Namespace}, ext)
+		}, timeout).Should(Succeed())
+		ext.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), ext)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-postgis-topology", Namespace: helpers.Namespace}, ext)
+		}, timeout).Should(Succeed())
+		ext.Status.Status = dbv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), ext)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Set the pull secret to ready.
+		pullSecret := &secretsv1beta1.PullSecret{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-pullsecret", Namespace: helpers.Namespace}, pullSecret)
+		}, timeout).Should(Succeed())
+		pullSecret.Status.Status = secretsv1beta1.StatusReady
+		err = c.Status().Update(context.TODO(), pullSecret)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the status again. Should be Migrating.
+		assertStatus(summonv1beta1.StatusMigrating)
+
+		// Mark the migration as a success.
+		job := &batchv1.Job{}
+		Eventually(func() error {
+			return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-migrations", Namespace: helpers.Namespace}, job)
+		}, timeout).Should(Succeed())
+		job.Status.Succeeded = 1
+		err = c.Status().Update(context.TODO(), job)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Check the status again. Should be Deploying.
+		assertStatus(summonv1beta1.StatusDeploying)
+
+		// Set deployments and statefulsets to ready.
+		updateDeployment := func(s string) {
+			deployment := &appsv1.Deployment{}
+			Eventually(func() error {
+				return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, deployment)
+			}, timeout).Should(Succeed())
+			deployment.Status.Replicas = 1
+			deployment.Status.ReadyReplicas = 1
+			deployment.Status.AvailableReplicas = 1
+			err = c.Status().Update(context.TODO(), deployment)
+			Expect(err).NotTo(HaveOccurred())
+		}
+		updateStatefulSet := func(s string) {
+			statefulset := &appsv1.StatefulSet{}
+			Eventually(func() error {
+				return c.Get(context.TODO(), types.NamespacedName{Name: "statustester-" + s, Namespace: helpers.Namespace}, statefulset)
+			}, timeout).Should(Succeed())
+			Expect(err).NotTo(HaveOccurred())
+			statefulset.Status.Replicas = 1
+			statefulset.Status.ReadyReplicas = 1
+			err = c.Status().Update(context.TODO(), statefulset)
+			Expect(err).NotTo(HaveOccurred())
+		}
+		updateDeployment("web")
+		updateDeployment("daphne")
+		updateDeployment("celeryd")
+		updateDeployment("channelworker")
+		updateDeployment("static")
+		updateStatefulSet("celerybeat")
+
+		// Check the status again. Should be Deploying.
+		assertStatus(summonv1beta1.StatusReady)
 	})
 })

@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package components
 
-const (
-	StatusInitializing = "Initializing"
-	StatusMigrating    = "Migrating"
-	StatusDeploying    = "Deploying"
-	StatusReady        = "Ready"
-	StatusError        = "Error"
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+
+	summonv1beta "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
+
+// Helper function for use as a StatusModifier which just sets the main status.
+func setStatus(status string) components.StatusModifier {
+	return func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta.SummonPlatform)
+		instance.Status.Status = status
+		return nil
+	}
+}

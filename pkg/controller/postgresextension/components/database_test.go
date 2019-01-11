@@ -30,6 +30,7 @@ import (
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	pecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresextension/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("PostgresExtension Database Component", func() {
@@ -82,8 +83,7 @@ var _ = Describe("PostgresExtension Database Component", func() {
 		dbMock.ExpectExec("ALTER EXTENSION \"postgis\" UPDATE").WithArgs().WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := pecomponents.NewDatabase()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("Extension postgis created"))
 	})

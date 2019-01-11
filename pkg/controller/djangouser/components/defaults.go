@@ -20,7 +20,6 @@ import (
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -40,7 +39,7 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.DjangoUser)
 
 	// Fill in defaults.
@@ -71,5 +70,5 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (reco
 		instance.Spec.Active = true
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }

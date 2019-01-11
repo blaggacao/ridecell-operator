@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -57,7 +56,7 @@ func (_ *fernetRotateComponent) IsReconcilable(_ *components.ComponentContext) b
 	return true
 }
 
-func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
 	// The following block checking the times of the keys should be in IsReconcilable, we cannot however return errors there so it is being moved here.
@@ -67,7 +66,7 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	// If secret doesn't exist reconcile to create new
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return reconcile.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to retrieve default secrets object")
+			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to retrieve default secrets object")
 		}
 	}
 
@@ -75,7 +74,7 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	for k, _ := range fetchSecret.Data {
 		parsedKey, err := time.Parse(CustomTimeLayout, k)
 		if err != nil {
-			return reconcile.Result{}, errors.Wrapf(err, "rotate_fernet: Error while parsing time string")
+			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Error while parsing time string")
 		}
 		if parsedKey.After(latestTime) {
 			latestTime = parsedKey
@@ -83,7 +82,7 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	}
 	latestTimePlus := latestTime.Add(instance.Spec.FernetKeyLifetime)
 	if !latestTimePlus.Before(time.Now().UTC()) {
-		return reconcile.Result{}, nil
+		return components.Result{}, nil
 	}
 
 	// Generate new timeStamp string
@@ -102,7 +101,7 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 				Data:       map[string][]byte{},
 			}
 		} else {
-			return reconcile.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to get secret")
+			return components.Result{}, errors.Wrapf(err, "rotate_fernet: Failed to get secret")
 		}
 	}
 
@@ -122,8 +121,8 @@ func (comp *fernetRotateComponent) Reconcile(ctx *components.ComponentContext) (
 	})
 
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "rotate_fernet: Failed to update secret")
+		return components.Result{}, errors.Wrap(err, "rotate_fernet: Failed to update secret")
 	}
 
-	return reconcile.Result{}, nil
+	return components.Result{}, nil
 }

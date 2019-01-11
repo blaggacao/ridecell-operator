@@ -30,6 +30,7 @@ import (
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	secretscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/secrets/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("pull_secret Component", func() {
@@ -40,9 +41,7 @@ var _ = Describe("pull_secret Component", func() {
 
 	It("Runs reconcile with no value set", func() {
 		comp := secretscomponents.NewSecret()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(instance.Status.Status).To(Equal(secretsv1beta1.StatusErrorSecretNotFound))
+		Expect(comp).NotTo(ReconcileContext(ctx))
 	})
 
 	It("Sets valid secret, runs reconcile", func() {
@@ -54,8 +53,7 @@ var _ = Describe("pull_secret Component", func() {
 			},
 		}
 		ctx.Client = fake.NewFakeClient(newPullSecret)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(secretsv1beta1.StatusReady))
 
 	})
@@ -69,10 +67,9 @@ var _ = Describe("pull_secret Component", func() {
 		}
 		ctx.Client = fake.NewFakeClient(newPullSecret)
 		comp := secretscomponents.NewSecret()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Secret{}
-		err = ctx.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.PullSecretName, Namespace: "default"}, target)
+		err := ctx.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.PullSecretName, Namespace: "default"}, target)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(target.ObjectMeta.Labels).To(Equal(map[string]string{"Name": "stuff"}))
 		Expect(target.Data).To(Equal(map[string][]byte{".dockerconfigjson": []byte("dslakfjlskdj3")}))

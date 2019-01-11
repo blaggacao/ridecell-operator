@@ -20,7 +20,6 @@ package components
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -48,16 +47,19 @@ func (_ *pullSecretComponent) IsReconcilable(_ *components.ComponentContext) boo
 	return true
 }
 
-func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+func (comp *pullSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	var existing *secretsv1beta1.PullSecret
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*secretsv1beta1.PullSecret)
-		existing := existingObj.(*secretsv1beta1.PullSecret)
+		existing = existingObj.(*secretsv1beta1.PullSecret)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
-		instance.Status.PullSecretStatus = existing.Status.Status
 		return nil
 	})
+	res.StatusModifier = func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta1.SummonPlatform)
+		instance.Status.PullSecretStatus = existing.Status.Status
+		return nil
+	}
 	return res, err
-
 }

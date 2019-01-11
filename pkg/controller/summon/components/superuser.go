@@ -22,7 +22,6 @@ import (
 	_ "github.com/lib/pq"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -55,7 +54,7 @@ func (comp *superuserComponent) IsReconcilable(ctx *components.ComponentContext)
 	return true
 }
 
-func (comp *superuserComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *superuserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	res, _, err := ctx.CreateOrUpdate("superuser.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*summonv1beta1.DjangoUser)
 		existing := existingObj.(*summonv1beta1.DjangoUser)

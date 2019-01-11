@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	pecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresextension/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("PostgresExtension Defaults Component", func() {
@@ -28,15 +29,13 @@ var _ = Describe("PostgresExtension Defaults Component", func() {
 		instance.Spec.ExtensionName = "other"
 
 		comp := pecomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.ExtensionName).To(Equal("other"))
 	})
 
 	It("sets a default extension name", func() {
 		comp := pecomponents.NewDefaults()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.ExtensionName).To(Equal("postgis"))
 	})
 })

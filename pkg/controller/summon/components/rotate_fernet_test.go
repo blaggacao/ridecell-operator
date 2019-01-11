@@ -19,16 +19,17 @@ package components_test
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("rotate_fernet Component", func() {
@@ -43,11 +44,11 @@ var _ = Describe("rotate_fernet Component", func() {
 		ctx.Client = fake.NewFakeClient()
 
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		fernetSecret := &corev1.Secret{}
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetSecret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetSecret)
+		Expect(err).ToNot(HaveOccurred())
 		Expect(fernetSecret.Data).To(HaveLen(1))
 		for _, v := range fernetSecret.Data {
 			Expect(v).To(HaveLen(86))
@@ -69,11 +70,10 @@ var _ = Describe("rotate_fernet Component", func() {
 		}
 		ctx.Client = fake.NewFakeClient(fernetSecret)
 		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+		Expect(comp).To(ReconcileContext(ctx))
 
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
 		fetchSecret := &corev1.Secret{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchSecret.Data).To(HaveLen(2))
 	})

@@ -26,17 +26,17 @@ import (
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("SummonPlatform Configmap Component", func() {
 	Context("with no config", func() {
 		It("creates a blank config", func() {
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
-			_, err := comp.Reconcile(ctx)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{}\n"))
@@ -48,11 +48,10 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
-			_, err := comp.Reconcile(ctx)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{}\n"))
@@ -66,11 +65,10 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{String: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
-			_, err := comp.Reconcile(ctx)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{\"foo\":\"bar\"}\n"))
@@ -84,11 +82,10 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Float: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
-			_, err := comp.Reconcile(ctx)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{\"foo\":42}\n"))
@@ -102,11 +99,10 @@ var _ = Describe("SummonPlatform Configmap Component", func() {
 			instance.Spec.Config["foo"] = summonv1beta1.ConfigValue{Bool: &val}
 
 			comp := summoncomponents.NewConfigMap("configmap.yml.tpl")
-			_, err := comp.Reconcile(ctx)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(comp).To(ReconcileContext(ctx))
 
 			configmap := &corev1.ConfigMap{}
-			err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
+			err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-config", Namespace: "default"}, configmap)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(configmap.Data).To(HaveKey("summon-platform.yml"))
 			Expect(configmap.Data["summon-platform.yml"]).To(Equal("{\"foo\":true}\n"))

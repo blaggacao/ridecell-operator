@@ -52,3 +52,8 @@ var _ = ginkgo.BeforeEach(func() {
 	instance.Spec.Secret = "testsecret"
 	ctx = components.NewTestContext(instance, summon.Templates)
 })
+
+// Return an int pointer because &1 doesn't work in Go.
+func intp(n int32) *int32 {
+	return &n
+}

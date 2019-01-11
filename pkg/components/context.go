@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
 	"github.com/Ridecell/ridecell-operator/pkg/templates"
@@ -43,10 +42,10 @@ func (ctx *ComponentContext) GetTemplate(path string, extraData map[string]inter
 	}{Instance: ctx.Top, Extra: extraData})
 }
 
-func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]interface{}, mutateFn func(runtime.Object, runtime.Object) error) (reconcile.Result, controllerutil.OperationResult, error) {
+func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]interface{}, mutateFn func(runtime.Object, runtime.Object) error) (Result, controllerutil.OperationResult, error) {
 	target, err := ctx.GetTemplate(path, extraData)
 	if err != nil {
-		return reconcile.Result{}, controllerutil.OperationResultNone, err
+		return Result{}, controllerutil.OperationResultNone, err
 	}
 
 	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existing runtime.Object) error {
@@ -66,10 +65,10 @@ func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]in
 		return ReconcileMeta(targetMeta, existingMeta)
 	})
 	if err != nil {
-		return reconcile.Result{Requeue: true}, op, err
+		return Result{Requeue: true}, op, err
 	}
 
-	return reconcile.Result{}, op, nil
+	return Result{}, op, nil
 }
 
 // Method for creating a test context, for use in component unit tests.

@@ -35,6 +35,7 @@ import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 type passwordMatching struct {
@@ -134,8 +135,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
@@ -163,8 +163,7 @@ var _ = Describe("DjangoUser Database Component", func() {
 		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, true, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
@@ -192,10 +191,29 @@ var _ = Describe("DjangoUser Database Component", func() {
 		dbMock.ExpectExec("INSERT INTO common_staff").WithArgs(1, false, false, false).WillReturnResult(sqlmock.NewResult(0, 1))
 
 		comp := djangousercomponents.NewDatabase()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusReady))
 		Expect(instance.Status.Message).To(Equal("User 1 created"))
 	})
 
+	It("errors if the auth_user insert fails", func() {
+		dbSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("secretdbpass"),
+			},
+		}
+		userSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-credentials", Namespace: "default"},
+			Data: map[string][]byte{
+				"password": []byte("djangopass"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(dbSecret, userSecret)
+
+		dbMock.ExpectQuery("INSERT INTO auth_user").WillReturnError(fmt.Errorf("Table auth_user is on fire"))
+
+		comp := djangousercomponents.NewDatabase()
+		Expect(comp).ToNot(ReconcileContext(ctx))
+	})
 })

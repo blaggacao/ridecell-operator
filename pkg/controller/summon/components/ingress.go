@@ -19,7 +19,6 @@ package components
 import (
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
@@ -42,7 +41,7 @@ func (_ *ingressComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *ingressComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*extv1beta1.Ingress)
 		existing := existingObj.(*extv1beta1.Ingress)

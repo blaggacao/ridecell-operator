@@ -19,11 +19,11 @@ package components
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // // A componentReconciler is the data for a single reconciler. These are our
@@ -46,15 +46,30 @@ type ComponentContext struct {
 	Scheme    *runtime.Scheme
 }
 
+// A function which modifies component status.
+type StatusModifier func(runtime.Object) error
+
+// An extension of reconcile.Result with extra component-related fields.
+type Result struct {
+	// Requeue tells the Controller to requeue the reconcile key.  Defaults to false.
+	Requeue bool
+	// RequeueAfter if greater than 0, tells the Controller to requeue the reconcile key after the Duration.
+	RequeueAfter time.Duration
+	// An optional anonymous function to change the object status.
+	StatusModifier StatusModifier
+}
+
 // A component is a Promise Theory actor inside a controller.
 type Component interface {
 	WatchTypes() []runtime.Object
 	IsReconcilable(*ComponentContext) bool
-	Reconcile(*ComponentContext) (reconcile.Result, error)
+	Reconcile(*ComponentContext) (Result, error)
 }
 
+// Opaque type for some kind of status substruct.
 type Status interface{}
 
+// Interface that all top-level objects must implement to work with the component system.
 type Statuser interface {
 	GetStatus() Status
 	SetStatus(Status)
