@@ -236,7 +236,7 @@ func (cr *componentReconciler) updateStatus(ctx *ComponentContext, instance runt
 	// Do stuff.
 	err = mutateFn(freshCopy)
 	if err != nil {
-		return nil
+		return errors.Wrap(err, "error running status modifier")
 	}
 
 	// Try to save again, first with new API and then with old.
