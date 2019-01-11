@@ -1,7 +1,7 @@
 apiVersion: summon.ridecell.io/v1beta1
 kind: DjangoUser
 metadata:
-  name: dispatcher.ridecell.com
+  name: {{ .Instance.Name }}-dispatcher.ridecell.com
   namespace: {{ .Instance.Namespace }}
 spec:
   superuser: true
