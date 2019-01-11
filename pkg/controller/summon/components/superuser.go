@@ -20,7 +20,9 @@ package components
 
 import (
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -55,6 +57,20 @@ func (comp *superuserComponent) IsReconcilable(ctx *components.ComponentContext)
 }
 
 func (comp *superuserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	if instance.Spec.NoCreateSuperuser {
+		// Make sure the object doesn't exist.
+		user, err := ctx.GetTemplate("superuser.yml.tpl", nil)
+		if err != nil {
+			return components.Result{}, errors.Wrap(err, "unable to load superuser.yml.tpl template")
+		}
+		err = ctx.Delete(ctx.Context, user)
+		if err != nil && !kerrors.IsNotFound(err) {
+			return components.Result{Requeue: true}, errors.Wrap(err, "unable to delete superuser")
+		}
+		return components.Result{}, nil
+	}
+
 	res, _, err := ctx.CreateOrUpdate("superuser.yml.tpl", nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*summonv1beta1.DjangoUser)
 		existing := existingObj.(*summonv1beta1.DjangoUser)
