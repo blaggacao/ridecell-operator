@@ -124,7 +124,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
-	appSecretsData["SECRET_KEY"] = secretKey.Data["SECRET_KEY"]
+	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 
 	for k, v := range rawAppSecrets.Data {
 		appSecretsData[k] = string(v)
