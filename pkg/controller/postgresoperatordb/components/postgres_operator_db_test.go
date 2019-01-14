@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	//corev1 "k8s.io/api/core/v1"
 
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -40,28 +41,28 @@ var _ = Describe("operatordatabase Component", func() {
 	It("Adds new database", func() {
 		comp := postgresoperatordbcomponents.NewPostgresOperatorDB()
 		postgresObj := &postgresv1.Postgresql{
-			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: "fakedbnamespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: instance.Namespace},
 			Spec: postgresv1.PostgresSpec{
 				TeamID:            instance.Name,
 				NumberOfInstances: int32(1),
 				Databases: map[string]string{
-					"test-db":  "test-db",
-					"test-db2": "test-db2",
+					"test-db": "test-db",
+				},
+				Users: map[string]postgresv1.UserFlags{
+					"test-db": postgresv1.UserFlags{},
 				},
 			},
 		}
 		ctx.Client = fake.NewFakeClient(postgresObj)
 		instance.Spec.DatabaseRef = dbv1beta1.PostgresDBRef{
-			Name:      "fakedb",
-			Namespace: "fakedbnamespace",
+			Name: "fakedb",
 		}
 		instance.Spec.Database = "test-db2"
 
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchPostgresObj := &postgresv1.Postgresql{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: "fakedbnamespace"}, fetchPostgresObj)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: instance.Namespace}, fetchPostgresObj)
 		Expect(err).ToNot(HaveOccurred())
 
 		expectedDatabases := map[string]string{
@@ -69,7 +70,13 @@ var _ = Describe("operatordatabase Component", func() {
 			"test-db2": "test-db2",
 		}
 
+		expectedUsers := map[string]postgresv1.UserFlags{
+			"test-db":  postgresv1.UserFlags{},
+			"test-db2": postgresv1.UserFlags{},
+		}
+
 		Expect(fetchPostgresObj.Spec.Databases).To(Equal(expectedDatabases))
+		Expect(fetchPostgresObj.Spec.Users).To(Equal(expectedUsers))
 	})
 
 	It("does not find postgres object", func() {
@@ -77,8 +84,6 @@ var _ = Describe("operatordatabase Component", func() {
 		ctx.Client = fake.NewFakeClient()
 
 		instance.Spec.Database = "test-db"
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal(`postgres_operatordb: Unable to get specified database: postgresqls.acid.zalan.do "" not found`))
+		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 })

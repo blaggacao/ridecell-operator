@@ -17,10 +17,8 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -45,35 +43,23 @@ func (_ *PostgresOperatorDatabaseComponent) IsReconcilable(_ *components.Compone
 func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresOperatorDatabase)
 	fetchDatabase := &postgresv1.Postgresql{}
-	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseRef.Name, Namespace: instance.Spec.DatabaseRef.Namespace}, fetchDatabase)
+	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseRef.Name, Namespace: instance.Namespace}, fetchDatabase)
 	if err != nil {
-		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance := obj.(*dbv1beta1.PostgresOperatorDatabase)
-			instance.Status.Status = dbv1beta1.StatusError
-			instance.Status.Message = fmt.Sprintf("postgres_operatordb: Failed to get specified Postgresql object Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Spec.DatabaseRef.Namespace)
-			return nil
-		}}, errors.Wrapf(err, "postgres_operatordb: Unable to get specified database")
+		return components.Result{}, errors.Wrapf(err, "postgres_operatordb: Unable to get specified database")
 	}
 
-	fetchDeepCopyV1, ok := fetchDatabase.DeepCopyObject().(v1.Object)
-	if !ok {
-		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance := obj.(*dbv1beta1.PostgresOperatorDatabase)
-			instance.Status.Status = dbv1beta1.StatusError
-			instance.Status.Message = fmt.Sprintf("postgres_operatordb: postgresql object does not implement metav1.Object")
-			return nil
-		}}, errors.Errorf("postgres_operatordb: postgresql object does not implement metav1.Object")
-	}
-	existingRefs := fetchDeepCopyV1.GetOwnerReferences()
+	existingRefs := fetchDatabase.GetOwnerReferences()
 	if len(existingRefs) > 0 {
-		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance := obj.(*dbv1beta1.PostgresOperatorDatabase)
-			instance.Status.Status = dbv1beta1.StatusError
-			instance.Status.Message = fmt.Sprintf("postgres_operatordb: Postgresql object has owner Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Spec.DatabaseRef.Namespace)
-			return nil
-		}}, errors.Errorf("postgres_operatordb: postgresql object has owner Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Spec.DatabaseRef.Namespace)
+		return components.Result{}, errors.Errorf("postgres_operatordb: postgresql object has owner Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Namespace)
 	}
 
+	// Check if user exists, if not add it as an unpriveleged user.
+	_, ok := fetchDatabase.Spec.Users[instance.Spec.Database]
+	if !ok {
+		fetchDatabase.Spec.Users[instance.Spec.Database] = postgresv1.UserFlags{}
+	}
+
+	// Check if database exists, if not add database with matching username.
 	_, ok = fetchDatabase.Spec.Databases[instance.Spec.Database]
 	if !ok {
 		fetchDatabase.Spec.Databases[instance.Spec.Database] = instance.Spec.Database
@@ -81,12 +67,7 @@ func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.Compone
 
 	err = ctx.Update(ctx.Context, fetchDatabase)
 	if err != nil {
-		return components.Result{StatusModifier: func(obj runtime.Object) error {
-			instance := obj.(*dbv1beta1.PostgresOperatorDatabase)
-			instance.Status.Status = dbv1beta1.StatusError
-			instance.Status.Message = "postgres_operatordb: Failed to update Postgresql object"
-			return nil
-		}}, errors.Wrapf(err, "postgres_operatordb: Failed to update Postgresql object")
+		return components.Result{}, errors.Wrapf(err, "postgres_operatordb: Failed to update Postgresql object")
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {

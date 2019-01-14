@@ -45,7 +45,7 @@ var _ = Describe("PostgresOperatorDatabase controller", func() {
 	It("Runs a basic reconcile", func() {
 
 		postgresObj := &postgresv1.Postgresql{
-			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: helpers.OperatorNamespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: helpers.Namespace},
 			Spec: postgresv1.PostgresSpec{
 				TeamID:            "test",
 				NumberOfInstances: int32(1),
@@ -66,8 +66,7 @@ var _ = Describe("PostgresOperatorDatabase controller", func() {
 			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
 				Database: "test-db",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
-					Name:      "fakedb",
-					Namespace: helpers.OperatorNamespace,
+					Name: "fakedb",
 				},
 			},
 		}
@@ -77,7 +76,7 @@ var _ = Describe("PostgresOperatorDatabase controller", func() {
 
 		Eventually(func() map[string]string {
 			fetchedPostgresObj := &postgresv1.Postgresql{}
-			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: helpers.OperatorNamespace}, fetchedPostgresObj)
+			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: helpers.Namespace}, fetchedPostgresObj)
 			Expect(err).ToNot(HaveOccurred())
 			return fetchedPostgresObj.Spec.Databases
 		}, timeout).Should(Equal(map[string]string{"test": "test", "test-db": "test-db"}))
@@ -94,8 +93,7 @@ var _ = Describe("PostgresOperatorDatabase controller", func() {
 			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
 				Database: "test-db",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
-					Name:      "fakedb2",
-					Namespace: helpers.OperatorNamespace,
+					Name: "fakedb2",
 				},
 			},
 		}

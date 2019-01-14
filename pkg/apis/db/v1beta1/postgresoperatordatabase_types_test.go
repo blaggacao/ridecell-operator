@@ -52,8 +52,7 @@ var _ = Describe("PostgresOperatorDatabase types", func() {
 			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
 				Database: "testdb",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
-					Name:      "test-db",
-					Namespace: "test-db-namespace",
+					Name: "test-db",
 				},
 			},
 		}

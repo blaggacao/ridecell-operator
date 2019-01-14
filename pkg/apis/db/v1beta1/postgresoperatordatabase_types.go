@@ -21,8 +21,7 @@ import (
 )
 
 type PostgresDBRef struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
+	Name string `json:"name"`
 }
 
 // PostgresOperatorDatabaseSpec defines the desired state of PostgresOperatorDatabase
