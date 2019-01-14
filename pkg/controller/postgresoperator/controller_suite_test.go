@@ -14,13 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controller
+package postgresoperator_test
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/controller/operatordatabase"
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+
+	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresoperator"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-func init() {
-	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
-	AddToManagerFuncs = append(AddToManagerFuncs, operatordatabase.Add)
+var testHelpers *test_helpers.TestHelpers
+
+func TestTemplates(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "PostgresOperator controller Suite")
 }
+
+var _ = ginkgo.BeforeSuite(func() {
+	testHelpers = test_helpers.Start(postgresoperator.Add, false)
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	testHelpers.Stop()
+})

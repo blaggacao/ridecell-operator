@@ -25,15 +25,15 @@ type PostgresDBRef struct {
 	Namespace string `json:"namespace"`
 }
 
-// PostgresOperatorDatabaseSpec defines the desired state of PostgresOperatorDatabase
-type PostgresOperatorDatabaseSpec struct {
+// PostgresOperatorSpec defines the desired state of PostgresOperator
+type PostgresOperatorSpec struct {
 	Databases   map[string]string   `json:"databases"`
 	Users       map[string][]string `json:"users"`
 	DatabaseRef PostgresDBRef       `json:"dataseRef"`
 }
 
-// PostgresOperatorDatabaseStatus defines the observed state of PostgresOperatorDatabase
-type PostgresOperatorDatabaseStatus struct {
+// PostgresOperatorStatus defines the observed state of PostgresOperator
+type PostgresOperatorStatus struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
@@ -41,26 +41,26 @@ type PostgresOperatorDatabaseStatus struct {
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PostgresOperatorDatabase is the Schema for the PostgresOperatorDatabases API
+// PostgresOperator is the Schema for the PostgresOperators API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-type PostgresOperatorDatabase struct {
+type PostgresOperator struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   PostgresOperatorDatabaseSpec   `json:"spec"`
-	Status PostgresOperatorDatabaseStatus `json:"status,omitempty"`
+	Spec   PostgresOperatorSpec   `json:"spec"`
+	Status PostgresOperatorStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// PostgresOperatorDatabaseList contains a list of PostgresOperatorDatabase
-type PostgresOperatorDatabaseList struct {
+// PostgresOperatorList contains a list of PostgresOperator
+type PostgresOperatorList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []PostgresOperatorDatabase `json:"items"`
+	Items           []PostgresOperator `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&PostgresOperatorDatabase{}, &PostgresOperatorDatabaseList{})
+	SchemeBuilder.Register(&PostgresOperator{}, &PostgresOperatorList{})
 }

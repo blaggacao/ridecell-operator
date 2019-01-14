@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operatordatabase
+package postgresoperator
 
 import (
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	operatordatabasecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/operatordatabase/components"
+	postgresoperatorcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresoperator/components"
 )
 
-// Add creates a new PostgresOperatorDatabase Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// Add creates a new PostgresOperator Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("operatordatabase-controller", mgr, &dbv1beta1.PostgresOperatorDatabase{}, nil, []components.Component{
-		operatordatabasecomponents.NewOperatorDatabase(),
+	_, err := components.NewReconciler("postgres-operator-controller", mgr, &dbv1beta1.PostgresOperator{}, nil, []components.Component{
+		postgresoperatorcomponents.NewOperatorDatabase(),
 	})
 	return err
 }

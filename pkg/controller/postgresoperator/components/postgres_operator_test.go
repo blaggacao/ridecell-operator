@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
-	operatordatabasecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/operatordatabase/components"
+	postgresoperatorcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresoperator/components"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -38,7 +38,7 @@ var _ = Describe("operatordatabase Component", func() {
 	})
 
 	It("Adds new users", func() {
-		comp := operatordatabasecomponents.NewOperatorDatabase()
+		comp := postgresoperatorcomponents.NewOperatorDatabase()
 		postgresObj := &postgresv1.Postgresql{
 			ObjectMeta: metav1.ObjectMeta{Name: "fakeDB", Namespace: "fakeDBNamespace"},
 			Spec: postgresv1.PostgresSpec{
@@ -80,7 +80,7 @@ var _ = Describe("operatordatabase Component", func() {
 	})
 
 	It("Adds new databases", func() {
-		comp := operatordatabasecomponents.NewOperatorDatabase()
+		comp := postgresoperatorcomponents.NewOperatorDatabase()
 		postgresObj := &postgresv1.Postgresql{
 			ObjectMeta: metav1.ObjectMeta{Name: "fakeDB", Namespace: "fakeDBNamespace"},
 			Spec: postgresv1.PostgresSpec{

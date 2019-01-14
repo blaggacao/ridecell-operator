@@ -28,27 +28,31 @@ import (
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 )
 
-type PostgresOperatorDatabaseComponent struct{}
+type PostgresOperatorComponent struct{}
 
-func NewOperatorDatabase() *PostgresOperatorDatabaseComponent {
-	return &PostgresOperatorDatabaseComponent{}
+func NewOperatorDatabase() *PostgresOperatorComponent {
+	return &PostgresOperatorComponent{}
 }
 
-func (comp *PostgresOperatorDatabaseComponent) WatchTypes() []runtime.Object {
+func (comp *PostgresOperatorComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{}
 }
 
-func (_ *PostgresOperatorDatabaseComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+func (_ *PostgresOperatorComponent) IsReconcilable(_ *components.ComponentContext) bool {
 	return true
 }
 
-func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*dbv1beta1.PostgresOperatorDatabase)
-	fmt.Println("Reconcile was run")
+func (comp *PostgresOperatorComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*dbv1beta1.PostgresOperator)
 	fetchDatabase := &postgresv1.Postgresql{}
 	err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseRef.Name, Namespace: instance.Spec.DatabaseRef.Namespace}, fetchDatabase)
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "operator_database: Unable to get specified database")
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*dbv1beta1.PostgresOperator)
+			instance.Status.Status = dbv1beta1.StatusError
+			instance.Status.Message = fmt.Sprintf("postgres_operator: Failed to get specified Postgresql object Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Spec.DatabaseRef.Namespace)
+			return nil
+		}}, errors.Wrapf(err, "postgres_operator: Unable to get specified database")
 	}
 
 	for user, userFlags := range instance.Spec.Users {
@@ -80,11 +84,6 @@ func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.Compone
 
 	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchDatabase.DeepCopyObject(), func(existingObj runtime.Object) error {
 		existing := existingObj.(*postgresv1.Postgresql)
-		// Sync important fields.
-		//err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
-		//if err != nil {
-		//	return errors.Wrapf(err, "operator_database: Failed to set controller reference")
-		//}
 		existing.Labels = fetchDatabase.Labels
 		existing.Annotations = fetchDatabase.Annotations
 		existing.Spec = fetchDatabase.Spec
@@ -92,8 +91,18 @@ func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.Compone
 		return nil
 	})
 	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "operator_database: Failed to update Postgresql object")
+		return components.Result{StatusModifier: func(obj runtime.Object) error {
+			instance := obj.(*dbv1beta1.PostgresOperator)
+			instance.Status.Status = dbv1beta1.StatusError
+			instance.Status.Message = "postgres_operator: Failed to update Postgresql object"
+			return nil
+		}}, errors.Wrapf(err, "postgres_operator: Failed to update Postgresql object")
 	}
 
-	return components.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*dbv1beta1.PostgresOperator)
+		instance.Status.Status = dbv1beta1.StatusReady
+		instance.Status.Message = "Ready"
+		return nil
+	}}, nil
 }

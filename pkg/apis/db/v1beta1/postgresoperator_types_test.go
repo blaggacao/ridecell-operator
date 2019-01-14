@@ -23,11 +23,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	operatordatabasev1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = Describe("PostgresOperatorDatabase types", func() {
+var _ = Describe("PostgresOperator types", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
@@ -38,25 +38,25 @@ var _ = Describe("PostgresOperatorDatabase types", func() {
 		helpers.TeardownTest()
 	})
 
-	It("can create a PostgresOperatorDatabase object", func() {
+	It("can create a PostgresOperator object", func() {
 		c := helpers.Client
 		key := types.NamespacedName{
 			Name:      "operatordatabase",
 			Namespace: helpers.Namespace,
 		}
-		created := &operatordatabasev1beta1.PostgresOperatorDatabase{
+		created := &dbv1beta1.PostgresOperator{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "operatordatabase",
 				Namespace: helpers.Namespace,
 			},
-			Spec: operatordatabasev1beta1.PostgresOperatorDatabaseSpec{
+			Spec: dbv1beta1.PostgresOperatorSpec{
 				Databases: map[string]string{
 					"testdb": "test",
 				},
 				Users: map[string][]string{
 					"testdb": []string{"testuser"},
 				},
-				DatabaseRef: operatordatabasev1beta1.PostgresDBRef{
+				DatabaseRef: dbv1beta1.PostgresDBRef{
 					Name:      "",
 					Namespace: "",
 				},
@@ -65,7 +65,7 @@ var _ = Describe("PostgresOperatorDatabase types", func() {
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
 
-		fetched := &operatordatabasev1beta1.PostgresOperatorDatabase{}
+		fetched := &dbv1beta1.PostgresOperator{}
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetched.Spec).To(Equal(created.Spec))

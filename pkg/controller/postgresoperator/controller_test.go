@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package operatordatabase_test
+package postgresoperator_test
 
 import (
 	"context"
@@ -29,9 +29,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const timeout = time.Second * 60
+const timeout = time.Second * 20
 
-var _ = Describe("operatordatabase controller", func() {
+var _ = Describe("PostgresOperator controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
@@ -45,7 +45,7 @@ var _ = Describe("operatordatabase controller", func() {
 	It("Runs a basic reconcile", func() {
 
 		postgresObj := &postgresv1.Postgresql{
-			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: "fakedbnamespace"},
+			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: helpers.OperatorNamespace},
 			Spec: postgresv1.PostgresSpec{
 				TeamID:            "test",
 				NumberOfInstances: int32(1),
@@ -61,9 +61,9 @@ var _ = Describe("operatordatabase controller", func() {
 		err := helpers.Client.Create(context.TODO(), postgresObj)
 		Expect(err).ToNot(HaveOccurred())
 
-		instance := &dbv1beta1.PostgresOperatorDatabase{
+		instance := &dbv1beta1.PostgresOperator{
 			ObjectMeta: metav1.ObjectMeta{Name: "test.example.com", Namespace: helpers.Namespace},
-			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
+			Spec: dbv1beta1.PostgresOperatorSpec{
 				Databases: map[string]string{
 					"test-db": "test-user",
 				},
@@ -72,7 +72,7 @@ var _ = Describe("operatordatabase controller", func() {
 				},
 				DatabaseRef: dbv1beta1.PostgresDBRef{
 					Name:      "fakedb",
-					Namespace: "fakedbnamespace",
+					Namespace: helpers.OperatorNamespace,
 				},
 			},
 		}
@@ -82,18 +82,49 @@ var _ = Describe("operatordatabase controller", func() {
 
 		Eventually(func() map[string]postgresv1.UserFlags {
 			fetchedPostgresObj := &postgresv1.Postgresql{}
-			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: "fakedbnamespace"}, fetchedPostgresObj)
+			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: helpers.OperatorNamespace}, fetchedPostgresObj)
 			Expect(err).ToNot(HaveOccurred())
 			return fetchedPostgresObj.Spec.Users
 		}, timeout).Should(Equal(map[string]postgresv1.UserFlags{"test-user": postgresv1.UserFlags{"superuser", "flag1", "flag2"}}))
 
 		Eventually(func() map[string]string {
 			fetchedPostgresObj := &postgresv1.Postgresql{}
-			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: "fakedbnamespace"}, fetchedPostgresObj)
+			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: helpers.OperatorNamespace}, fetchedPostgresObj)
 			Expect(err).ToNot(HaveOccurred())
 			return fetchedPostgresObj.Spec.Databases
 		}, timeout).Should(Equal(map[string]string{"test": "test-user", "test-db": "test-user"}))
 
+		fetchInstance := &dbv1beta1.PostgresOperator{}
+		err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "test.example.com", Namespace: helpers.Namespace}, fetchInstance)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(fetchInstance.Status.Status).To(Equal(dbv1beta1.StatusReady))
+	})
+
+	It("fails to reconcile", func() {
+		instance := &dbv1beta1.PostgresOperator{
+			ObjectMeta: metav1.ObjectMeta{Name: "test.example.com", Namespace: helpers.Namespace},
+			Spec: dbv1beta1.PostgresOperatorSpec{
+				Databases: map[string]string{
+					"test-db": "test-user",
+				},
+				Users: map[string][]string{
+					"test-user": []string{"flag1", "flag2"},
+				},
+				DatabaseRef: dbv1beta1.PostgresDBRef{
+					Name:      "fakedb2",
+					Namespace: helpers.OperatorNamespace,
+				},
+			},
+		}
+
+		err := helpers.Client.Create(context.TODO(), instance)
+		Expect(err).ToNot(HaveOccurred())
+		Eventually(func() string {
+			fetchInstance := &dbv1beta1.PostgresOperator{}
+			err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "test.example.com", Namespace: helpers.Namespace}, fetchInstance)
+			Expect(err).ToNot(HaveOccurred())
+			return fetchInstance.Status.Status
+		}).Should(Equal(dbv1beta1.StatusError))
 	})
 
 })
