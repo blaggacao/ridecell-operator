@@ -30,8 +30,8 @@ spec:
           type: object
         spec:
           properties:
-            databases:
-              type: object
+            database:
+              type: string
             dataseRef:
               properties:
                 name:
@@ -42,11 +42,8 @@ spec:
               - name
               - namespace
               type: object
-            users:
-              type: object
           required:
-          - databases
-          - users
+          - database
           - dataseRef
           type: object
         status:

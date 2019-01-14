@@ -27,7 +27,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = Describe("PostgresOperator types", func() {
+var _ = Describe("PostgresOperatorDatabase types", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
@@ -38,34 +38,29 @@ var _ = Describe("PostgresOperator types", func() {
 		helpers.TeardownTest()
 	})
 
-	It("can create a PostgresOperator object", func() {
+	It("can create a PostgresOperatorDatabase object", func() {
 		c := helpers.Client
 		key := types.NamespacedName{
-			Name:      "operatordatabase",
+			Name:      "postgresoperatordatabase",
 			Namespace: helpers.Namespace,
 		}
-		created := &dbv1beta1.PostgresOperator{
+		created := &dbv1beta1.PostgresOperatorDatabase{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "operatordatabase",
+				Name:      "postgresoperatordatabase",
 				Namespace: helpers.Namespace,
 			},
-			Spec: dbv1beta1.PostgresOperatorSpec{
-				Databases: map[string]string{
-					"testdb": "test",
-				},
-				Users: map[string][]string{
-					"testdb": []string{"testuser"},
-				},
+			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
+				Database: "testdb",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
-					Name:      "",
-					Namespace: "",
+					Name:      "test-db",
+					Namespace: "test-db-namespace",
 				},
 			},
 		}
 		err := c.Create(context.TODO(), created)
 		Expect(err).NotTo(HaveOccurred())
 
-		fetched := &dbv1beta1.PostgresOperator{}
+		fetched := &dbv1beta1.PostgresOperatorDatabase{}
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(fetched.Spec).To(Equal(created.Spec))

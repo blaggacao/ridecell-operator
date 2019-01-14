@@ -30,18 +30,18 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-var instance *dbv1beta1.PostgresOperator
+var instance *dbv1beta1.PostgresOperatorDatabase
 var ctx *components.ComponentContext
 
 func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "PostgresOperator Components Suite")
+	ginkgo.RunSpecs(t, "PostgresOperatorDatabase Components Suite")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &dbv1beta1.PostgresOperator{
+	instance = &dbv1beta1.PostgresOperatorDatabase{
 		ObjectMeta: metav1.ObjectMeta{Name: "db.ridecell.us", Namespace: "default"},
 	}
 	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}

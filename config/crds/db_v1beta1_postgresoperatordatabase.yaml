@@ -4,12 +4,12 @@ metadata:
   creationTimestamp: null
   labels:
     controller-tools.k8s.io: "1.0"
-  name: postgresoperators.db.ridecell.io
+  name: postgresoperatordatabases.db.ridecell.io
 spec:
   group: db.ridecell.io
   names:
-    kind: PostgresOperator
-    plural: postgresoperators
+    kind: PostgresOperatorDatabase
+    plural: postgresoperatordatabases
   scope: Namespaced
   subresources:
     status: {}
@@ -30,8 +30,8 @@ spec:
           type: object
         spec:
           properties:
-            databases:
-              type: object
+            database:
+              type: string
             dataseRef:
               properties:
                 name:
@@ -42,11 +42,8 @@ spec:
               - name
               - namespace
               type: object
-            users:
-              type: object
           required:
-          - databases
-          - users
+          - database
           - dataseRef
           type: object
         status:

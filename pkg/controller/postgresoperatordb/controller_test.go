@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package postgresoperator_test
+package postgresoperatordb_test
 
 import (
 	"context"
@@ -31,7 +31,7 @@ import (
 
 const timeout = time.Second * 20
 
-var _ = Describe("PostgresOperator controller", func() {
+var _ = Describe("PostgresOperatorDatabase controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 
 	BeforeEach(func() {
@@ -53,7 +53,7 @@ var _ = Describe("PostgresOperator controller", func() {
 					"test-user": postgresv1.UserFlags{"superuser"},
 				},
 				Databases: map[string]string{
-					"test": "test-user",
+					"test": "test",
 				},
 			},
 		}
@@ -61,15 +61,10 @@ var _ = Describe("PostgresOperator controller", func() {
 		err := helpers.Client.Create(context.TODO(), postgresObj)
 		Expect(err).ToNot(HaveOccurred())
 
-		instance := &dbv1beta1.PostgresOperator{
+		instance := &dbv1beta1.PostgresOperatorDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: "test.example.com", Namespace: helpers.Namespace},
-			Spec: dbv1beta1.PostgresOperatorSpec{
-				Databases: map[string]string{
-					"test-db": "test-user",
-				},
-				Users: map[string][]string{
-					"test-user": []string{"flag1", "flag2"},
-				},
+			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
+				Database: "test-db",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
 					Name:      "fakedb",
 					Namespace: helpers.OperatorNamespace,
@@ -80,36 +75,24 @@ var _ = Describe("PostgresOperator controller", func() {
 		err = helpers.Client.Create(context.TODO(), instance)
 		Expect(err).ToNot(HaveOccurred())
 
-		Eventually(func() map[string]postgresv1.UserFlags {
-			fetchedPostgresObj := &postgresv1.Postgresql{}
-			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: helpers.OperatorNamespace}, fetchedPostgresObj)
-			Expect(err).ToNot(HaveOccurred())
-			return fetchedPostgresObj.Spec.Users
-		}, timeout).Should(Equal(map[string]postgresv1.UserFlags{"test-user": postgresv1.UserFlags{"superuser", "flag1", "flag2"}}))
-
 		Eventually(func() map[string]string {
 			fetchedPostgresObj := &postgresv1.Postgresql{}
 			err := helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "fakedb", Namespace: helpers.OperatorNamespace}, fetchedPostgresObj)
 			Expect(err).ToNot(HaveOccurred())
 			return fetchedPostgresObj.Spec.Databases
-		}, timeout).Should(Equal(map[string]string{"test": "test-user", "test-db": "test-user"}))
+		}, timeout).Should(Equal(map[string]string{"test": "test", "test-db": "test-db"}))
 
-		fetchInstance := &dbv1beta1.PostgresOperator{}
+		fetchInstance := &dbv1beta1.PostgresOperatorDatabase{}
 		err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "test.example.com", Namespace: helpers.Namespace}, fetchInstance)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(fetchInstance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
 	It("fails to reconcile", func() {
-		instance := &dbv1beta1.PostgresOperator{
+		instance := &dbv1beta1.PostgresOperatorDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: "test.example.com", Namespace: helpers.Namespace},
-			Spec: dbv1beta1.PostgresOperatorSpec{
-				Databases: map[string]string{
-					"test-db": "test-user",
-				},
-				Users: map[string][]string{
-					"test-user": []string{"flag1", "flag2"},
-				},
+			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
+				Database: "test-db",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
 					Name:      "fakedb2",
 					Namespace: helpers.OperatorNamespace,
@@ -120,7 +103,7 @@ var _ = Describe("PostgresOperator controller", func() {
 		err := helpers.Client.Create(context.TODO(), instance)
 		Expect(err).ToNot(HaveOccurred())
 		Eventually(func() string {
-			fetchInstance := &dbv1beta1.PostgresOperator{}
+			fetchInstance := &dbv1beta1.PostgresOperatorDatabase{}
 			err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "test.example.com", Namespace: helpers.Namespace}, fetchInstance)
 			Expect(err).ToNot(HaveOccurred())
 			return fetchInstance.Status.Status
