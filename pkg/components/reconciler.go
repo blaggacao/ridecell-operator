@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,10 +33,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templates http.FileSystem, components []Component) (*componentReconciler, error) {
+	logger := log.Log.WithName(name)
 	cr := &componentReconciler{
 		name:       name,
 		top:        top,
@@ -49,13 +50,15 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 	// Create the controller.
 	c, err := controller.New(name, mgr, controller.Options{Reconciler: cr})
 	if err != nil {
-		return nil, fmt.Errorf("unable to create controller: %v", err)
+		logger.Error(err, "unable to create controller")
+		return nil, err
 	}
 
 	// Watch for changes in the Top object.
 	err = c.Watch(&source.Kind{Type: cr.top}, &handler.EnqueueRequestForObject{})
 	if err != nil {
-		return nil, fmt.Errorf("unable to create top-level watch: %v", err)
+		logger.Error(err, "unable to create top-level watch")
+		return nil, err
 	}
 
 	// Watch for changes in other objects.
@@ -106,18 +109,19 @@ func (cr *componentReconciler) newContext(request reconcile.Request) (*Component
 
 	ctx := &ComponentContext{
 		templates: cr.templates,
+		Logger:    log.Log.WithName(cr.name).WithValues("request", request.NamespacedName),
 		Context:   reqCtx,
 		Top:       top,
 	}
 	err = cr.manager.SetFields(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error calling manager.SetFields: %v", err)
+		ctx.Logger.Error(err, "error calling manager.SetFields")
+		return nil, err
 	}
 	return ctx, nil
 }
 
 func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	glog.Infof("[%s] %s: Reconciling!", request.NamespacedName, cr.name)
 
 	// Build a reconciler context to pass around.
 	ctx, err := cr.newContext(request)
@@ -129,6 +133,7 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 		// Some other fetch error, try again on the next tick.
 		return reconcile.Result{Requeue: true}, err
 	}
+	ctx.Logger.Info("reconciling")
 
 	// Make a clean copy of the top object to diff against later. This is used for
 	// diffing because the status subresource might not always be available.
@@ -146,7 +151,7 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	// Check if an update to the status subresource is required.
 	if !reflect.DeepEqual(ctx.Top.(Statuser).GetStatus(), cleanTop.(Statuser).GetStatus()) {
 		// Update the top object status.
-		glog.V(2).Infof("[%s] Reconcile: Updating Status\n", request.NamespacedName)
+		ctx.Logger.V(1).Info("updating status")
 		err = cr.modifyStatus(ctx, result.statusModifiers)
 		if err != nil {
 			result.result.Requeue = true
@@ -184,7 +189,7 @@ func (r *reconcilerResults) mergeResult(componentResult Result, component Compon
 		statusErr := componentResult.StatusModifier(r.ctx.Top)
 		if statusErr != nil {
 			instance := r.ctx.Top.(metav1.Object)
-			glog.Errorf("[%s/%s] Error running status modifier from %#v: %s\n", instance.GetNamespace(), instance.GetName(), component, statusErr)
+			r.ctx.Logger.Error(statusErr, "error running status modifier from", "instance", instance, "component", component)
 			if r.err == nil {
 				// If we already had a real error, don't mask it, otherwise propagate this error.
 				err = errors.Wrap(statusErr, "Error running initial status modifier")
@@ -199,16 +204,18 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reco
 	instance := ctx.Top.(metav1.Object)
 	ready := []Component{}
 	for _, component := range cr.components {
-		glog.V(10).Infof("[%s/%s] reconcileComponents: Checking if %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
+		ctx.Logger.V(1).Info("available to reconcile??", "component", fmt.Sprintf("%T", component))
 		if component.IsReconcilable(ctx) {
-			glog.V(9).Infof("[%s/%s] reconcileComponents: %#v is available to reconcile", instance.GetNamespace(), instance.GetName(), component)
+			ctx.Logger.V(1).Info("available to reconcile!!", "component", fmt.Sprintf("%T", component))
 			ready = append(ready, component)
 		}
 	}
 	res := &reconcilerResults{ctx: ctx}
+	ctxLogger := ctx.Logger
 	for _, component := range ready {
 		// fmt.Printf("### Reconciling %#v\n", component)
 		// start := time.Now()
+		ctx.Logger = ctxLogger.WithValues("component", fmt.Sprintf("%T", component))
 		innerRes, err := component.Reconcile(ctx)
 		// fmt.Printf("### Done reconciling %#v, took %s\n", component, time.Since(start))
 		// Update result. This should be checked before the err!=nil because sometimes
@@ -225,12 +232,13 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reco
 				res.mergeResult(innerRes, errComponent, nil)
 				if errorErr != nil {
 					// Can't really do much more than log it, sigh. Some day this should set a prometheus metric.
-					glog.Errorf("[%s/%s] Error running error handler %#v: %s", instance.GetNamespace(), instance.GetName(), errComponent, errorErr)
+					ctx.Logger.Error(errorErr, "error running error handler", "instance", instance, "component", errComponent)
 				}
 			}
 			return res, err
 		}
 	}
+	ctx.Logger = ctxLogger
 	return res, nil
 }
 

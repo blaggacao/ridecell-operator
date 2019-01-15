@@ -18,7 +18,6 @@ package templates
 
 import (
 	"bytes"
-	"github.com/golang/glog"
 	"net/http"
 	"path"
 	"text/template"
@@ -28,7 +27,10 @@ import (
 	"github.com/shurcooL/httpfs/vfsutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
+
+var logger = log.Log.WithName("template")
 
 func parseTemplate(fs http.FileSystem, filename string) (*template.Template, error) {
 	// Create a template object.
@@ -50,7 +52,7 @@ func parseTemplate(fs http.FileSystem, filename string) (*template.Template, err
 
 		_, err = tmpl.Parse(string(fileBytes))
 		if err != nil {
-			glog.Errorf("failed parsing helper %#v\n", helperFilename)
+			logger.WithValues("helper", helperFilename).Error(err, "failed parsing helper")
 			return nil, err
 		}
 	}
@@ -89,19 +91,20 @@ func parseObject(rawObject string) (runtime.Object, error) {
 }
 
 func Get(fs http.FileSystem, filename string, data interface{}) (runtime.Object, error) {
+	logger := logger.WithValues("template", filename)
 	tmpl, err := parseTemplate(fs, filename)
 	if err != nil {
-		glog.Errorf("failed parsing %#v\n", filename)
+		logger.Error(err, "failed parsing template")
 		return nil, err
 	}
 	out, err := renderTemplate(tmpl, data)
 	if err != nil {
-		glog.Errorf("failed rendering %#v data: %#v\n", filename, data)
+		logger.WithValues("data", data).Error(err, "failed rendering data")
 		return nil, err
 	}
 	obj, err := parseObject(out)
 	if err != nil {
-		glog.Errorf("failed parsing %#v raw: %#v\n", filename, out)
+		logger.WithValues("object", out).Error(err, "failed parsing raw")
 		return nil, err
 	}
 
