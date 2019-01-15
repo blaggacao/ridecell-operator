@@ -125,7 +125,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	client := &http.Client{}
 	req, err := http.NewRequest("POST", slackMessageURL, bytes.NewBuffer(payload))
 	if err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "notifications: failed to create post request")
+		return components.Result{}, errors.Wrapf(err, "notifications: failed to create post request")
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	req.Header.Add("Content-type", "application/json")
@@ -155,7 +155,7 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 	// If respStatus is not true slack returned us an error
 	respStatus, ok := jsonResponse["ok"]
 	if !ok || err != nil {
-		return reconcile.Result{}, errors.New(`notifications: could not find "ok" in slack response`)
+		return components.Result{}, errors.New(`notifications: could not find "ok" in slack response`)
 	}
 
 	if respStatus == false {
@@ -163,15 +163,15 @@ func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (
 		respError := jsonResponse["error"]
 		// If our slack api key is wrong exit reconcile
 		if respStatus == false && respError == "invalid_auth" {
-			return reconcile.Result{}, errors.New("notifications: invalid auth token for slack request")
+			return components.Result{}, errors.New("notifications: invalid auth token for slack request")
 			// if our bot is not in the slack channel join it and requeue the reconcile
 			// Message should send on next attempt
 		} else if respStatus == false && respError == "not_in_channel" {
 			err = comp.joinSlackChannel(ctx, apiKey, slackJoinChannelURL)
 			if err != nil {
-				return reconcile.Result{}, errors.Wrapf(err, "notifications: error in joinSlackChannel")
+				return components.Result{}, errors.Wrapf(err, "notifications: error in joinSlackChannel")
 			}
-			return reconcile.Result{Requeue: true}, errors.New("notifications: bot is not in slack channel, sent join request and requeued")
+			return components.Result{Requeue: true}, errors.New("notifications: bot is not in slack channel, sent join request and requeued")
 		}
 	}
 
