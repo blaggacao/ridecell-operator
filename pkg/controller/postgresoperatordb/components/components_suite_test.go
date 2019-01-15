@@ -23,37 +23,26 @@ import (
 	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Ridecell/ridecell-operator/pkg/apis"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/Ridecell/ridecell-operator/pkg/controller/summon"
 )
 
-var instance *summonv1beta1.SummonPlatform
+var instance *dbv1beta1.PostgresOperatorDatabase
 var ctx *components.ComponentContext
 
-func TestComponents(t *testing.T) {
+func TestTemplates(t *testing.T) {
 	apis.AddToScheme(scheme.Scheme)
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "SummonPlatform Components Suite")
+	ginkgo.RunSpecs(t, "PostgresOperatorDatabase Components Suite")
 }
 
 var _ = ginkgo.BeforeEach(func() {
 	// Set up default-y values for tests to use if they want.
-	instance = &summonv1beta1.SummonPlatform{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
-		Spec: summonv1beta1.SummonPlatformSpec{
-			Version: "1.2.3",
-		},
-		Status: summonv1beta1.SummonPlatformStatus{
-			Notification: summonv1beta1.NotificationStatus{NotifyVersion: "1.2.3"}},
+	instance = &dbv1beta1.PostgresOperatorDatabase{
+		ObjectMeta: metav1.ObjectMeta{Name: "db.ridecell.us", Namespace: "default"},
 	}
-	instance.Spec.Secret = "testsecret"
-	ctx = components.NewTestContext(instance, summon.Templates)
+	ctx = &components.ComponentContext{Top: instance, Client: fake.NewFakeClient(), Scheme: scheme.Scheme}
 })
-
-// Return an int pointer because &1 doesn't work in Go.
-func intp(n int32) *int32 {
-	return &n
-}

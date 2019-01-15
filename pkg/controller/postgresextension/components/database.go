@@ -22,7 +22,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -43,13 +42,13 @@ func (_ *databaseComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*dbv1beta1.PostgresExtension)
 
 	// Connect to the database.
 	db, err := postgres.Open(ctx, &instance.Spec.Database)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, err
+		return components.Result{Requeue: true}, err
 	}
 
 	// Two codepaths because both queries look very different depending on if we have a version or not.
@@ -57,31 +56,33 @@ func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reco
 		// Create the extension if it doesn't exist already.
 		_, err = db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %s", pq.QuoteIdentifier(instance.Spec.ExtensionName)))
 		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "database: Error running CREATE EXTENSION")
+			return components.Result{}, errors.Wrap(err, "database: Error running CREATE EXTENSION")
 		}
 
 		// Upgrade the extension if it did exist.
 		_, err = db.Exec(fmt.Sprintf("ALTER EXTENSION %s UPDATE", pq.QuoteIdentifier(instance.Spec.ExtensionName)))
 		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "database: Error running ALTER EXTENSION")
+			return components.Result{}, errors.Wrap(err, "database: Error running ALTER EXTENSION")
 		}
 	} else {
 		// Create the extension if it doesn't exist already.
 		_, err = db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %s WITH VERSION %s", pq.QuoteIdentifier(instance.Spec.ExtensionName), pq.QuoteIdentifier(instance.Spec.Version)))
 		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "database: Error running CREATE EXTENSION")
+			return components.Result{}, errors.Wrap(err, "database: Error running CREATE EXTENSION")
 		}
 
 		// Upgrade the extension if it did exist.
 		_, err = db.Exec(fmt.Sprintf("ALTER EXTENSION %s UPDATE TO %s", pq.QuoteIdentifier(instance.Spec.ExtensionName), pq.QuoteIdentifier(instance.Spec.Version)))
 		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "database: Error running ALTER EXTENSION")
+			return components.Result{}, errors.Wrap(err, "database: Error running ALTER EXTENSION")
 		}
 	}
 
 	// Success!
-	instance.Status.Status = dbv1beta1.StatusReady
-	instance.Status.Message = fmt.Sprintf("Extension %v created", instance.Spec.ExtensionName)
-
-	return reconcile.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*dbv1beta1.PostgresExtension)
+		instance.Status.Status = dbv1beta1.StatusReady
+		instance.Status.Message = fmt.Sprintf("Extension %v created", instance.Spec.ExtensionName)
+		return nil
+	}}, nil
 }

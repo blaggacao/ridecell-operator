@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
@@ -49,9 +48,7 @@ func (_ *postgresExtensionsComponent) IsReconcilable(ctx *components.ComponentCo
 	return true
 }
 
-func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
+func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	var existingPostgis *dbv1beta1.PostgresExtension
 	var existingPostgisToplogy *dbv1beta1.PostgresExtension
 
@@ -79,24 +76,27 @@ func (_ *postgresExtensionsComponent) Reconcile(ctx *components.ComponentContext
 		return res, errors.Wrap(err, "Error from postgis_topology extension")
 	}
 
-	// Figure out status-y things.
-	if existingPostgis.Status.Status == dbv1beta1.StatusError {
-		// Postgis error'd, grab its message and error the whole thing.
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusError
-		instance.Status.Message = fmt.Sprintf("postgis: %s", existingPostgis.Status.Message)
-	} else if existingPostgisToplogy.Status.Status == dbv1beta1.StatusError {
-		// Postgis_topology, same as above but with a different error message (hopefully).
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusError
-		instance.Status.Message = fmt.Sprintf("postgis_topology: %s", existingPostgisToplogy.Status.Message)
-	} else if existingPostgis.Status.Status == dbv1beta1.StatusReady && existingPostgisToplogy.Status.Status == dbv1beta1.StatusReady {
-		// Both are ready, we're good to go!
-		instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
-	} else {
-		// Something else, probably still initial setup where upstream status is still "".
-		instance.Status.PostgresExtensionStatus = ""
-	}
-
-	return reconcile.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta1.SummonPlatform)
+		// Figure out status-y things.
+		if existingPostgis.Status.Status == dbv1beta1.StatusError {
+			// Postgis error'd, grab its message and error the whole thing.
+			instance.Status.Status = summonv1beta1.StatusError
+			instance.Status.PostgresExtensionStatus = summonv1beta1.StatusError
+			instance.Status.Message = fmt.Sprintf("postgis: %s", existingPostgis.Status.Message)
+		} else if existingPostgisToplogy.Status.Status == dbv1beta1.StatusError {
+			// Postgis_topology, same as above but with a different error message (hopefully).
+			instance.Status.Status = summonv1beta1.StatusError
+			instance.Status.PostgresExtensionStatus = summonv1beta1.StatusError
+			instance.Status.Message = fmt.Sprintf("postgis_topology: %s", existingPostgisToplogy.Status.Message)
+		} else if existingPostgis.Status.Status == dbv1beta1.StatusReady && existingPostgisToplogy.Status.Status == dbv1beta1.StatusReady {
+			// Both are ready, we're good to go!
+			instance.Status.PostgresExtensionStatus = summonv1beta1.StatusReady
+			instance.Status.Status = summonv1beta1.StatusInitializing
+		} else {
+			// Something else, probably still initial setup where upstream status is still "".
+			instance.Status.PostgresExtensionStatus = ""
+		}
+		return nil
+	}}, nil
 }

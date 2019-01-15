@@ -88,6 +88,8 @@ type SummonPlatformSpec struct {
 	// Fernet Key Rotation Time Setting
 	// +optional
 	FernetKeyLifetime time.Duration `json:"fernetKeyLifetime,omitempty"`
+	// Disable the creation of the dispatcher@ridecell.com superuser.
+	NoCreateSuperuser bool `json:"noCreateSuperuser,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform

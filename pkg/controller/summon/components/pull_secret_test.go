@@ -26,16 +26,16 @@ import (
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("SummonPlatform pull_secret Component", func() {
 
 	It("creates a Pullsecret object", func() {
 		comp := summoncomponents.NewPullSecret("pullsecret/pullsecret.yml.tpl")
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		target := &secretsv1beta1.PullSecret{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-pullsecret", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-pullsecret", Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

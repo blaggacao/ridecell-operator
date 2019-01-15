@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	djangousercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/djangouser/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("DjangoUser Secret Component", func() {
@@ -36,10 +37,9 @@ var _ = Describe("DjangoUser Secret Component", func() {
 
 	It("creates a password if no secret exists", func() {
 		comp := djangousercomponents.NewSecret()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		secret := &corev1.Secret{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, secret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, secret)
 		Expect(err).NotTo(HaveOccurred())
 		password, ok := secret.Data["password"]
 		Expect(ok).To(BeTrue())
@@ -53,10 +53,9 @@ var _ = Describe("DjangoUser Secret Component", func() {
 		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		newSecret := &corev1.Secret{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
 		Expect(err).NotTo(HaveOccurred())
 		password, ok := newSecret.Data["password"]
 		Expect(ok).To(BeTrue())
@@ -73,10 +72,9 @@ var _ = Describe("DjangoUser Secret Component", func() {
 		ctx.Client = fake.NewFakeClient(secret)
 
 		comp := djangousercomponents.NewSecret()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 		newSecret := &corev1.Secret{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-credentials", Namespace: "default"}, newSecret)
 		Expect(err).NotTo(HaveOccurred())
 		password, ok := newSecret.Data["password"]
 		Expect(ok).To(BeTrue())

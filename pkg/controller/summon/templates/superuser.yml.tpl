@@ -1,9 +1,10 @@
 apiVersion: summon.ridecell.io/v1beta1
 kind: DjangoUser
 metadata:
-  name: dispatcher.ridecell.com
+  name: {{ .Instance.Name }}-dispatcher
   namespace: {{ .Instance.Namespace }}
 spec:
+  email: dispatcher@ridecell.com
   superuser: true
   database:
     host: {{ .Instance.Name }}-database.{{ .Instance.Namespace }}

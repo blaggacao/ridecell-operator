@@ -28,7 +28,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -49,28 +48,28 @@ func (_ *databaseComponent) IsReconcilable(_ *components.ComponentContext) bool 
 	return true
 }
 
-func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (reconcile.Result, error) {
+func (comp *databaseComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.DjangoUser)
 
 	// Try to find the password to use.
 	secret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.PasswordSecret, Namespace: instance.Namespace}, secret)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, errors.Wrapf(err, "database: Unable to load password secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Wrapf(err, "database: Unable to load password secret %s/%s", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 	password, ok := secret.Data["password"]
 	if !ok {
-		return reconcile.Result{Requeue: true}, errors.Errorf("database: Password secret %s/%s has no key \"password\"", instance.Namespace, instance.Spec.PasswordSecret)
+		return components.Result{Requeue: true}, errors.Errorf("database: Password secret %s/%s has no key \"password\"", instance.Namespace, instance.Spec.PasswordSecret)
 	}
 	hashedPassword, err := comp.hashPassword(password)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "database: Error hashing password")
+		return components.Result{}, errors.Wrap(err, "database: Error hashing password")
 	}
 
 	// Connect to the database.
 	db, err := comp.openDatabase(ctx)
 	if err != nil {
-		return reconcile.Result{Requeue: true}, err
+		return components.Result{Requeue: true}, err
 	}
 
 	// Big ass SQL.
@@ -92,7 +91,7 @@ INSERT INTO auth_user (username, password, first_name, last_name, email, is_acti
 	var id int
 	err = row.Scan(&id)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "database: Error running auth_user query")
+		return components.Result{}, errors.Wrap(err, "database: Error running auth_user query")
 	}
 
 	// Smaller ass SQL. The awkward SET field is because DO NOTHING doesn't work with RETURNING.
@@ -108,7 +107,7 @@ INSERT INTO common_userprofile (user_id, is_jumio_verified, created_at, updated_
 	var profileId int
 	err = row.Scan(&profileId)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "database: Error running common_userprofile query")
+		return components.Result{}, errors.Wrap(err, "database: Error running common_userprofile query")
 	}
 
 	// Medium ass SQL.
@@ -124,14 +123,16 @@ INSERT INTO common_staff (user_profile_id, is_active, manager, dispatcher)
 	// Create the common_staff.
 	_, err = db.Exec(query, profileId, instance.Spec.Active, instance.Spec.Manager, instance.Spec.Dispatcher)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "database: Error running common_staff query")
+		return components.Result{}, errors.Wrap(err, "database: Error running common_staff query")
 	}
 
 	// Success!
-	instance.Status.Status = summonv1beta1.StatusReady
-	instance.Status.Message = fmt.Sprintf("User %v created", id)
-
-	return reconcile.Result{}, nil
+	return components.Result{StatusModifier: func(obj runtime.Object) error {
+		instance := obj.(*summonv1beta1.DjangoUser)
+		instance.Status.Status = summonv1beta1.StatusReady
+		instance.Status.Message = fmt.Sprintf("User %v created", id)
+		return nil
+	}}, nil
 }
 
 func (comp *databaseComponent) hashPassword(password []byte) (string, error) {

@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package controller
 
-const (
-	StatusInitializing = "Initializing"
-	StatusMigrating    = "Migrating"
-	StatusDeploying    = "Deploying"
-	StatusReady        = "Ready"
-	StatusError        = "Error"
+import (
+	"github.com/Ridecell/ridecell-operator/pkg/controller/postgresoperatordb"
 )
+
+func init() {
+	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
+	AddToManagerFuncs = append(AddToManagerFuncs, postgresoperatordb.Add)
+}

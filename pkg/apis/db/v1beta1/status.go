@@ -32,3 +32,16 @@ func (pe *PostgresExtension) SetErrorStatus(errorMsg string) {
 	pe.Status.Status = StatusError
 	pe.Status.Message = errorMsg
 }
+
+func (po *PostgresOperatorDatabase) GetStatus() components.Status {
+	return po.Status
+}
+
+func (po *PostgresOperatorDatabase) SetStatus(status components.Status) {
+	po.Status = status.(PostgresOperatorDatabaseStatus)
+}
+
+func (po *PostgresOperatorDatabase) SetErrorStatus(errorMsg string) {
+	po.Status.Status = StatusError
+	po.Status.Message = errorMsg
+}

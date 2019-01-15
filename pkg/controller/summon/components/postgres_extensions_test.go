@@ -28,16 +28,16 @@ import (
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
 var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 	It("creates all the extensions", func() {
 		comp := summoncomponents.NewPostgresExtensions()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		ext := &dbv1beta1.PostgresExtension{}
-		err = ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: "default"}, ext)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: "default"}, ext)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ext.Spec.ExtensionName).To(Equal("postgis"))
 
@@ -63,10 +63,9 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		ctx.Client = fake.NewFakeClient(instance, ext)
 
 		comp := summoncomponents.NewPostgresExtensions()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusError))
 		Expect(instance.Status.Message).To(Equal("postgis: Unable to floop the foobar"))
@@ -84,10 +83,9 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		ctx.Client = fake.NewFakeClient(instance, ext)
 
 		comp := summoncomponents.NewPostgresExtensions()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(summonv1beta1.StatusError))
 		Expect(instance.Status.Message).To(Equal("postgis_topology: Unable to floop the other foobar"))
@@ -105,10 +103,9 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		ctx.Client = fake.NewFakeClient(instance, ext)
 
 		comp := summoncomponents.NewPostgresExtensions()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(instance.Status.Status).To(Equal(""))
 		Expect(instance.Status.Message).To(Equal(""))
@@ -133,12 +130,11 @@ var _ = Describe("SummonPlatform PostgresExtensions Component", func() {
 		ctx.Client = fake.NewFakeClient(instance, ext, ext2)
 
 		comp := summoncomponents.NewPostgresExtensions()
-		_, err := comp.Reconcile(ctx)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
-		ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo", Namespace: "default"}, instance)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Status.Status).To(Equal(""))
+		Expect(instance.Status.Status).To(Equal("Initializing"))
 		Expect(instance.Status.Message).To(Equal(""))
 		Expect(instance.Status.PostgresExtensionStatus).To(Equal(summonv1beta1.StatusReady))
 	})
