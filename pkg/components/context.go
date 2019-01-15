@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	// "github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -34,7 +33,9 @@ import (
 
 func (ctx *ComponentContext) GetTemplate(path string, extraData map[string]interface{}) (runtime.Object, error) {
 	if ctx.templates == nil {
-		return nil, fmt.Errorf("no templates loaded for this reconciler")
+		err := fmt.Errorf("no templates loaded for this reconciler")
+		ctx.Logger.Error(err, "no templates loaded for this reconciler")
+		return nil, err
 	}
 	return templates.Get(ctx.templates, path, struct {
 		Instance runtime.Object

@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-logr/logr"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -43,6 +45,7 @@ type componentReconciler struct {
 type ComponentContext struct {
 	client.Client
 	templates http.FileSystem
+	Logger    logr.Logger
 	Context   context.Context // This should probably go away
 	Top       runtime.Object
 	Scheme    *runtime.Scheme
