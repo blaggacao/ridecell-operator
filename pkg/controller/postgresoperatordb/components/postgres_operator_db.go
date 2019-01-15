@@ -50,7 +50,7 @@ func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.Compone
 
 	existingRefs := fetchDatabase.GetOwnerReferences()
 	if len(existingRefs) > 0 {
-		return components.Result{}, errors.Errorf("postgres_operatordb: postgresql object has owner Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Namespace)
+		return components.Result{}, errors.Errorf("postgres_operatordb: Object has owners %#v", existingRefs)
 	}
 
 	// Update Users and Databases of Postgresql object
