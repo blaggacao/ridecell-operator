@@ -36,7 +36,7 @@ func (comp *PostgresOperatorDatabaseComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{}
 }
 
-func (_ *PostgresOperatorDatabaseComponent) IsReconcilable(_ *components.ComponentContext) bool {
+func (_ *PostgresOperatorDatabaseComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	return true
 }
 
@@ -53,17 +53,9 @@ func (comp *PostgresOperatorDatabaseComponent) Reconcile(ctx *components.Compone
 		return components.Result{}, errors.Errorf("postgres_operatordb: postgresql object has owner Name: %s, Namespace %s", instance.Spec.DatabaseRef.Name, instance.Namespace)
 	}
 
-	// Check if user exists, if not add it as an unpriveleged user.
-	_, ok := fetchDatabase.Spec.Users[instance.Spec.Database]
-	if !ok {
-		fetchDatabase.Spec.Users[instance.Spec.Database] = postgresv1.UserFlags{}
-	}
-
-	// Check if database exists, if not add database with matching username.
-	_, ok = fetchDatabase.Spec.Databases[instance.Spec.Database]
-	if !ok {
-		fetchDatabase.Spec.Databases[instance.Spec.Database] = instance.Spec.Database
-	}
+	// Update Users and Databases of Postgresql object
+	fetchDatabase.Spec.Users[instance.Spec.Database] = postgresv1.UserFlags{}
+	fetchDatabase.Spec.Databases[instance.Spec.Database] = instance.Spec.Database
 
 	err = ctx.Update(ctx.Context, fetchDatabase)
 	if err != nil {
