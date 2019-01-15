@@ -86,4 +86,52 @@ var _ = Describe("operatordatabase Component", func() {
 		instance.Spec.Database = "test-db"
 		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
+	It("is given a postgres object that is owned", func() {
+		comp := postgresoperatordbcomponents.NewPostgresOperatorDB()
+		postgresObj := &postgresv1.Postgresql{
+			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: instance.Namespace},
+			Spec: postgresv1.PostgresSpec{
+				TeamID:            instance.Name,
+				NumberOfInstances: int32(1),
+				Databases: map[string]string{
+					"test-db": "test-db",
+				},
+				Users: map[string]postgresv1.UserFlags{
+					"test-db": postgresv1.UserFlags{},
+				},
+			},
+		}
+		// Sets ownership of postgres object
+		postgresObj.SetOwnerReferences([]metav1.OwnerReference{metav1.OwnerReference{}})
+		ctx.Client = fake.NewFakeClient(postgresObj)
+		instance.Spec.DatabaseRef = dbv1beta1.PostgresDBRef{
+			Name: "fakedb",
+		}
+		instance.Spec.Database = "test-db2"
+
+		Expect(comp).ToNot(ReconcileContext(ctx))
+	})
+
+	It("makes no changes during reconcile", func() {
+		comp := postgresoperatordbcomponents.NewPostgresOperatorDB()
+		postgresObj := &postgresv1.Postgresql{
+			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: instance.Namespace},
+			Spec: postgresv1.PostgresSpec{
+				TeamID:            instance.Name,
+				NumberOfInstances: int32(1),
+				Databases: map[string]string{
+					"test-db": "test-db",
+				},
+				Users: map[string]postgresv1.UserFlags{
+					"test-db": postgresv1.UserFlags{},
+				},
+			},
+		}
+		ctx.Client = fake.NewFakeClient(postgresObj)
+		instance.Spec.DatabaseRef = dbv1beta1.PostgresDBRef{
+			Name: "fakedb",
+		}
+		instance.Spec.Database = "test-db"
+		Expect(comp).To(ReconcileContext(ctx))
+	})
 })

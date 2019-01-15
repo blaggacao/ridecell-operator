@@ -43,7 +43,6 @@ var _ = Describe("PostgresOperatorDatabase controller", func() {
 	})
 
 	It("Runs a basic reconcile", func() {
-
 		postgresObj := &postgresv1.Postgresql{
 			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: helpers.Namespace},
 			Spec: postgresv1.PostgresSpec{
@@ -87,25 +86,64 @@ var _ = Describe("PostgresOperatorDatabase controller", func() {
 		Expect(fetchInstance.Status.Status).To(Equal(dbv1beta1.StatusReady))
 	})
 
-	It("fails to reconcile", func() {
+	It("has no postgresql object to reconcile", func() {
 		instance := &dbv1beta1.PostgresOperatorDatabase{
 			ObjectMeta: metav1.ObjectMeta{Name: "test.example.com", Namespace: helpers.Namespace},
 			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
 				Database: "test-db",
 				DatabaseRef: dbv1beta1.PostgresDBRef{
-					Name: "fakedb2",
+					Name: "fakedb",
 				},
 			},
 		}
 
 		err := helpers.Client.Create(context.TODO(), instance)
 		Expect(err).ToNot(HaveOccurred())
+
 		Eventually(func() string {
 			fetchInstance := &dbv1beta1.PostgresOperatorDatabase{}
 			err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "test.example.com", Namespace: helpers.Namespace}, fetchInstance)
 			Expect(err).ToNot(HaveOccurred())
 			return fetchInstance.Status.Status
 		}).Should(Equal(dbv1beta1.StatusError))
+	})
+
+	It("makes no changes", func() {
+		postgresObj := &postgresv1.Postgresql{
+			ObjectMeta: metav1.ObjectMeta{Name: "fakedb", Namespace: helpers.Namespace},
+			Spec: postgresv1.PostgresSpec{
+				TeamID:            "test",
+				NumberOfInstances: int32(1),
+				Users: map[string]postgresv1.UserFlags{
+					"test-user": postgresv1.UserFlags{"superuser"},
+				},
+				Databases: map[string]string{
+					"test": "test",
+				},
+			},
+		}
+
+		err := helpers.Client.Create(context.TODO(), postgresObj)
+		Expect(err).ToNot(HaveOccurred())
+
+		instance := &dbv1beta1.PostgresOperatorDatabase{
+			ObjectMeta: metav1.ObjectMeta{Name: "test.example.com", Namespace: helpers.Namespace},
+			Spec: dbv1beta1.PostgresOperatorDatabaseSpec{
+				Database: "test-db",
+				DatabaseRef: dbv1beta1.PostgresDBRef{
+					Name: "fakedb",
+				},
+			},
+		}
+		err = helpers.Client.Create(context.TODO(), instance)
+		Expect(err).ToNot(HaveOccurred())
+
+		Eventually(func() string {
+			fetchInstance := &dbv1beta1.PostgresOperatorDatabase{}
+			err = helpers.Client.Get(context.TODO(), types.NamespacedName{Name: "test.example.com", Namespace: helpers.Namespace}, fetchInstance)
+			Expect(err).ToNot(HaveOccurred())
+			return fetchInstance.Status.Status
+		}).Should(Equal(dbv1beta1.StatusReady))
 	})
 
 })
