@@ -160,7 +160,7 @@ var _ = Describe("Summon controller", func() {
 			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, deploy)
 		}, timeout).Should(Succeed())
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
-		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "twisted", "web", "--listen", "tcp:8000", "--wsgi", "summon_platform.wsgi"}))
+		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "twisted", "--log-format", "text", "web", "--listen", "tcp:8000", "--wsgi", "summon_platform.wsgi.application"}))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(BeEquivalentTo(8000))
 
 		// Check the web Service object.
