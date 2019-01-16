@@ -19,7 +19,6 @@ package components_test
 import (
 	"context"
 	"fmt"
-	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -34,12 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const timeout = time.Second * 10
-
 var _ = Describe("app_secrets Component", func() {
 
 	It("runs a basic reconcile", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", false)
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
 		instance.Spec.Secret = "testsecret"
 
@@ -54,13 +51,16 @@ var _ = Describe("app_secrets Component", func() {
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
-			Data:       map[string][]byte{"filler": []byte("test")},
+			Data: map[string][]byte{
+				"filler": []byte("test"),
+				"test":   []byte("another_test"),
+			},
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 		Expect(comp).To(ReconcileContext(ctx))
 
-		expectedAppSecrets := "7b2266696c6c6572223a226447567a64413d3d227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
+		expectedAppSecrets := "7b2266696c6c6572223a226447567a64413d3d222c2274657374223a22595735766447686c636c39305a584e30227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
 		expectedConfigHash := "7b2273756d6d6f6e2d706c6174666f726d2e796d6c223a227b7d5c6e227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
 		deployment := &appsv1.Deployment{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, deployment)
@@ -70,8 +70,36 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(Equal(expectedConfigHash))
 	})
 
+	It("makes sure keys are sorted before hash", func() {
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
+
+		instance.Spec.Secret = "testsecret"
+
+		// Set this value so created template does not contain a nil value
+		numReplicas := int32(1)
+		instance.Spec.StaticReplicas = &numReplicas
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"test":   []byte("another_test"),
+				"filler": []byte("test"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		expectedAppSecrets := "7b2266696c6c6572223a226447567a64413d3d222c2274657374223a22595735766447686c636c39305a584e30227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
+		deployment := &appsv1.Deployment{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "foo-static", Namespace: instance.Namespace}, deployment)
+		Expect(err).ToNot(HaveOccurred())
+		deploymentPodAnnotations := deployment.Spec.Template.Annotations
+		Expect(deploymentPodAnnotations["summon.ridecell.io/appSecretsHash"]).To(Equal(expectedAppSecrets))
+	})
+
 	It("updates existing hashes", func() {
-		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", false)
+		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
 		instance.Spec.Secret = "testsecret"
 
