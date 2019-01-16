@@ -70,7 +70,7 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(deploymentPodAnnotations["summon.ridecell.io/configHash"]).To(Equal(expectedConfigHash))
 	})
 
-	It("updates hashes", func() {
+	It("updates existing hashes", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl", false)
 
 		instance.Spec.Secret = "testsecret"

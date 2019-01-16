@@ -31,7 +31,7 @@ import (
 
 var _ = Describe("redis_deployment Component", func() {
 
-	It("reconciles and checks if object exists", func() {
+	It("creates a redis deployment", func() {
 		comp := summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 
