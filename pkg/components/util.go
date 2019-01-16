@@ -17,7 +17,12 @@ limitations under the License.
 package components
 
 import (
+	"fmt"
+
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func ReconcileMeta(target, existing *metav1.ObjectMeta) error {
@@ -38,4 +43,34 @@ func ReconcileMeta(target, existing *metav1.ObjectMeta) error {
 		}
 	}
 	return nil
+}
+
+func GetOwnerNames(obj runtime.Object, kind string) (sets.String, error) {
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return nil, err
+	}
+
+	names := sets.NewString()
+	for _, ownerReference := range accessor.GetOwnerReferences() {
+		if ownerReference.Kind == kind {
+			names.Insert(ownerReference.Name)
+		}
+	}
+	return names, nil
+}
+
+func GetOwnerName(obj runtime.Object, kind string) (*string, error) {
+	ss, err := GetOwnerNames(obj, kind)
+	if err != nil {
+		return nil, err
+	}
+	if ss.Len() > 1 {
+		err := fmt.Errorf("more than one matching %v instance found", kind)
+		return nil, err
+	} else if ss.Len() < 1 {
+		err := fmt.Errorf("no matching %v instance found", kind)
+		return nil, err
+	}
+	return &ss.List()[0], nil
 }
