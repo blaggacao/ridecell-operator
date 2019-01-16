@@ -17,13 +17,21 @@ limitations under the License.
 package components
 
 import (
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
-	appsv1 "k8s.io/api/apps/v1"
+	"crypto/sha1"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+
+	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	"github.com/Ridecell/ridecell-operator/pkg/components"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type deploymentComponent struct {
@@ -65,12 +73,52 @@ func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext
 }
 
 func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+
+	rawAppSecrets := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.Secret, Namespace: instance.Namespace}, rawAppSecrets)
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrapf(err, "deployment: Failed to get appsecrets")
+	}
+	config := &corev1.ConfigMap{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace}, config)
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrapf(err, "deployment: unable to get configmap")
+	}
+
+	appSecretsBytes, err := json.Marshal(rawAppSecrets.Data)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "deployment: unable to serialize appsecrets ")
+	}
+	configBytes, err := json.Marshal(config.Data)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "deployment: unable to serialize config")
+	}
+
+	appSecretsHash := comp.hashItem(appSecretsBytes)
+	configMapHash := comp.hashItem(configBytes)
+
+	// Data to be copied over to template
+	extra := map[string]interface{}{}
+	extra["configHash"] = string(configMapHash)
+	extra["appSecretsHash"] = string(appSecretsHash)
+
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*appsv1.Deployment)
 		existing := existingObj.(*appsv1.Deployment)
 		// Copy the Spec over.
 		existing.Spec = goal.Spec
 		return nil
 	})
-	return res, err
+	if err != nil {
+		return res, errors.Wrapf(err, "deployment: failed to update template")
+	}
+	return components.Result{}, nil
+}
+
+func (_ *deploymentComponent) hashItem(data []byte) string {
+	// Turns instance.Status.Message into sha1 -> hex -> string
+	hash := sha1.New().Sum(data)
+	encodedHash := hex.EncodeToString(hash)
+	return encodedHash
 }
