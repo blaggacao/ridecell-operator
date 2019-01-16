@@ -42,9 +42,6 @@ func (comp *redisDeploymentComponent) IsReconcilable(ctx *components.ComponentCo
 	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		return false
 	}
-	if instance.Status.MigrateVersion != instance.Spec.Version {
-		return false
-	}
 	return true
 }
 
