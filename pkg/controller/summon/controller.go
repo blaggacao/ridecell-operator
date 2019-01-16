@@ -50,29 +50,29 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewService("redis/service.yml.tpl"),
 
 		// Web components.
-		summoncomponents.NewDeployment("web/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
-		summoncomponents.NewDeployment("daphne/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("daphne/deployment.yml.tpl"),
 		summoncomponents.NewService("daphne/service.yml.tpl"),
 		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
 
 		// Static file components.
-		summoncomponents.NewDeployment("static/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("static/deployment.yml.tpl"),
 		summoncomponents.NewService("static/service.yml.tpl"),
 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
 
 		// Celery components.
-		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
 
 		// Celerybeat components.
 		summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true),
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.
-		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
 
 		// End of converge status checks.
 		summoncomponents.NewStatus(),

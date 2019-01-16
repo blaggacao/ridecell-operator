@@ -35,12 +35,11 @@ import (
 )
 
 type deploymentComponent struct {
-	templatePath    string
-	waitForDatabase bool
+	templatePath string
 }
 
-func NewDeployment(templatePath string, waitForDatabase bool) *deploymentComponent {
-	return &deploymentComponent{templatePath: templatePath, waitForDatabase: waitForDatabase}
+func NewDeployment(templatePath string) *deploymentComponent {
+	return &deploymentComponent{templatePath: templatePath}
 }
 
 func (comp *deploymentComponent) WatchTypes() []runtime.Object {
@@ -54,10 +53,6 @@ func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext
 	// Check on the pull secret. Not technically needed in some cases, but just wait.
 	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		return false
-	}
-	// If we don't need the database, we're ready.
-	if !comp.waitForDatabase {
-		return true
 	}
 	// We do want the database, so check all the database statuses.
 	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
