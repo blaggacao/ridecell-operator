@@ -79,6 +79,11 @@ var _ = Describe("app_secrets Component", func() {
 		numReplicas := int32(1)
 		instance.Spec.StaticReplicas = &numReplicas
 
+		configMap := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string]string{"summon-platform.yml": "{}\n"},
+		}
+
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
 			Data: map[string][]byte{
@@ -87,7 +92,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 
-		ctx.Client = fake.NewFakeClient(appSecrets)
+		ctx.Client = fake.NewFakeClient(appSecrets, configMap)
 		Expect(comp).To(ReconcileContext(ctx))
 
 		expectedAppSecrets := "7b2266696c6c6572223a226447567a64413d3d222c2274657374223a22595735766447686c636c39305a584e30227dda39a3ee5e6b4b0d3255bfef95601890afd80709"
