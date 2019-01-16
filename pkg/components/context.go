@@ -20,10 +20,12 @@ import (
 	"fmt"
 	"net/http"
 
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
@@ -70,6 +72,59 @@ func (ctx *ComponentContext) CreateOrUpdate(path string, extraData map[string]in
 	}
 
 	return Result{}, op, nil
+}
+
+func (ctx *ComponentContext) UpdateTopMeta(mutateFn func(*metav1.ObjectMeta) error) (Result, controllerutil.OperationResult, error) {
+	target := ctx.Top
+	op, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, target.DeepCopyObject(), func(existing runtime.Object) error {
+		// Sync the metadata fields.
+		targetMeta := target.(metav1.ObjectMetaAccessor).GetObjectMeta().(*metav1.ObjectMeta)
+		existingMeta := existing.(metav1.ObjectMetaAccessor).GetObjectMeta().(*metav1.ObjectMeta)
+		// Run the matadata mutator.
+		err := mutateFn(targetMeta)
+		if err != nil {
+			return err
+		}
+		return ReconcileMeta(targetMeta, existingMeta)
+	})
+	if err != nil {
+		return Result{Requeue: true}, op, err
+	}
+
+	ctx.Logger.V(1).Info("updated top object metadata", "object", target, "operation", op)
+	return Result{}, op, nil
+}
+
+func (ctx *ComponentContext) GetOne(obj runtime.Object, labels map[string]string) (Result, runtime.Object, error) {
+	accessor := meta.NewAccessor()
+	namespace, err := accessor.Namespace(ctx.Top)
+	if err != nil {
+		return Result{}, nil, err
+	}
+
+	listoptions := client.InNamespace(namespace)
+	listoptions.MatchingLabels(labels)
+	err = ctx.List(ctx.Context, listoptions, obj)
+	if err != nil {
+		return Result{}, nil, err
+	}
+	gvk, err := apiutil.GVKForObject(obj, ctx.Scheme)
+	if err != nil {
+		// What?
+		return Result{}, nil, err
+	}
+	items, err := meta.ExtractList(obj)
+	if len(items) > 1 {
+		err := fmt.Errorf("more than one match found")
+		ctx.Logger.Error(err, "failed", "labels", labels, "group", gvk.Group, "kind", gvk.Kind)
+		return Result{}, nil, err
+	} else if len(items) < 1 {
+		err := fmt.Errorf("no match found")
+		ctx.Logger.Error(err, "labels", labels, "group", gvk.Group, "kind", gvk.Kind)
+		return Result{Requeue: true}, nil, err
+	}
+	return Result{}, items[0], nil
+
 }
 
 // Method for creating a test context, for use in component unit tests.
