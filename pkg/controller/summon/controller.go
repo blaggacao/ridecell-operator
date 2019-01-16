@@ -46,7 +46,7 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewSuperuser(),
 
 		// Redis components.
-		summoncomponents.NewDeployment("redis/deployment.yml.tpl", false),
+		summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl"),
 		summoncomponents.NewService("redis/service.yml.tpl"),
 
 		// Web components.
