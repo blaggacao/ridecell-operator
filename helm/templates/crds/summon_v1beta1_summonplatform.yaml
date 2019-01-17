@@ -40,6 +40,9 @@ spec:
             hostname:
               description: Hostname to use for the instance. Defaults to $NAME.ridecell.us.
               type: string
+            noCreateSuperuser:
+              description: Disable the creation of the dispatcher@ridecell.com superuser.
+              type: boolean
             pullSecret:
               description: Name of the secret to use for image pulls. Defaults to
                 `"pull-secret"`.
