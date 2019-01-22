@@ -58,24 +58,35 @@ func NewReconciler(name string, mgr manager.Manager, top runtime.Object, templat
 		return nil, fmt.Errorf("unable to create top-level watch: %v", err)
 	}
 
-	// Watch for changes in owned objects requested by components.
+	// Watch for changes in other objects.
 	watchedTypes := map[reflect.Type]bool{}
 	for _, comp := range cr.components {
 		for _, watchObj := range comp.WatchTypes() {
-			watchType := reflect.TypeOf(watchObj).Elem()
-			_, ok := watchedTypes[watchType]
-			if ok {
-				// Already watching.
-				continue
+			var watchHandler handler.EventHandler
+			mfComp, isAMapFuncWatch := comp.(MapFuncWatcher)
+			if isAMapFuncWatch {
+				// Watch an arbitrary object via a MapFunc.
+				watchHandler = &handler.EnqueueRequestsFromMapFunc{
+					ToRequests: handler.ToRequestsFunc(mfComp.WatchMap),
+				}
+			} else {
+				// Watch an owned object, but first check if we're already watching this type.
+				watchType := reflect.TypeOf(watchObj).Elem()
+				_, ok := watchedTypes[watchType]
+				if ok {
+					// Already watching.
+					continue
+				}
+				watchedTypes[watchType] = true
+				watchHandler = &handler.EnqueueRequestForOwner{
+					IsController: true,
+					OwnerType:    cr.top,
+				}
 			}
-			watchedTypes[watchType] = true
 
-			err = c.Watch(&source.Kind{Type: watchObj}, &handler.EnqueueRequestForOwner{
-				IsController: true,
-				OwnerType:    cr.top,
-			})
+			err = c.Watch(&source.Kind{Type: watchObj}, watchHandler)
 			if err != nil {
-				return nil, fmt.Errorf("unable to create watch: %v", err)
+				return nil, errors.Wrap(err, "unable to create watch")
 			}
 		}
 	}
@@ -125,7 +136,7 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 
 	// Reconcile all the components.
 	// start := time.Now()
-	result, statusModifiers, err := cr.reconcileComponents(ctx)
+	result, err := cr.reconcileComponents(ctx)
 	// fmt.Printf("$$$ Reconcile took %s\n", time.Since(start))
 	if err != nil {
 		// fmt.Printf("@@@@ Reconcile error %v\n", err)
@@ -136,17 +147,55 @@ func (cr *componentReconciler) Reconcile(request reconcile.Request) (reconcile.R
 	if !reflect.DeepEqual(ctx.Top.(Statuser).GetStatus(), cleanTop.(Statuser).GetStatus()) {
 		// Update the top object status.
 		glog.V(2).Infof("[%s] Reconcile: Updating Status\n", request.NamespacedName)
-		err = cr.modifyStatus(ctx, statusModifiers)
+		err = cr.modifyStatus(ctx, result.statusModifiers)
 		if err != nil {
-			result.Requeue = true
-			return result, err
+			result.result.Requeue = true
+			return result.result, err
 		}
 	}
 
-	return result, nil
+	return result.result, nil
 }
 
-func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (reconcile.Result, []StatusModifier, error) {
+// A holding struct for the overall result of a reconcileComponents call.
+type reconcilerResults struct {
+	// The current context.
+	ctx *ComponentContext
+	// The pending result to return from the Reconcile.
+	result reconcile.Result
+	// All the status modifier functions to replay in case of a write collision.
+	statusModifiers []StatusModifier
+	// The most recent error.
+	err error
+}
+
+func (r *reconcilerResults) mergeResult(componentResult Result, component Component, err error) error {
+	if err != nil {
+		r.err = err
+	}
+	if componentResult.Requeue {
+		r.result.Requeue = true
+	}
+	if componentResult.RequeueAfter != 0 && (r.result.RequeueAfter == 0 || r.result.RequeueAfter > componentResult.RequeueAfter) {
+		r.result.RequeueAfter = componentResult.RequeueAfter
+	}
+	if componentResult.StatusModifier != nil {
+		r.statusModifiers = append(r.statusModifiers, componentResult.StatusModifier)
+		statusErr := componentResult.StatusModifier(r.ctx.Top)
+		if statusErr != nil {
+			instance := r.ctx.Top.(metav1.Object)
+			glog.Errorf("[%s/%s] Error running status modifier from %#v: %s\n", instance.GetNamespace(), instance.GetName(), component, statusErr)
+			if r.err == nil {
+				// If we already had a real error, don't mask it, otherwise propagate this error.
+				err = errors.Wrap(statusErr, "Error running initial status modifier")
+				r.err = err
+			}
+		}
+	}
+	return err
+}
+
+func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (*reconcilerResults, error) {
 	instance := ctx.Top.(metav1.Object)
 	ready := []Component{}
 	for _, component := range cr.components {
@@ -156,8 +205,7 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (recon
 			ready = append(ready, component)
 		}
 	}
-	res := reconcile.Result{}
-	statusModifiers := []StatusModifier{}
+	res := &reconcilerResults{ctx: ctx}
 	for _, component := range ready {
 		// fmt.Printf("### Reconciling %#v\n", component)
 		// start := time.Now()
@@ -165,28 +213,25 @@ func (cr *componentReconciler) reconcileComponents(ctx *ComponentContext) (recon
 		// fmt.Printf("### Done reconciling %#v, took %s\n", component, time.Since(start))
 		// Update result. This should be checked before the err!=nil because sometimes
 		// we want to requeue immediately on error.
-		if innerRes.Requeue {
-			res.Requeue = true
-		}
-		if innerRes.RequeueAfter != 0 && (res.RequeueAfter == 0 || res.RequeueAfter > innerRes.RequeueAfter) {
-			res.RequeueAfter = innerRes.RequeueAfter
-		}
-		if innerRes.StatusModifier != nil {
-			statusModifiers = append(statusModifiers, innerRes.StatusModifier)
-			statusErr := innerRes.StatusModifier(ctx.Top)
-			if statusErr != nil {
-				glog.Errorf("[%s/%s] Error running status modifier from %#v: %s\n", instance.GetNamespace(), instance.GetName(), component, statusErr)
-				if err == nil {
-					// If we already had a real error, don't mask it, otherwise propagate this error.
-					err = errors.Wrap(statusErr, "Error running initial status modifier")
+		err = res.mergeResult(innerRes, component, err)
+		if err != nil {
+			for _, errComponent := range ready {
+				errReconciler, ok := errComponent.(ErrorHandler)
+				if !ok {
+					// Not an error handler, push on.
+					continue
+				}
+				innerRes, errorErr := errReconciler.ReconcileError(ctx, err)
+				res.mergeResult(innerRes, errComponent, nil)
+				if errorErr != nil {
+					// Can't really do much more than log it, sigh. Some day this should set a prometheus metric.
+					glog.Errorf("[%s/%s] Error running error handler %#v: %s", instance.GetNamespace(), instance.GetName(), errComponent, errorErr)
 				}
 			}
-		}
-		if err != nil {
-			return res, statusModifiers, err
+			return res, err
 		}
 	}
-	return res, statusModifiers, nil
+	return res, nil
 }
 
 func (cr *componentReconciler) modifyStatus(ctx *ComponentContext, statusModifiers []StatusModifier) error {
