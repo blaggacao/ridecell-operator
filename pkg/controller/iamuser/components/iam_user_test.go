@@ -117,6 +117,30 @@ var _ = Describe("iam_user aws Component", func() {
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	It("creates new user with policies", func() {
+		comp := iamusercomponents.NewIAMUser()
+		instance.Spec.UserName = "test-user"
+		instance.Spec.InlinePolicies = map[string]string{
+			"test": `{
+								"Version": "2012-10-17",
+								"Statement": {
+									"Sid": "",
+									"Effect": "Allow",
+									"Action": [
+										"s3:*"
+									],
+									"Resource": "*"
+								}
+								}`,
+		}
+		mockIAM := &mockIAMClient{}
+		comp.InjectIAMAPI(mockIAM)
+		Expect(comp).To(ReconcileContext(ctx))
+		fetchAccessKey := &corev1.Secret{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		Expect(err).ToNot(HaveOccurred())
+	})
 })
 
 // Mock aws functions below
@@ -184,6 +208,13 @@ func (m *mockIAMClient) GetUserPolicy(input *iam.GetUserPolicyInput) (*iam.GetUs
 		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(string(inputPolicyBytes))}, nil
 	}
 	return &iam.GetUserPolicyOutput{}, nil
+}
+
+func (m *mockIAMClient) PutUserPolicy(input *iam.PutUserPolicyInput) (*iam.PutUserPolicyOutput, error) {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName {
+		return &iam.PutUserPolicyOutput{}, errors.New("awsmock_putuserpolicy: username did not match spec")
+	}
+	return &iam.PutUserPolicyOutput{}, nil
 }
 
 func (m *mockIAMClient) DeleteUserPolicy(input *iam.DeleteUserPolicyInput) (*iam.DeleteUserPolicyOutput, error) {
