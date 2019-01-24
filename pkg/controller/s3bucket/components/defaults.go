@@ -45,7 +45,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	// Fill in defaults.
 	if instance.Spec.BucketName == "" {
-		instance.Spec.BucketName = fmt.Sprintf("%s-k8s-summon", instance.Name)
+		instance.Spec.BucketName = fmt.Sprintf("%s-static", instance.Name)
 	}
 	if instance.Spec.Region == "" {
 		instance.Spec.Region = "us-west-2"
