@@ -47,7 +47,7 @@ var _ = Describe("S3Bucket types", func() {
 		}
 		created := &awsv1beta1.S3Bucket{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "S3bucket",
+				Name:      "s3bucket",
 				Namespace: helpers.Namespace,
 			},
 		}

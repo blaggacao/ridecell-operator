@@ -14,9 +14,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package s3bucket_test
 
-const (
-	StatusReady = "Ready"
-	StatusError = "Error"
+import (
+	"testing"
+
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/gomega"
+
+	"github.com/Ridecell/ridecell-operator/pkg/controller/s3bucket"
+	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
+
+var testHelpers *test_helpers.TestHelpers
+
+func TestTemplates(t *testing.T) {
+	gomega.RegisterFailHandler(ginkgo.Fail)
+	ginkgo.RunSpecs(t, "s3bucket controller Suite")
+}
+
+var _ = ginkgo.BeforeSuite(func() {
+	testHelpers = test_helpers.Start(s3bucket.Add, false)
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	testHelpers.Stop()
+})

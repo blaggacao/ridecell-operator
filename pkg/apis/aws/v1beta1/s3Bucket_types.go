@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@ import (
 
 // S3BucketSpec defines the desired state of S3Bucket
 type S3BucketSpec struct {
-	BucketName string `json:"bucketName,omitempty"`
-	Region     string `json:"region,omitempty"`
+	BucketName   string `json:"bucketName"`
+	BucketPolicy string `json:"bucketPolicy"`
+	Region       string `json:"region"`
 }
 
 // S3BucketStatus defines the observed state of S3Bucket

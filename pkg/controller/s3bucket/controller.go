@@ -14,34 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package s3bucket
 
 import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	s3bucketcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/s3bucket/components"
 )
 
-func (sb *S3Bucket) GetStatus() components.Status {
-	return sb.Status
-}
-
-func (sb *S3Bucket) SetStatus(status components.Status) {
-	sb.Status = status.(S3BucketStatus)
-}
-
-func (sb *S3Bucket) SetErrorStatus(errorMsg string) {
-	sb.Status.Status = StatusError
-	sb.Status.Message = errorMsg
-}
-
-func (iu *IAMUser) GetStatus() components.Status {
-	return iu.Status
-}
-
-func (iu *IAMUser) SetStatus(status components.Status) {
-	iu.Status = status.(IAMUserStatus)
-}
-
-func (iu *IAMUser) SetErrorStatus(errorMsg string) {
-	iu.Status.Status = StatusError
-	iu.Status.Message = errorMsg
+// Add creates a new s3bucket Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
+// and Start it when the Manager is Started.
+func Add(mgr manager.Manager) error {
+	_, err := components.NewReconciler("s3bucket-controller", mgr, &awsv1beta1.S3Bucket{}, nil, []components.Component{
+		s3bucketcomponents.NewS3Bucket(),
+	})
+	return err
 }
