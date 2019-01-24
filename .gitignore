@@ -27,3 +27,7 @@ zz_generated.*
 
 # Ignore vendor files for now. I will try to trust dep.
 vendor/
+
+# Ignore crd yamls
+config/crds/*.yaml
+helm/template/crds/*.yaml
