@@ -86,6 +86,16 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		parsedTimeDuration, _ := time.ParseDuration(defaultFernetKeysLifespan)
 		instance.Spec.FernetKeyLifetime = parsedTimeDuration
 	}
+	if instance.Spec.AwsRegion == "" {
+		instance.Spec.AwsRegion = "us-west-2"
+	}
+	if instance.Spec.SQSQueue == "" {
+		if instance.Namespace == "prod" || instance.Namespace == "uat" {
+			instance.Spec.SQSQueue = "prod-data-pipeline"
+		} else {
+			instance.Spec.SQSQueue = "master-data-pipeline"
+		}
+	}
 
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {

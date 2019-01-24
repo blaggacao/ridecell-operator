@@ -90,6 +90,12 @@ type SummonPlatformSpec struct {
 	FernetKeyLifetime time.Duration `json:"fernetKeyLifetime,omitempty"`
 	// Disable the creation of the dispatcher@ridecell.com superuser.
 	NoCreateSuperuser bool `json:"noCreateSuperuser,omitempty"`
+	// AWS Region setting
+	// +optional
+	AwsRegion string `json:"awsRegion,omitempty"`
+	// SQS queue setting
+	// +optional
+	SQSQueue string `json:"sqsQueue,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
