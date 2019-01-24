@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ import (
 
 // IAMUserSpec defines the desired state of IAMUser
 type IAMUserSpec struct {
-	BucketName string `json:"bucketName,omitempty"`
-	Region     string `json:"region,omitempty"`
+	UserName       string            `json:"username,omitempty"`
+	InlinePolicies map[string]string `json:"inlinePolicies,omitempty"`
 }
 
 // IAMUserStatus defines the observed state of IAMUser
