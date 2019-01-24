@@ -36,10 +36,6 @@ spec:
               type: string
             region:
               type: string
-          required:
-          - bucketName
-          - bucketPolicy
-          - region
           type: object
         status:
           properties:

@@ -34,9 +34,6 @@ spec:
               type: object
             username:
               type: string
-          required:
-          - username
-          - inlinePolicies
           type: object
         status:
           properties:
