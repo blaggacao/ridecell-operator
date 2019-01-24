@@ -1,4 +1,4 @@
-kind: IAMUser
+kind: S3Bucket
 apiVersion: aws.ridecell.io/v1beta1
 metadata:
  name: {{ .Instance.Name }}

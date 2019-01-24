@@ -17,18 +17,9 @@ limitations under the License.
 package iamuser_test
 
 import (
-	"time"
-
-	. "github.com/onsi/ginkgo"
-	//. "github.com/onsi/gomega"
-	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	//"k8s.io/apimachinery/pkg/types"
-
-	//awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
+	. "github.com/onsi/ginkgo"
 )
-
-const timeout = time.Second * 20
 
 var _ = Describe("iamuser controller", func() {
 	var helpers *test_helpers.PerTestHelpers
