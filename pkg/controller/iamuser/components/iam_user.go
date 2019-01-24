@@ -90,7 +90,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	userPolicies := map[string]string{}
 	for _, userPolicyName := range listUserPoliciesOutput.PolicyNames {
-		// Get i
+		// Not actually in use at the moment.
 		getUserPolicy, err := comp.iamAPI.GetUserPolicy(&iam.GetUserPolicyInput{
 			PolicyName: userPolicyName,
 			UserName:   user.UserName,
