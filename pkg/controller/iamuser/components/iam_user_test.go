@@ -41,21 +41,12 @@ import (
 
 type mockIAMClient struct {
 	iamiface.IAMAPI
+	mockUserExists      bool
+	mockhasUserPolicies bool
+	mockExtraUserPolicy bool
 }
 
-// Flags for mock aws functions
-var mockUserExists bool
-var mockhasUserPolicies bool
-var mockExtraUserPolicy bool
-
 var _ = Describe("iam_user aws Component", func() {
-
-	BeforeEach(func() {
-		// Set our mock flags to false before every test
-		mockUserExists = false
-		mockhasUserPolicies = false
-		mockExtraUserPolicy = false
-	})
 
 	It("runs basic reconcile with no existing user", func() {
 		comp := iamusercomponents.NewIAMUser()
@@ -75,7 +66,10 @@ var _ = Describe("iam_user aws Component", func() {
 	It("reconciles with existing user and credentials", func() {
 		comp := iamusercomponents.NewIAMUser()
 		instance.Spec.UserName = fmt.Sprintf("%s-k8s-summon-platform", instance.Name)
-		mockIAM := &mockIAMClient{}
+		mockIAM := &mockIAMClient{
+			mockUserExists:      true,
+			mockhasUserPolicies: true,
+		}
 		comp.InjectIAMAPI(mockIAM)
 
 		accessKey := &corev1.Secret{
@@ -86,8 +80,6 @@ var _ = Describe("iam_user aws Component", func() {
 			},
 		}
 		ctx.Client = fake.NewFakeClient(accessKey)
-		mockUserExists = true
-		mockhasUserPolicies = true
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
@@ -99,11 +91,11 @@ var _ = Describe("iam_user aws Component", func() {
 	It("has extra items attached to user", func() {
 		comp := iamusercomponents.NewIAMUser()
 		instance.Spec.UserName = fmt.Sprintf("%s-k8s-summon-platform", instance.Name)
-		mockIAM := &mockIAMClient{}
+		mockIAM := &mockIAMClient{
+			mockUserExists:      true,
+			mockExtraUserPolicy: true,
+		}
 		comp.InjectIAMAPI(mockIAM)
-
-		mockUserExists = true
-		mockExtraUserPolicy = true
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
@@ -118,7 +110,7 @@ func (m *mockIAMClient) GetUser(input *iam.GetUserInput) (*iam.GetUserOutput, er
 	if aws.StringValue(input.UserName) != instance.Spec.UserName {
 		return &iam.GetUserOutput{}, errors.New("awsmock_getuser: given username does not match spec")
 	}
-	if mockUserExists {
+	if m.mockUserExists {
 		return &iam.GetUserOutput{User: &iam.User{UserName: input.UserName}}, nil
 	}
 	return &iam.GetUserOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_getuser: user does not exist", errors.New(""))
@@ -135,14 +127,14 @@ func (m *mockIAMClient) ListUserPolicies(input *iam.ListUserPoliciesInput) (*iam
 	if aws.StringValue(input.UserName) != instance.Spec.UserName {
 		return &iam.ListUserPoliciesOutput{}, errors.New("awsmock_listuserpolicies: given username does not match spec")
 	}
-	if mockhasUserPolicies {
+	if m.mockhasUserPolicies {
 		inlinePoliciesPointers := []*string{}
 		for k := range instance.Spec.InlinePolicies {
 			inlinePoliciesPointers = append(inlinePoliciesPointers, aws.String(k))
 		}
 		return &iam.ListUserPoliciesOutput{PolicyNames: inlinePoliciesPointers}, nil
 	}
-	if mockExtraUserPolicy {
+	if m.mockExtraUserPolicy {
 		inlinePoliciesPointers := []*string{}
 		for k := range instance.Spec.InlinePolicies {
 			inlinePoliciesPointers = append(inlinePoliciesPointers, aws.String(k))
@@ -157,7 +149,7 @@ func (m *mockIAMClient) GetUserPolicy(input *iam.GetUserPolicyInput) (*iam.GetUs
 	if aws.StringValue(input.UserName) != instance.Spec.UserName {
 		return &iam.GetUserPolicyOutput{}, errors.New("awsmock_getuserpolicy: given username does not match spec")
 	}
-	if mockhasUserPolicies {
+	if m.mockhasUserPolicies {
 		inputPolicy := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
 		inputPolicyBytes, err := json.Marshal(inputPolicy)
 		if err != nil {
@@ -165,7 +157,7 @@ func (m *mockIAMClient) GetUserPolicy(input *iam.GetUserPolicyInput) (*iam.GetUs
 		}
 		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(string(inputPolicyBytes))}, nil
 	}
-	if mockExtraUserPolicy {
+	if m.mockExtraUserPolicy {
 		inputPolicy, ok := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
 		if !ok {
 			inputPolicy = `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": ["s3:*"] "Resource": "*"}}`
