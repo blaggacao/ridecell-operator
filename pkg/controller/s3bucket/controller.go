@@ -28,6 +28,7 @@ import (
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("s3bucket-controller", mgr, &awsv1beta1.S3Bucket{}, nil, []components.Component{
+		s3bucketcomponents.NewDefaults(),
 		s3bucketcomponents.NewS3Bucket(),
 	})
 	return err

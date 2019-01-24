@@ -22,9 +22,9 @@ import (
 
 // S3BucketSpec defines the desired state of S3Bucket
 type S3BucketSpec struct {
-	BucketName   string `json:"bucketName"`
-	BucketPolicy string `json:"bucketPolicy"`
-	Region       string `json:"region"`
+	BucketName   string `json:"bucketName,omitempty"`
+	BucketPolicy string `json:"bucketPolicy,omitempty"`
+	Region       string `json:"region,omitempty"`
 }
 
 // S3BucketStatus defines the observed state of S3Bucket

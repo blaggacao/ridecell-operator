@@ -14,22 +14,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package iamuser
+package components_test
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
 	iamusercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/iamuser/components"
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-// Add creates a new iamuser Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	_, err := components.NewReconciler("iamuser-controller", mgr, &awsv1beta1.IAMUser{}, nil, []components.Component{
-		iamusercomponents.NewDefaults(),
-		iamusercomponents.NewIAMUser(),
+var _ = Describe("iamuser Defaults Component", func() {
+	It("does nothing on a filled out object", func() {
+		comp := iamusercomponents.NewDefaults()
+		instance.Spec.UserName = "test"
+
+		Expect(comp).To(ReconcileContext(ctx))
+		Expect(instance.Spec.UserName).To(Equal("test"))
 	})
-	return err
-}
+
+	It("sets defaults", func() {
+		comp := iamusercomponents.NewDefaults()
+		Expect(comp).To(ReconcileContext(ctx))
+
+		Expect(instance.Spec.UserName).To(Equal("foo.example.com-k8s-summon"))
+	})
+
+})
