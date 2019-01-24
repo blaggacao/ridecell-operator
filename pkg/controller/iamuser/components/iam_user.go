@@ -62,17 +62,16 @@ func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*awsv1beta1.IAMUser)
 
-	var user *iam.User
 	// Try to get our user, if it can't be found create it
-	userName := aws.String(fmt.Sprintf("%s-k8s-summon-platform", instance.Name))
-	getUserOutput, err := comp.iamAPI.GetUser(&iam.GetUserInput{UserName: userName})
+	var user *iam.User
+	getUserOutput, err := comp.iamAPI.GetUser(&iam.GetUserInput{UserName: aws.String(instance.Spec.UserName)})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
 			if aerr.Code() != iam.ErrCodeNoSuchEntityException {
 				return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to get user")
 			}
 			// If user does not exist create it
-			createUserOutput, err := comp.iamAPI.CreateUser(&iam.CreateUserInput{UserName: userName})
+			createUserOutput, err := comp.iamAPI.CreateUser(&iam.CreateUserInput{UserName: aws.String(instance.Spec.UserName)})
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "iam_user: failed to create user")
 			}
@@ -139,9 +138,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		if !k8serrors.IsNotFound(err) {
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get access-key secret")
 		}
-		if k8serrors.IsNotFound(err) {
-			fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}}
-		}
+		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}}
 	}
 
 	_, ok0 := fetchAccessKey.Data["access_key_id"]
@@ -155,28 +152,29 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		fetchAccessKey.Data = make(map[string][]byte)
 		fetchAccessKey.Data["access_key_id"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
 		fetchAccessKey.Data["secret_access_key"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
-	}
 
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey, func(existingObj runtime.Object) error {
-		existing := existingObj.(*corev1.Secret)
-		// Sync important fields.
-		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
+		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey, func(existingObj runtime.Object) error {
+			existing := existingObj.(*corev1.Secret)
+			// Sync important fields.
+			err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
+			if err != nil {
+				return errors.Wrapf(err, "iam_user: Failed to set controller reference")
+			}
+			existing.Labels = fetchAccessKey.Labels
+			existing.Annotations = fetchAccessKey.Annotations
+			existing.Type = fetchAccessKey.Type
+			existing.Data = fetchAccessKey.Data
+			return nil
+		})
 		if err != nil {
-			return errors.Wrapf(err, "iam_user: Failed to set controller reference")
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to create or update secret")
 		}
-		existing.Labels = fetchAccessKey.Labels
-		existing.Annotations = fetchAccessKey.Annotations
-		existing.Type = fetchAccessKey.Type
-		existing.Data = fetchAccessKey.Data
-		return nil
-	})
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "iam_user: failed to create or update secret")
 	}
 
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*awsv1beta1.IAMUser)
 		instance.Status.Status = awsv1beta1.StatusReady
+		instance.Status.Message = "User exists and has secret"
 		return nil
 	}}, nil
 }
