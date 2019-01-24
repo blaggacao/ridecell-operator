@@ -111,6 +111,7 @@ func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (comp
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*awsv1beta1.S3Bucket)
 		instance.Status.Status = awsv1beta1.StatusReady
+		instance.Status.Message = "Bucket exists and has correct policy"
 		return nil
 	}}, nil
 }
