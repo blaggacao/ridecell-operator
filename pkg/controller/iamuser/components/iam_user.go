@@ -145,6 +145,23 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	_, ok1 := fetchAccessKey.Data["secret_access_key"]
 
 	if !ok0 || !ok1 {
+		// Find any access keys related attached to this user
+		existingAccessKeys, err := comp.iamAPI.ListAccessKeys(&iam.ListAccessKeysInput{UserName: user.UserName})
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to list access keys")
+		}
+		// Delete access keys if they exist
+		for _, accessKeyMeta := range existingAccessKeys.AccessKeyMetadata {
+			_, err := comp.iamAPI.DeleteAccessKey(&iam.DeleteAccessKeyInput{
+				AccessKeyId: accessKeyMeta.AccessKeyId,
+				UserName:    user.UserName,
+			})
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "iam_user: failed to delete access keys")
+			}
+		}
+
+		// Make new access key and put it in a secret
 		createAccessKeyOutput, err := comp.iamAPI.CreateAccessKey(&iam.CreateAccessKeyInput{UserName: user.UserName})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to create new access key")

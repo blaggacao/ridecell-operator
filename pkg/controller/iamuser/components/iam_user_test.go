@@ -44,13 +44,13 @@ type mockIAMClient struct {
 	mockUserExists      bool
 	mockhasUserPolicies bool
 	mockExtraUserPolicy bool
+	mockHasAccessKey    bool
 }
 
 var _ = Describe("iam_user aws Component", func() {
 
 	It("runs basic reconcile with no existing user", func() {
 		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = fmt.Sprintf("%s-k8s-summon-platform", instance.Name)
 		mockIAM := &mockIAMClient{}
 		comp.InjectIAMAPI(mockIAM)
 
@@ -65,7 +65,7 @@ var _ = Describe("iam_user aws Component", func() {
 
 	It("reconciles with existing user and credentials", func() {
 		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = fmt.Sprintf("%s-k8s-summon-platform", instance.Name)
+		instance.Spec.UserName = fmt.Sprintf("test-user")
 		mockIAM := &mockIAMClient{
 			mockUserExists:      true,
 			mockhasUserPolicies: true,
@@ -85,12 +85,13 @@ var _ = Describe("iam_user aws Component", func() {
 		fetchAccessKey := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(fetchAccessKey.Data).To(Equal(accessKey.Data))
+		Expect(string(fetchAccessKey.Data["access_key_id"])).To(Equal("test_access_key"))
+		Expect(string(fetchAccessKey.Data["secret_access_key"])).To(Equal("test_secret_key"))
 	})
 
 	It("has extra items attached to user", func() {
 		comp := iamusercomponents.NewIAMUser()
-		instance.Spec.UserName = fmt.Sprintf("%s-k8s-summon-platform", instance.Name)
+		instance.Spec.UserName = "test-user"
 		mockIAM := &mockIAMClient{
 			mockUserExists:      true,
 			mockExtraUserPolicy: true,
@@ -98,6 +99,20 @@ var _ = Describe("iam_user aws Component", func() {
 		comp.InjectIAMAPI(mockIAM)
 		Expect(comp).To(ReconcileContext(ctx))
 
+		fetchAccessKey := &corev1.Secret{}
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("has an existing access key but no secret", func() {
+		comp := iamusercomponents.NewIAMUser()
+		instance.Spec.UserName = "test-user"
+		mockIAM := &mockIAMClient{
+			mockUserExists:   true,
+			mockHasAccessKey: true,
+		}
+		comp.InjectIAMAPI(mockIAM)
+		Expect(comp).To(ReconcileContext(ctx))
 		fetchAccessKey := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
@@ -196,4 +211,24 @@ func (m *mockIAMClient) CreateAccessKey(input *iam.CreateAccessKeyInput) (*iam.C
 			UserName:        input.UserName,
 		},
 	}, nil
+}
+
+func (m *mockIAMClient) DeleteAccessKey(input *iam.DeleteAccessKeyInput) (*iam.DeleteAccessKeyOutput, error) {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName {
+		return &iam.DeleteAccessKeyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteaccesskey: username did not match spec", errors.New(""))
+	}
+	if aws.StringValue(input.AccessKeyId) == "123456789" {
+		return &iam.DeleteAccessKeyOutput{}, nil
+	}
+	return &iam.DeleteAccessKeyOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_deleteaccesskey: access key does not exist", errors.New(""))
+}
+
+func (m *mockIAMClient) ListAccessKeys(input *iam.ListAccessKeysInput) (*iam.ListAccessKeysOutput, error) {
+	if aws.StringValue(input.UserName) != instance.Spec.UserName {
+		return &iam.ListAccessKeysOutput{}, awserr.New(iam.ErrCodeNoSuchEntityException, "awsmock_listaccesskeys: username did not match spec", errors.New(""))
+	}
+	if m.mockHasAccessKey {
+		return &iam.ListAccessKeysOutput{AccessKeyMetadata: []*iam.AccessKeyMetadata{&iam.AccessKeyMetadata{AccessKeyId: aws.String("123456789")}}}, nil
+	}
+	return &iam.ListAccessKeysOutput{}, nil
 }
