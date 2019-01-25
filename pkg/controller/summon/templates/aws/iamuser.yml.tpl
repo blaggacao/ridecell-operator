@@ -4,7 +4,7 @@ metadata:
  name: {{ .Instance.Name }}-iamuser
  namespace: {{ .Instance.Namespace }}
 spec:
- username: {{ .Instance.Name }}
+ username: {{ .Instance.Name }}-summon-platform
  inlinePolicies:
    allow_s3: |
             {
