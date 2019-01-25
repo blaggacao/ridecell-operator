@@ -1,7 +1,7 @@
 kind: IAMUser
 apiVersion: aws.ridecell.io/v1beta1
 metadata:
- name: {{ .Instance.Name }}
+ name: {{ .Instance.Name }}-iamuser
  namespace: {{ .Instance.Namespace }}
 spec:
  username: {{ .Instance.Name }}
