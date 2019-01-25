@@ -96,9 +96,6 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
 	}
-	if instance.Spec.BucketName == "" {
-		instance.Spec.BucketName = fmt.Sprintf("%s-static", instance.Name)
-	}
 
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {

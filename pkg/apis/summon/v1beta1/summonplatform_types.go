@@ -96,9 +96,6 @@ type SummonPlatformSpec struct {
 	// SQS queue setting
 	// +optional
 	SQSQueue string `json:"sqsQueue,omitempty"`
-	// AWS Bucket Name
-	// +optional
-	BucketName string `json:"bucketName,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform
