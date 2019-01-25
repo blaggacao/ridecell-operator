@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2018-2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,4 +31,17 @@ func (s *PullSecret) SetStatus(status components.Status) {
 func (s *PullSecret) SetErrorStatus(errorMsg string) {
 	s.Status.Status = StatusError
 	s.Status.Message = errorMsg
+}
+
+func (es *EncryptedSecret) GetStatus() components.Status {
+	return es.Status
+}
+
+func (es *EncryptedSecret) SetStatus(status components.Status) {
+	es.Status = status.(EncryptedSecretStatus)
+}
+
+func (es *EncryptedSecret) SetErrorStatus(errorMsg string) {
+	es.Status.Status = StatusError
+	es.Status.Message = errorMsg
 }
