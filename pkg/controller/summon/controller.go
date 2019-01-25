@@ -36,6 +36,10 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewPostgres("postgres.yml.tpl"),
 		summoncomponents.NewPostgresExtensions(),
 
+		// aws stuff
+		summoncomponents.NewIAMUser("aws/iamuser.yml.tpl"),
+		summoncomponents.NewS3Bucket("aws/s3bucket.yml.tpl"),
+
 		// Secrets components
 		summoncomponents.NewSecretKey(),
 		summoncomponents.NewFernetRotate(),

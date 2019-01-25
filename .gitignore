@@ -30,4 +30,4 @@ vendor/
 
 # Ignore crd yamls
 config/crds/*.yaml
-helm/template/crds/*.yaml
+helm/templates/crds/*.yaml

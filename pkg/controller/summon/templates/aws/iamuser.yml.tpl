@@ -4,7 +4,7 @@ metadata:
  name: {{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
- username: {{ .Instance.Name }}
+ username: {{ .Instance.Name }}-summon-platform
  inlinePolicies:
    allow_s3: |
             {

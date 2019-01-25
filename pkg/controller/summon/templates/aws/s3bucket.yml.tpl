@@ -4,8 +4,8 @@ metadata:
  name: {{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
- bucketName: {{ .Extra.bucketName }}
- region: {{ .Extra.region }}
+ bucketName: {{ .Instance.Name }}-static
+ region: {{ .Instance.Spec.AwsRegion }}
  bucketPolicy: |
                {
                  "Version": "2008-10-17",
@@ -17,5 +17,5 @@ spec:
                     },
                     "Action": "s3:GetObject",
                     "Resource": "arn:aws:s3:::{{ .Extra.bucketName }}/*"
-                  }]
-              }
+                  },],
+               }
