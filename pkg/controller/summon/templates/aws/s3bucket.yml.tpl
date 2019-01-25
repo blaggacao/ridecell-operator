@@ -4,8 +4,8 @@ metadata:
  name: {{ .Instance.Name }}-s3bucket
  namespace: {{ .Instance.Namespace }}
 spec:
- bucketName: {{ .Extra.bucketName }}
- region: {{ .Instance.AwsRegion }}
+ bucketName: {{ .Instance.Spec.BucketName }}
+ region: {{ .Instance.Spec.AwsRegion }}
  bucketPolicy: |
                {
                  "Version": "2008-10-17",
