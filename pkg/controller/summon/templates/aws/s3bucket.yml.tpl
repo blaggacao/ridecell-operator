@@ -4,7 +4,7 @@ metadata:
  name: {{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
- bucketName: {{ .Extra.bucketName }}
+ bucketName: {{ .Instance.Name }}-static
  region: {{ .Instance.Spec.AwsRegion }}
  bucketPolicy: |
                {

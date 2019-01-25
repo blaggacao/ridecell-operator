@@ -17,12 +17,9 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
@@ -46,13 +43,8 @@ func (_ *s3BucketComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *s3BucketComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
-	extra := map[string]interface{}{}
-	extra["bucketName"] = fmt.Sprintf("%s-static", instance.Name)
-
 	var existing *awsv1beta1.S3Bucket
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*awsv1beta1.S3Bucket)
 		existing = existingObj.(*awsv1beta1.S3Bucket)
 		// Copy the Spec over.
