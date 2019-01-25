@@ -38,7 +38,7 @@ func (comp *iamUserComponent) WatchTypes() []runtime.Object {
 }
 
 func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
-	// Secrets have no dependencies, always reconcile.
+	// Has no dependencies, always reconcilable.
 	return true
 }
 
