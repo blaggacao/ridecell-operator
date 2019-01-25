@@ -5,7 +5,7 @@ metadata:
  namespace: {{ .Instance.Namespace }}
 spec:
  bucketName: {{ .Extra.bucketName }}
- region: {{ .Instance.AwsRegion }}
+ region: {{ .Instance.Spec.AwsRegion }}
  bucketPolicy: |
                {
                  "Version": "2008-10-17",
