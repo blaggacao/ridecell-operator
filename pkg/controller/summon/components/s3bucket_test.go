@@ -35,7 +35,7 @@ var _ = Describe("SummonPlatform s3bucket Component", func() {
 		comp := summoncomponents.NewS3Bucket("aws/s3bucket.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.S3Bucket{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-s3bucket", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

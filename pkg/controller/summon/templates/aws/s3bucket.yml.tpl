@@ -1,10 +1,10 @@
 kind: S3Bucket
 apiVersion: aws.ridecell.io/v1beta1
 metadata:
- name: {{ .Instance.Name }}-s3bucket
+ name: {{ .Instance.Name }}
  namespace: {{ .Instance.Namespace }}
 spec:
- bucketName: {{ .Instance.Spec.BucketName }}
+ bucketName: {{ .Extra.bucketName }}
  region: {{ .Instance.Spec.AwsRegion }}
  bucketPolicy: |
                {

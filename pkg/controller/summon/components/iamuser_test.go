@@ -35,7 +35,7 @@ var _ = Describe("SummonPlatform iamuser Component", func() {
 		comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &awsv1beta1.IAMUser{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-iamuser", Namespace: instance.Namespace}, target)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, target)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })
