@@ -68,6 +68,9 @@ func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (com
 	} else if instance.Status.Status == summonv1beta1.StatusError {
 		return c.handleError(instance, instance.Status.Message)
 	}
+
+	// No notifications needed.
+	return components.Result{}, nil
 }
 
 // ReconcileError implements components.ErrorHandler.
