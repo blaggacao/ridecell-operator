@@ -29,22 +29,34 @@ import (
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 )
 
-// Interface for the Slack client to allow for a mock implementation.
+// Interface for a Slack client to allow for a mock implementation.
+//go:generate moq -out zz_generated.mock_slackclient_test.go . SlackClient
 type SlackClient interface {
-	PostMessage(string, ...self.MsgOption) (string, string, error)
+	PostMessage(string, slack.Attachment) (string, string, error)
+}
+
+// Real implementation of SlackClient using nlopes/slack.
+// I can't match the interface to that directly because the MsgOptions API involves
+// private structs so I can't actually get the back out the other side when working with a mock.
+type realSlackClient struct {
+	client *slack.Client
+}
+
+func (c *realSlackClient) PostMessage(channel string, msg slack.Attachment) (string, string, error) {
+	return c.client.PostMessage(channel, slack.MsgOptionAttachments(msg))
 }
 
 type notificationComponent struct {
-	slackClient SlackSender
+	slackClient SlackClient
 }
 
 func NewNotification() *notificationComponent {
 	var slackClient *slack.Client
-	slackApiKey = os.Getenv("SLACK_API_KEY")
+	slackApiKey := os.Getenv("SLACK_API_KEY")
 	if slackApiKey != "" {
 		slackClient = slack.New(slackApiKey)
 	}
-	return &notificationComponent{slackClient: slackClient}
+	return &notificationComponent{slackClient: &realSlackClient{client: slackClient}}
 }
 
 func (c *notificationComponent) InjectSlackClient(client SlackClient) {
