@@ -29,7 +29,7 @@ import (
 
 // Open a connection to the Postgres database as defined by a PostgresConnection object.
 func Open(ctx *components.ComponentContext, dbInfo *dbv1beta1.PostgresConnection) (*sql.DB, error) {
-	dbPassword, err := dbInfo.Resolve(ctx, "password")
+	dbPassword, err := dbInfo.PasswordSecretRef.Resolve(ctx, "password")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to resolve secret")
 	}
