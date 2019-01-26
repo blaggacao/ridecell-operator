@@ -57,7 +57,7 @@ func (_ *notificationComponent) WatchTypes() []runtime.Object {
 
 func (_ *notificationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return instance.Spec.Notifications.SlackChannelName != ""
+	return instance.Spec.Notifications.SlackChannel != ""
 }
 
 func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
@@ -85,7 +85,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 
 	// Send to Slack.
 	attachment := c.formatSuccessNotification(instance)
-	_, _, err = c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannelName, slack.MsgOptionAttachments(attachment))
+	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
 	if err != nil {
 		return components.Result{}, err
 	}
@@ -112,7 +112,7 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 
 	// Send to Slack.
 	attachment := c.formatErrorNotification(instance, errorMessage)
-	_, _, err = c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannelName, slack.MsgOptionAttachments(attachment))
+	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
 	if err != nil {
 		return components.Result{}, err
 	}

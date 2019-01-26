@@ -35,7 +35,7 @@ type ConfigValue struct {
 type NotificationsSpec struct {
 	// Name of the slack channel for notifications. If not set, no notifications will be sent.
 	// +optional
-	SlackChannelName string `json:"slackChannelName,omitempty"`
+	SlackChannel string `json:"slackChannel,omitempty"`
 }
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
