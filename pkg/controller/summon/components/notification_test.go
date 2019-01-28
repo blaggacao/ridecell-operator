@@ -106,6 +106,19 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 		})
 
+		It("does not set fields on a non-standard version", func() {
+			// More importantly, it doesn't choke.
+			instance.Spec.Version = "1234"
+			instance.Status.Notification.NotifyVersion = ""
+			instance.Status.Status = summonv1beta1.StatusReady
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234 successfully"))
+			Expect(post.In2.Fields).To(HaveLen(0))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234"))
+		})
+
 		It("sends an error notification on a new error", func() {
 			instance.Status.Message = "Someone set us up the bomb"
 			instance.Status.Status = summonv1beta1.StatusError
