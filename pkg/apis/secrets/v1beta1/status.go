@@ -32,3 +32,16 @@ func (s *PullSecret) SetErrorStatus(errorMsg string) {
 	s.Status.Status = StatusError
 	s.Status.Message = errorMsg
 }
+
+func (es *EncryptedSecret) GetStatus() components.Status {
+	return es.Status
+}
+
+func (es *EncryptedSecret) SetStatus(status components.Status) {
+	es.Status = status.(EncryptedSecretStatus)
+}
+
+func (es *EncryptedSecret) SetErrorStatus(errorMsg string) {
+	es.Status.Status = StatusError
+	es.Status.Message = errorMsg
+}
