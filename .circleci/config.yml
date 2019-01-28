@@ -16,6 +16,11 @@ jobs:
     - run: curl -L https://storage.googleapis.com/kubebuilder-release/kubebuilder_master_linux_amd64.tar.gz | sudo tar -zxv --strip-components=1 -C /usr/local/kubebuilder/
     - run: make dep test
     - run: goveralls -coverprofile=gover.coverprofile -service=circle-ci -repotoken=$COVERALLS_TOKEN
+    - run: mkdir workspace && cp -r config/crds workspace/crds
+    - persist_to_workspace:
+        root: workspace
+        paths:
+        - crds
 
     - save_cache:
         key: v1-vendor-{{ checksum "Gopkg.lock" }}
@@ -27,13 +32,15 @@ jobs:
     steps:
     - checkout
     - setup_remote_docker
+    - attach_workspace:
+        at: workspace
     - run: docker build -t us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} .
     - run: echo ${GCP_SERVICE_ACCOUNT} > gcp-key.json
     - run: gcloud auth activate-service-account --key-file gcp-key.json
     - run: gcloud --quiet config set project ridecell-1
     - run: gcloud auth configure-docker
     - run: docker push us.gcr.io/ridecell-1/ridecell-operator:${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH}
-    - run: mkdir workspace && echo ${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} > workspace/tag
+    - run: echo ${CIRCLE_BUILD_NUM}-${CIRCLE_SHA1:0:7}-${CIRCLE_BRANCH} > workspace/tag
     - persist_to_workspace:
         root: workspace
         paths:
@@ -49,6 +56,7 @@ jobs:
     - run: gcloud auth activate-service-account --key-file gcp-key.json
     - run: gcloud --quiet config set project ridecell-sandbox
     - run: gcloud container clusters get-credentials noah-test --region=us-west1
+    - run: cp workspace/crds/* helm/templates/crds/
     - run: helm upgrade --install --namespace ridecell-operator --set tag=$(cat workspace/tag) ridecell-operator ./helm
 
 workflows:
