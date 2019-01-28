@@ -34,6 +34,10 @@ type EncryptedSecretComponent struct {
 	kmsAPI kmsiface.KMSAPI
 }
 
+func (comp *EncryptedSecretComponent) InjectKMSAPI(kmsapi kmsiface.KMSAPI) {
+	comp.kmsAPI = kmsapi
+}
+
 func NewEncryptedSecret() *EncryptedSecretComponent {
 	sess := session.Must(session.NewSession())
 	kmsService := kms.New(sess)
@@ -55,11 +59,12 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 
 	newSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      instance.Spec.SecretName,
+			Name:      instance.Name,
 			Namespace: instance.Namespace,
 		},
 		Data: make(map[string][]byte),
 	}
+
 	for k, v := range instance.Data {
 		decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{CiphertextBlob: []byte(v)})
 		if err != nil {
@@ -68,7 +73,7 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 		newSecret.Data[k] = decryptedValue.Plaintext
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(existingObj runtime.Object) error {
+	_, err := controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopy(), func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Sync important fields.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
