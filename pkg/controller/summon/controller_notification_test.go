@@ -35,7 +35,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
-var _ = FDescribe("Summon controller", func() {
+var _ = Describe("Summon controller", func() {
 	var helpers *test_helpers.PerTestHelpers
 	var instance *summonv1beta1.SummonPlatform
 	var slackClient *slack.Client
@@ -89,35 +89,30 @@ var _ = FDescribe("Summon controller", func() {
 	})
 
 	AfterEach(func() {
-		// Leaving this here and commented so someone doesn't accidentally re-add it.
-		// This is disabled because deleting the namespace triggers a reconcile again,
-		// which will generally fail with an error like `dial tcp 127.0.0.1:49604: connect: connection refused`
-		// because the control plane shuts down faster than the controller itself.
-		// Not tearing down these namespaces just means slightly more RAM usage during
-		// this phase of testing, which should be fine.
-
-		// helpers.TeardownTest()
+		helpers.TeardownTest()
 	})
 
 	deployInstance := func(name string) {
 		c := helpers.TestClient
 
 		// Create the SummonPlatform.
+		instance.Name = name
+		instance.ResourceVersion = ""
 		c.Create(instance)
 
 		// Mark the PullSecret as ready.
 		pullsecret := &secretsv1beta1.PullSecret{}
-		c.EventuallyGet(helpers.Name("notifytest-pullsecret"), pullsecret)
+		c.EventuallyGet(helpers.Name(name+"-pullsecret"), pullsecret)
 		pullsecret.Status.Status = secretsv1beta1.StatusReady
 		c.Status().Update(pullsecret)
 
 		// Wait for the Postgresql to be created.
 		postgres := &postgresv1.Postgresql{}
-		c.EventuallyGet(helpers.Name("notifytest-database"), postgres)
+		c.EventuallyGet(helpers.Name(name+"-database"), postgres)
 
 		// Create a fake Postgres credentials secret.
 		dbSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.notifytest-database.credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "summon." + name + "-database.credentials", Namespace: helpers.Namespace},
 			StringData: map[string]string{
 				"password": "secretdbpass",
 			},
@@ -130,16 +125,16 @@ var _ = FDescribe("Summon controller", func() {
 
 		// Set the Postgres extensions to ready.
 		ext := &dbv1beta1.PostgresExtension{}
-		c.EventuallyGet(helpers.Name("notifytest-postgis"), ext)
+		c.EventuallyGet(helpers.Name(name+"-postgis"), ext)
 		ext.Status.Status = dbv1beta1.StatusReady
 		c.Status().Update(ext)
-		c.EventuallyGet(helpers.Name("notifytest-postgis-topology"), ext)
+		c.EventuallyGet(helpers.Name(name+"-postgis-topology"), ext)
 		ext.Status.Status = dbv1beta1.StatusReady
 		c.Status().Update(ext)
 
 		// Check that a migration Job was created.
 		job := &batchv1.Job{}
-		c.EventuallyGet(helpers.Name("notifytest-migrations"), job)
+		c.EventuallyGet(helpers.Name(name+"-migrations"), job)
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
@@ -148,7 +143,7 @@ var _ = FDescribe("Summon controller", func() {
 		// Mark the deployments as ready.
 		updateDeployment := func(s string) {
 			deployment := &appsv1.Deployment{}
-			c.EventuallyGet(helpers.Name("notifytest-"+s), deployment)
+			c.EventuallyGet(helpers.Name(name+"-"+s), deployment)
 			deployment.Status.Replicas = 1
 			deployment.Status.ReadyReplicas = 1
 			deployment.Status.AvailableReplicas = 1
@@ -162,7 +157,7 @@ var _ = FDescribe("Summon controller", func() {
 
 		// Mark the statefulset as ready.
 		statefulset := &appsv1.StatefulSet{}
-		c.EventuallyGet(helpers.Name("notifytest-celerybeat"), statefulset)
+		c.EventuallyGet(helpers.Name(name+"-celerybeat"), statefulset)
 		statefulset.Status.Replicas = 1
 		statefulset.Status.ReadyReplicas = 1
 		c.Status().Update(statefulset)
@@ -189,6 +184,8 @@ var _ = FDescribe("Summon controller", func() {
 		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(history.Messages).To(HaveLen(1))
+		Expect(history.Messages[0].Attachments).To(HaveLen(1))
+		Expect(history.Messages[0].Attachments[0].Color).To(Equal("2eb886"))
 	})
 
 	It("sends a single success notification on deploy, even with subsequent reconciles", func() {
@@ -219,5 +216,51 @@ var _ = FDescribe("Summon controller", func() {
 		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(history.Messages).To(HaveLen(1))
+	})
+
+	It("sends two success notifications for two different clusters", func() {
+		c := helpers.TestClient
+
+		// Advance all the various things.
+		deployInstance("notifytest")
+		deployInstance("notifytest2")
+
+		// Check that things are ready.
+		fetchInstance := &summonv1beta1.SummonPlatform{}
+		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+		c.EventuallyGet(helpers.Name("notifytest2"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusReady))
+
+		// Find all messages since the start of the test.
+		historyParams := slack.NewHistoryParameters()
+		historyParams.Oldest = lastMessage.Timestamp
+		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(history.Messages).To(HaveLen(2))
+	})
+
+	It("sends a single error notification on something going wrong", func() {
+		c := helpers.TestClient
+
+		// Create the SummonPlatform.
+		c.Create(instance)
+
+		// Simulate a Postgres error.
+		postgres := &postgresv1.Postgresql{}
+		c.EventuallyGet(helpers.Name("notifytest-database"), postgres)
+		postgres.Status = postgresv1.ClusterStatusSyncFailed
+		c.Status().Update(postgres)
+
+		// Wait.
+		fetchInstance := &summonv1beta1.SummonPlatform{}
+		c.EventuallyGet(helpers.Name("notifytest"), fetchInstance, c.EventuallyStatus(summonv1beta1.StatusError))
+
+		// Check that exactly one message happened
+		historyParams := slack.NewHistoryParameters()
+		historyParams.Oldest = lastMessage.Timestamp
+		history, err := slackClient.GetGroupHistory(slackChannel, historyParams)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(history.Messages).To(HaveLen(1))
+		Expect(history.Messages[0].Attachments).To(HaveLen(1))
+		Expect(history.Messages[0].Attachments[0].Color).To(Equal("a30200"))
 	})
 })
