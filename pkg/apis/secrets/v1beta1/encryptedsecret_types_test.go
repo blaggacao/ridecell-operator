@@ -57,6 +57,5 @@ var _ = Describe("encryptedsecret types", func() {
 		fetched := &secretsv1beta1.EncryptedSecret{}
 		err = c.Get(context.TODO(), key, fetched)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(fetched.Spec).To(Equal(created.Spec))
 	})
 })
