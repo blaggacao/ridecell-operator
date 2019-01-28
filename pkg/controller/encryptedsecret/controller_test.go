@@ -33,5 +33,6 @@ var _ = Describe("encryptedsecret controller", func() {
 	})
 
 	It("runs a basic reconcile", func() {
+		// No good way to mock aws at the moment in controller tests.
 	})
 })

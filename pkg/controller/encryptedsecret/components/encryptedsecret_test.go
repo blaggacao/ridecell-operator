@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
@@ -40,6 +41,12 @@ type mockKMSClient struct {
 
 var _ = Describe("encryptedsecret Component", func() {
 
+	It("is reconcilable", func() {
+		// Adding so coveralls may complain less
+		comp := encryptedsecretcomponents.NewEncryptedSecret()
+		Expect(comp.IsReconcilable(ctx)).To(BeTrue())
+	})
+
 	It("runs basic reconcile", func() {
 		comp := encryptedsecretcomponents.NewEncryptedSecret()
 		mockKMS := &mockKMSClient{}
@@ -58,10 +65,10 @@ var _ = Describe("encryptedsecret Component", func() {
 		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(fetchSecret.Data["TEST_VALUE0"])).To(Equal("test0"))
-		Expect(string(fetchSecret.Data["TEST_VALUE1"])).To(Equal("test1"))
-		Expect(string(fetchSecret.Data["TEST_VALUE2"])).To(Equal("test2"))
-		Expect(string(fetchSecret.Data["test_value3"])).To(Equal("TEST3"))
+		Expect(string(fetchSecret.Data["TEST_VALUE0"])).To(Equal("kmstest0"))
+		Expect(string(fetchSecret.Data["TEST_VALUE1"])).To(Equal("kmstest1"))
+		Expect(string(fetchSecret.Data["TEST_VALUE2"])).To(Equal("kmstest2"))
+		Expect(string(fetchSecret.Data["test_value3"])).To(Equal("kmsTEST3"))
 	})
 
 	It("updates an existing secret", func() {
@@ -89,11 +96,11 @@ var _ = Describe("encryptedsecret Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		_, ok := fetchSecret.Data["test_value"]
-		Expect(ok).To(Equal(false))
+		Expect(ok).To(BeFalse())
 
 		val, ok := fetchSecret.Data["new_value"]
-		Expect(ok).To(Equal(true))
-		Expect(string(val)).To(Equal("test1"))
+		Expect(ok).To(BeTrue())
+		Expect(string(val)).To(Equal("kmstest1"))
 	})
 
 })
@@ -102,5 +109,5 @@ func (m *mockKMSClient) Decrypt(input *kms.DecryptInput) (*kms.DecryptOutput, er
 	if len(input.CiphertextBlob) < 0 {
 		return &kms.DecryptOutput{}, awserr.New(kms.ErrCodeInvalidCiphertextException, "awsmock_decrypt: Invalid cipher text", errors.New(""))
 	}
-	return &kms.DecryptOutput{Plaintext: input.CiphertextBlob}, nil
+	return &kms.DecryptOutput{Plaintext: []byte(fmt.Sprintf("kms%s", string(input.CiphertextBlob)))}, nil
 }
