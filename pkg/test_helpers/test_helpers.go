@@ -30,6 +30,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -147,4 +148,9 @@ func createRandomNamespace(client client.Client) string {
 	err := client.Create(context.TODO(), namespace)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	return namespaceName
+}
+
+// Helper method to make a types.NamespacedName in the correct namespace.
+func (h *PerTestHelpers) Name(objName string) types.NamespacedName {
+	return types.NamespacedName{Name: objName, Namespace: h.Namespace}
 }
