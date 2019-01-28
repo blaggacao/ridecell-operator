@@ -1,5 +1,5 @@
 /*
-Copyright 2018 Ridecell, Inc.
+Copyright 2018-2019 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,6 +36,10 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewPostgres("postgres.yml.tpl"),
 		summoncomponents.NewPostgresExtensions(),
 
+		// aws stuff
+		summoncomponents.NewIAMUser("aws/iamuser.yml.tpl"),
+		summoncomponents.NewS3Bucket("aws/s3bucket.yml.tpl"),
+
 		// Secrets components
 		summoncomponents.NewSecretKey(),
 		summoncomponents.NewFernetRotate(),
@@ -46,33 +50,33 @@ func Add(mgr manager.Manager) error {
 		summoncomponents.NewSuperuser(),
 
 		// Redis components.
-		summoncomponents.NewDeployment("redis/deployment.yml.tpl", false),
+		summoncomponents.NewRedisDeployment("redis/deployment.yml.tpl"),
 		summoncomponents.NewService("redis/service.yml.tpl"),
 
 		// Web components.
-		summoncomponents.NewDeployment("web/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("web/deployment.yml.tpl"),
 		summoncomponents.NewService("web/service.yml.tpl"),
 		summoncomponents.NewIngress("web/ingress.yml.tpl"),
 
 		// Daphne components.
-		summoncomponents.NewDeployment("daphne/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("daphne/deployment.yml.tpl"),
 		summoncomponents.NewService("daphne/service.yml.tpl"),
 		summoncomponents.NewIngress("daphne/ingress.yml.tpl"),
 
 		// Static file components.
-		summoncomponents.NewDeployment("static/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("static/deployment.yml.tpl"),
 		summoncomponents.NewService("static/service.yml.tpl"),
 		summoncomponents.NewIngress("static/ingress.yml.tpl"),
 
 		// Celery components.
-		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("celeryd/deployment.yml.tpl"),
 
 		// Celerybeat components.
 		summoncomponents.NewStatefulSet("celerybeat/statefulset.yml.tpl", true),
 		summoncomponents.NewService("celerybeat/service.yml.tpl"),
 
 		// Channelworker components.
-		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl", true),
+		summoncomponents.NewDeployment("channelworker/deployment.yml.tpl"),
 
 		// End of converge status checks.
 		summoncomponents.NewStatus(),
