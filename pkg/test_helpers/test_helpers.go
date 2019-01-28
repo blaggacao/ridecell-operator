@@ -45,6 +45,7 @@ type TestHelpers struct {
 	Manager     manager.Manager
 	ManagerStop chan struct{}
 	Client      client.Client
+	TestClient  *testClient
 }
 
 type PerTestHelpers struct {
@@ -97,6 +98,7 @@ func Start(adder func(manager.Manager) error, cacheClient bool) *TestHelpers {
 		helpers.Client, err = client.New(helpers.Cfg, client.Options{Scheme: helpers.Manager.GetScheme()})
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}
+	helpers.TestClient = &testClient{client: helpers.Client}
 
 	// Start the manager.
 	helpers.ManagerStop = make(chan struct{})
