@@ -41,7 +41,9 @@ func NewEncryptedSecret() *EncryptedSecretComponent {
 }
 
 func (_ *EncryptedSecretComponent) WatchTypes() []runtime.Object {
-	return []runtime.Object{}
+	return []runtime.Object{
+		&corev1.Secret{},
+	}
 }
 
 func (_ *EncryptedSecretComponent) IsReconcilable(_ *components.ComponentContext) bool {
