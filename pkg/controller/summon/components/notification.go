@@ -19,14 +19,21 @@ package components
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sync"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/nlopes/slack"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
+
+var versionRegex *regexp.Regexp
+
+func init() {
+	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
+}
 
 // Interface for a Slack client to allow for a mock implementation.
 //go:generate moq -out zz_generated.mock_slackclient_test.go . SlackClient
@@ -90,7 +97,7 @@ func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (com
 // ReconcileError implements components.ErrorHandler.
 func (c *notificationComponent) ReconcileError(ctx *components.ComponentContext, err error) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return c.handleError(instance, err.Error())
+	return c.handleError(instance, fmt.Sprintf("%s", err))
 }
 
 // Send a deploy notification if needed.
@@ -148,12 +155,36 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 
 // Render the nofiication attachement for a deploy notification.
 func (comp *notificationComponent) formatSuccessNotification(instance *summonv1beta1.SummonPlatform) slack.Attachment {
+	fields := []slack.AttachmentField{}
+	// Try to parse the version string using our usual conventions.
+	matches := versionRegex.FindStringSubmatch(instance.Spec.Version)
+	if matches != nil {
+		// Build fields for each thing.
+		buildField := slack.AttachmentField{
+			Title: "Build",
+			Value: fmt.Sprintf("<https://circleci.com/gh/Ridecell/summon-platform/%s|%s>", matches[1], matches[1]),
+			Short: true,
+		}
+		shaField := slack.AttachmentField{
+			Title: "Commit",
+			Value: fmt.Sprintf("<https://github.com/Ridecell/summon-platform/tree/%s|%s>", matches[2], matches[2]),
+			Short: true,
+		}
+		branchField := slack.AttachmentField{
+			Title: "Branch",
+			Value: fmt.Sprintf("<https://github.com/Ridecell/summon-platform/tree/%s|%s>", matches[3], matches[3]),
+			Short: true,
+		}
+		fields = append(fields, shaField, branchField, buildField)
+	}
+
 	return slack.Attachment{
 		Title:     fmt.Sprintf("%s Deployment", instance.Spec.Hostname),
 		TitleLink: fmt.Sprintf("https://%s/", instance.Spec.Hostname),
 		Color:     "good",
 		Text:      fmt.Sprintf("<https://%s/|%s> deployed version %s successfully", instance.Spec.Hostname, instance.Spec.Hostname, instance.Spec.Version),
 		Fallback:  fmt.Sprintf("%s deployed version %s successfully", instance.Spec.Hostname, instance.Spec.Version),
+		Fields:    fields,
 	}
 }
 
