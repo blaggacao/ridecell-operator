@@ -84,9 +84,6 @@ type NotificationStatus struct {
 	// The last version we posted a deploy success notification for.
 	// +optional
 	NotifyVersion string `json:"notifyVersion,omitempty"`
-	// A hash of the last error string we notified about.
-	// +optional
-	LastErrorHash string `json:"lastErrorHash,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform

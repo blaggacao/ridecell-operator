@@ -100,7 +100,6 @@ var _ = FDescribe("SummonPlatform Notification Component", func() {
 
 		It("sends an error notification on a new error", func() {
 			instance.Status.Message = "Someone set us up the bomb"
-			instance.Status.Notification.LastErrorHash = ""
 			instance.Status.Status = summonv1beta1.StatusError
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
@@ -108,36 +107,46 @@ var _ = FDescribe("SummonPlatform Notification Component", func() {
 			Expect(post.In1).To(Equal("#test-channel"))
 			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
 			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
-			Expect(instance.Status.Notification.LastErrorHash).To(Equal("536f6d656f6e65207365742075732075702074686520626f6d62da39a3ee5e6b4b0d3255bfef95601890afd80709"))
 		})
 
-		It("does not send an error notification on an existing error", func() {
+		It("does not send an error the second time for the same error", func() {
 			instance.Status.Message = "Someone set us up the bomb"
-			instance.Status.Notification.LastErrorHash = "536f6d656f6e65207365742075732075702074686520626f6d62da39a3ee5e6b4b0d3255bfef95601890afd80709"
 			instance.Status.Status = summonv1beta1.StatusError
 			Expect(comp).To(ReconcileContext(ctx))
-			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
-			Expect(instance.Status.Notification.LastErrorHash).To(Equal("536f6d656f6e65207365742075732075702074686520626f6d62da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+		})
+
+		It("sends two error notifications for two different errors", func() {
+			instance.Status.Message = "Someone set us up the bomb"
+			instance.Status.Status = summonv1beta1.StatusError
+			Expect(comp).To(ReconcileContext(ctx))
+			instance.Status.Message = "You have no chance to survive"
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
 		})
 	})
 
 	Describe("ReconcileError", func() {
 		It("sends an error notification on a new error", func() {
-			instance.Status.Notification.LastErrorHash = ""
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
 			post := mockedSlackClient.PostMessageCalls()[0]
 			Expect(post.In1).To(Equal("#test-channel"))
 			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
 			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
-			Expect(instance.Status.Notification.LastErrorHash).To(Equal("536f6d656f6e65207365742075732075702074686520626f6d62da39a3ee5e6b4b0d3255bfef95601890afd80709"))
 		})
 
-		It("does not send an error notification on an existing error", func() {
-			instance.Status.Notification.LastErrorHash = "536f6d656f6e65207365742075732075702074686520626f6d62da39a3ee5e6b4b0d3255bfef95601890afd80709"
+		It("does not send an error the second time for the same error", func() {
 			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
-			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
-			Expect(instance.Status.Notification.LastErrorHash).To(Equal("536f6d656f6e65207365742075732075702074686520626f6d62da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+		})
+
+		It("sends two error notifications for two different errors", func() {
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("You have no chance to survive")))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
 		})
 	})
 })

@@ -17,10 +17,9 @@ limitations under the License.
 package components
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/nlopes/slack"
@@ -48,6 +47,7 @@ func (c *realSlackClient) PostMessage(channel string, msg slack.Attachment) (str
 
 type notificationComponent struct {
 	slackClient SlackClient
+	dupCache    sync.Map
 }
 
 func NewNotification() *notificationComponent {
@@ -56,7 +56,9 @@ func NewNotification() *notificationComponent {
 	if slackApiKey != "" {
 		slackClient = slack.New(slackApiKey)
 	}
-	return &notificationComponent{slackClient: &realSlackClient{client: slackClient}}
+	return &notificationComponent{
+		slackClient: &realSlackClient{client: slackClient},
+	}
 }
 
 func (c *notificationComponent) InjectSlackClient(client SlackClient) {
@@ -97,6 +99,13 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 		// Already notified about this version, we're good.
 		return components.Result{}, nil
 	}
+	// Check if this is a duplicate slipping through due to concurrency.
+	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
+	dupCacheValue := fmt.Sprintf("SUCCESS %s", instance.Spec.Version)
+	if ok && lastdupCacheValue == dupCacheValue {
+		return components.Result{}, nil
+	}
 
 	// Send to Slack.
 	attachment := c.formatSuccessNotification(instance)
@@ -106,6 +115,7 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 	}
 
 	// Update status. Close over `version` in case it changes during a collision.
+	c.dupCache.Store(dupCacheKey, dupCacheValue)
 	version := instance.Spec.Version
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*summonv1beta1.SummonPlatform)
@@ -116,12 +126,11 @@ func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlat
 
 // Send an error notification if needed.
 func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatform, errorMessage string) (components.Result, error) {
-	// Compute the hash of the current error, so we don't actually store the whole error message twice.
-	rawErrorHash := sha1.New().Sum([]byte(errorMessage))
-	errorHash := hex.EncodeToString(rawErrorHash)
-
-	if errorHash == instance.Status.Notification.LastErrorHash {
-		// Already notified about this error, we're good.
+	// Check if this is a duplicate message.
+	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
+	dupCacheValue := fmt.Sprintf("ERROR %s", errorMessage)
+	if ok && lastdupCacheValue == dupCacheValue {
 		return components.Result{}, nil
 	}
 
@@ -133,11 +142,8 @@ func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatfo
 	}
 
 	// Update status.
-	return components.Result{StatusModifier: func(obj runtime.Object) error {
-		instance := obj.(*summonv1beta1.SummonPlatform)
-		instance.Status.Notification.LastErrorHash = errorHash
-		return nil
-	}}, nil
+	c.dupCache.Store(dupCacheKey, dupCacheValue)
+	return components.Result{}, nil
 }
 
 // Render the nofiication attachement for a deploy notification.
