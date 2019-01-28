@@ -20,11 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EncryptedSecretSpec defines the desired state of EncryptedSecret
-type EncryptedSecretSpec struct {
-	SecretName string `json:"secretName,omitempty"`
-}
-
 // EncryptedSecretStatus defines the observed state of EncryptedSecret
 type EncryptedSecretStatus struct {
 	Status  string `json:"status"`
@@ -41,7 +36,6 @@ type EncryptedSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   EncryptedSecretSpec   `json:"spec,omitempty"`
 	Status EncryptedSecretStatus `json:"status,omitempty"`
 	Data   map[string]string     `json:"data,omitempty"`
 }
