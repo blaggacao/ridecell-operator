@@ -84,7 +84,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 		})
 
 		It("sends a success notification on a new deployment", func() {
-			instance.Spec.Version = "1234-asdf-master"
+			instance.Spec.Version = "1234-eb6b515-master"
 			instance.Status.Notification.NotifyVersion = ""
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
@@ -92,17 +92,18 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 			post := mockedSlackClient.PostMessageCalls()[0]
 			Expect(post.In1).To(Equal("#test-channel"))
 			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
-			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-asdf-master successfully"))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-asdf-master"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 		})
 
 		It("does not send a success notification on an existing deployment", func() {
-			instance.Spec.Version = "1234-asdf-master"
-			instance.Status.Notification.NotifyVersion = "1234-asdf-master"
+			instance.Spec.Version = "1234-eb6b515-master"
+			instance.Status.Notification.NotifyVersion = "1234-eb6b515-master"
 			instance.Status.Status = summonv1beta1.StatusReady
 			Expect(comp).To(ReconcileContext(ctx))
 			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-asdf-master"))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 		})
 
 		It("sends an error notification on a new error", func() {
