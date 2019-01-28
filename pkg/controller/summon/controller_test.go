@@ -83,34 +83,25 @@ var _ = Describe("Summon controller", func() {
 	})
 
 	It("runs a basic reconcile", func() {
-		c := helpers.Client
+		c := helpers.TestClient
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
 			Secret:  "testsecret",
 		}}
 
 		// Create the SummonPlatform object and expect the Reconcile to be created.
-		err := c.Create(context.TODO(), instance)
-		Expect(err).NotTo(HaveOccurred())
-		err = c.Status().Update(context.TODO(), instance)
-		Expect(err).NotTo(HaveOccurred())
+		c.Create(instance)
+		c.Status().Update(instance)
 
 		// Check the pull_secret object.
 		pullsecret := &secretsv1beta1.PullSecret{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-pullsecret", Namespace: helpers.Namespace}, pullsecret)
-		}, timeout).
-			Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-pullsecret"), pullsecret)
 		pullsecret.Status.Status = secretsv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), pullsecret)
-		Expect(err).NotTo(HaveOccurred())
+		c.Status().Update(pullsecret)
 
 		// Check the Postgresql object.
 		postgres := &postgresv1.Postgresql{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-database", Namespace: helpers.Namespace}, postgres)
-		}, timeout).
-			Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-database"), postgres)
 		Expect(postgres.Spec.Databases["summon"]).To(Equal("ridecell-admin"))
 
 		// Create a fake credentials secret.
@@ -120,71 +111,49 @@ var _ = Describe("Summon controller", func() {
 				"password": "secretdbpass",
 			},
 		}
-		err = c.Create(context.TODO(), dbSecret)
-		Expect(err).NotTo(HaveOccurred())
+		c.Create(dbSecret)
 
 		// Set the status of the DB to ready.
 		postgres.Status = postgresv1.ClusterStatusRunning
-		err = c.Status().Update(context.TODO(), postgres)
-		Expect(err).NotTo(HaveOccurred())
+		c.Status().Update(postgres)
 
 		// Set the Postgres extensions to ready.
 		ext := &dbv1beta1.PostgresExtension{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-postgis"), ext)
 		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-postgis-topology", Namespace: helpers.Namespace}, ext)
-		}, timeout).Should(Succeed())
+		c.Status().Update(ext)
+		c.EventuallyGet(helpers.Name("foo-postgis-topology"), ext)
 		ext.Status.Status = dbv1beta1.StatusReady
-		err = c.Status().Update(context.TODO(), ext)
-		Expect(err).NotTo(HaveOccurred())
+		c.Status().Update(ext)
 
 		// Check that a migration Job was created.
 		job := &batchv1.Job{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-migrations", Namespace: helpers.Namespace}, job)
-		}, timeout).Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-migrations"), job)
 
 		// Mark the migrations as successful.
 		job.Status.Succeeded = 1
-		err = c.Status().Update(context.TODO(), job)
-		Expect(err).NotTo(HaveOccurred())
+		c.Status().Update(job)
 
 		// Check the web Deployment object.
 		deploy := &appsv1.Deployment{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, deploy)
-		}, timeout).Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-web"), deploy)
 		Expect(deploy.Spec.Replicas).To(PointTo(BeEquivalentTo(1)))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Command).To(Equal([]string{"python", "-m", "twisted", "--log-format", "text", "web", "--listen", "tcp:8000", "--wsgi", "summon_platform.wsgi.application"}))
 		Expect(deploy.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort).To(BeEquivalentTo(8000))
 
 		// Check the web Service object.
 		service := &corev1.Service{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, service)
-		}, timeout).
-			Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-web"), service)
 		Expect(service.Spec.Ports[0].Port).To(BeEquivalentTo(8000))
 
 		// Check the web Ingress object.
 		ingress := &extv1beta1.Ingress{}
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, ingress)
-		}, timeout).
-			Should(Succeed())
+		c.EventuallyGet(helpers.Name("foo-web"), ingress)
 		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("testsecret-tls"))
 
 		// Delete the Deployment and expect it to come back.
-		Expect(c.Delete(context.TODO(), deploy)).NotTo(HaveOccurred())
-		Eventually(func() error {
-			return c.Get(context.TODO(), types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}, deploy)
-		}, timeout).
-			Should(Succeed())
+		c.Delete(deploy)
+		c.EventuallyGet(helpers.Name("foo-web"), deploy)
 	})
 
 	It("reconciles labels", func() {

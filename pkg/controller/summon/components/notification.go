@@ -17,282 +17,184 @@ limitations under the License.
 package components
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"os"
+	"regexp"
+	"sync"
 
-	"github.com/Ridecell/ridecell-operator/pkg/components"
-	"github.com/pkg/errors"
+	"github.com/nlopes/slack"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	corev1 "k8s.io/api/core/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
-const defaultSlackEndpoint = "https://slack.com/api/"
+var versionRegex *regexp.Regexp
 
-type notificationComponent struct{}
-
-// Fields is nested inside of of Attachments for building Json payload
-type Fields struct {
-	Title string `json:"title,omitempty"`
-	Value string `json:"value,omitempty"`
+func init() {
+	versionRegex = regexp.MustCompile(`^(\d+)-([0-9a-fA-F]+)-(\S+)$`)
 }
 
-// Attachments is nested inside of Payload for building Json payload
-type Attachments struct {
-	Color      string   `json:"color,omitempty"`
-	AuthorName string   `json:"author_name,omitempty"`
-	Title      string   `json:"title,omitempty"`
-	TitleLink  string   `json:"title_link,omitempty"`
-	Fields     []Fields `json:"fields,omitempty"`
+// Interface for a Slack client to allow for a mock implementation.
+//go:generate moq -out zz_generated.mock_slackclient_test.go . SlackClient
+type SlackClient interface {
+	PostMessage(string, slack.Attachment) (string, string, error)
 }
 
-// Payload is the base structure for building Json payload
-type Payload struct {
-	Channel     string        `json:"channel,omitempty"`
-	Text        string        `json:"text,omitempty"`
-	Name        string        `json:"name,omitempty"`
-	AsUser      bool          `json:"AsUser,omitempty"`
-	Attachments []Attachments `json:"attachments,omitempty"`
-	Validate    bool          `json:"valdiate,omitempty"`
+// Real implementation of SlackClient using nlopes/slack.
+// I can't match the interface to that directly because the MsgOptions API involves
+// private structs so I can't actually get the back out the other side when working with a mock.
+type realSlackClient struct {
+	client *slack.Client
+}
+
+func (c *realSlackClient) PostMessage(channel string, msg slack.Attachment) (string, string, error) {
+	return c.client.PostMessage(channel, slack.MsgOptionAttachments(msg))
+}
+
+type notificationComponent struct {
+	slackClient SlackClient
+	dupCache    sync.Map
 }
 
 func NewNotification() *notificationComponent {
-	return &notificationComponent{}
+	var slackClient *slack.Client
+	slackApiKey := os.Getenv("SLACK_API_KEY")
+	if slackApiKey != "" {
+		slackClient = slack.New(slackApiKey)
+	}
+	return &notificationComponent{
+		slackClient: &realSlackClient{client: slackClient},
+	}
 }
 
-func (comp *notificationComponent) WatchTypes() []runtime.Object {
+func (c *notificationComponent) InjectSlackClient(client SlackClient) {
+	c.slackClient = client
+}
+
+func (_ *notificationComponent) WatchTypes() []runtime.Object {
 	return []runtime.Object{}
 }
 
-func (comp *notificationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
+func (_ *notificationComponent) IsReconcilable(ctx *components.ComponentContext) bool {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
-	// Don't send notification is slackChannel or slackApiEndpoint are not defined.
-	if instance.Spec.SlackChannelName == "" {
-		return false
-	}
-	if instance.Status.Status == summonv1beta1.StatusReady {
-		return comp.isMismatchedVersion(ctx)
-	} else if instance.Status.Status == summonv1beta1.StatusError {
-		hashedError := comp.hashStatus(instance.Status.Message)
-		return comp.isMismatchedError(ctx, hashedError)
-	}
-	return false
+	return instance.Spec.Notifications.SlackChannel != ""
 }
 
-func (comp *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+func (c *notificationComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	slackURL := instance.Spec.SlackAPIEndpoint
-	var slackMessageURL string
-	var slackJoinChannelURL string
-	// If this is not set, use the actual endpoint + api path
-	// Else use the mock http server
-	if slackURL == "" {
-		slackMessageURL = fmt.Sprintf("%schat.postMessage", defaultSlackEndpoint)
-		slackJoinChannelURL = fmt.Sprintf("%schannels.join", defaultSlackEndpoint)
-	} else {
-		slackMessageURL = slackURL
-		slackJoinChannelURL = slackURL
+	if instance.Status.Status == summonv1beta1.StatusReady {
+		return c.handleSuccess(instance)
+	} else if instance.Status.Status == summonv1beta1.StatusError {
+		return c.handleError(instance, instance.Status.Message)
 	}
-	// Try to find the Slack API Key
-	secret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.NotificationSecretRef.Name, Namespace: instance.Namespace}, secret)
+
+	// No notifications needed.
+	return components.Result{}, nil
+}
+
+// ReconcileError implements components.ErrorHandler.
+func (c *notificationComponent) ReconcileError(ctx *components.ComponentContext, err error) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	return c.handleError(instance, fmt.Sprintf("%s", err))
+}
+
+// Send a deploy notification if needed.
+func (c *notificationComponent) handleSuccess(instance *summonv1beta1.SummonPlatform) (components.Result, error) {
+	if instance.Spec.Version == instance.Status.Notification.NotifyVersion {
+		// Already notified about this version, we're good.
+		return components.Result{}, nil
+	}
+	// Check if this is a duplicate slipping through due to concurrency.
+	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
+	dupCacheValue := fmt.Sprintf("SUCCESS %s", instance.Spec.Version)
+	if ok && lastdupCacheValue == dupCacheValue {
+		return components.Result{}, nil
+	}
+
+	// Send to Slack.
+	attachment := c.formatSuccessNotification(instance)
+	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "notifications: Unable to load slackAPIKey secret %s/%s", instance.Namespace, instance.Spec.NotificationSecretRef.Name)
-	}
-	apiKeyByte, ok := secret.Data[instance.Spec.NotificationSecretRef.Key]
-	if !ok {
-		return components.Result{}, errors.Wrapf(err, "notifications: apiKey secret %s/%s has no key \"%s\"", instance.Namespace, instance.Spec.NotificationSecretRef.Name, instance.Spec.NotificationSecretRef.Key)
-	}
-	apiKey := string(apiKeyByte)
-
-	// Create our POST payload
-	rawPayload := comp.formatPayload(ctx)
-	payload, err := json.Marshal(rawPayload)
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "notifications: Unable to json.Marshal(rawPayload)")
+		return components.Result{}, err
 	}
 
-	// create POST request with payload, add headers, execute
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", slackMessageURL, bytes.NewBuffer(payload))
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "notifications: failed to create post request")
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", apiKey))
-	req.Header.Add("Content-type", "application/json")
-
-	resp, err := client.Do(req)
-	// Test if the request was actually sent, and make sure we got a 200
-	if err != nil {
-		return components.Result{}, errors.Wrapf(err, "notifications: Unable to send POST request.")
-	}
-	// Set body to close after function call to avoid errors
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-
-	// Slack almost always returns 200s, if this occurs it's likely not a code issue
-	if resp.StatusCode != http.StatusOK {
-		if err != nil {
-			return components.Result{}, errors.Errorf("notifications: Failed to read body from non 200 HTTP StatusCode")
-		}
-		return components.Result{}, errors.Errorf("notifications: HTTP StatusCode = %v, body of response = %#v", resp.StatusCode, body)
-	}
-
-	// Unpackage response from our request
-	var jsonResponse map[string]interface{}
-	json.Unmarshal(body, &jsonResponse)
-
-	// If respStatus is not true slack returned us an error
-	respStatus, ok := jsonResponse["ok"]
-	if !ok || err != nil {
-		return components.Result{}, errors.New(`notifications: could not find "ok" in slack response`)
-	}
-
-	if respStatus == false {
-		// This value is only returned when an error occurs
-		respError := jsonResponse["error"]
-		// If our slack api key is wrong exit reconcile
-		if respStatus == false && respError == "invalid_auth" {
-			return components.Result{}, errors.New("notifications: invalid auth token for slack request")
-			// if our bot is not in the slack channel join it and requeue the reconcile
-			// Message should send on next attempt
-		} else if respStatus == false && respError == "not_in_channel" {
-			err = comp.joinSlackChannel(ctx, apiKey, slackJoinChannelURL)
-			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "notifications: error in joinSlackChannel")
-			}
-			return components.Result{Requeue: true}, errors.New("notifications: bot is not in slack channel, sent join request and requeued")
-		}
-	}
-
-	// Update NotifyVersion if it needs to be changed.
-	updateVersion := false
-	notifyVersion := instance.Spec.Version
-	if instance.Status.Status == summonv1beta1.StatusReady && comp.isMismatchedVersion(ctx) {
-		updateVersion = true
-	}
-
-	// Update LastErrorHash if it needs to be updated.
-	updateErrorHash := false
-	encodedHash := comp.hashStatus(instance.Status.Message)
-	if instance.Status.Status == summonv1beta1.StatusError && comp.isMismatchedError(ctx, encodedHash) {
-		updateErrorHash = true
-	}
-
+	// Update status. Close over `version` in case it changes during a collision.
+	c.dupCache.Store(dupCacheKey, dupCacheValue)
+	version := instance.Spec.Version
 	return components.Result{StatusModifier: func(obj runtime.Object) error {
 		instance := obj.(*summonv1beta1.SummonPlatform)
-		if updateVersion {
-			instance.Status.Notification.NotifyVersion = notifyVersion
-		}
-		if updateErrorHash {
-			instance.Status.Notification.LastErrorHash = encodedHash
-		}
+		instance.Status.Notification.NotifyVersion = version
 		return nil
 	}}, nil
 }
 
-func (comp *notificationComponent) hashStatus(status string) string {
-	// Turns instance.Status.Message into sha1 -> hex -> string
-	hash := sha1.New().Sum([]byte(status))
-	encodedHash := hex.EncodeToString(hash)
-	return encodedHash
+// Send an error notification if needed.
+func (c *notificationComponent) handleError(instance *summonv1beta1.SummonPlatform, errorMessage string) (components.Result, error) {
+	// Check if this is a duplicate message.
+	dupCacheKey := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	lastdupCacheValue, ok := c.dupCache.Load(dupCacheKey)
+	dupCacheValue := fmt.Sprintf("ERROR %s", errorMessage)
+	if ok && lastdupCacheValue == dupCacheValue {
+		return components.Result{}, nil
+	}
+
+	// Send to Slack.
+	attachment := c.formatErrorNotification(instance, errorMessage)
+	_, _, err := c.slackClient.PostMessage(instance.Spec.Notifications.SlackChannel, attachment)
+	if err != nil {
+		return components.Result{}, err
+	}
+
+	// Update status.
+	c.dupCache.Store(dupCacheKey, dupCacheValue)
+	return components.Result{}, nil
 }
 
-func (comp *notificationComponent) isMismatchedVersion(ctx *components.ComponentContext) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return instance.Spec.Version != instance.Status.Notification.NotifyVersion
+// Render the nofiication attachement for a deploy notification.
+func (comp *notificationComponent) formatSuccessNotification(instance *summonv1beta1.SummonPlatform) slack.Attachment {
+	fields := []slack.AttachmentField{}
+	// Try to parse the version string using our usual conventions.
+	matches := versionRegex.FindStringSubmatch(instance.Spec.Version)
+	if matches != nil {
+		// Build fields for each thing.
+		buildField := slack.AttachmentField{
+			Title: "Build",
+			Value: fmt.Sprintf("<https://circleci.com/gh/Ridecell/summon-platform/%s|%s>", matches[1], matches[1]),
+			Short: true,
+		}
+		shaField := slack.AttachmentField{
+			Title: "Commit",
+			Value: fmt.Sprintf("<https://github.com/Ridecell/summon-platform/tree/%s|%s>", matches[2], matches[2]),
+			Short: true,
+		}
+		branchField := slack.AttachmentField{
+			Title: "Branch",
+			Value: fmt.Sprintf("<https://github.com/Ridecell/summon-platform/tree/%s|%s>", matches[3], matches[3]),
+			Short: true,
+		}
+		fields = append(fields, shaField, branchField, buildField)
+	}
+
+	return slack.Attachment{
+		Title:     fmt.Sprintf("%s Deployment", instance.Spec.Hostname),
+		TitleLink: fmt.Sprintf("https://%s/", instance.Spec.Hostname),
+		Color:     "good",
+		Text:      fmt.Sprintf("<https://%s/|%s> deployed version %s successfully", instance.Spec.Hostname, instance.Spec.Hostname, instance.Spec.Version),
+		Fallback:  fmt.Sprintf("%s deployed version %s successfully", instance.Spec.Hostname, instance.Spec.Version),
+		Fields:    fields,
+	}
 }
 
-func (comp *notificationComponent) isMismatchedError(ctx *components.ComponentContext, errorHash string) bool {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	return instance.Status.Status == summonv1beta1.StatusError && errorHash != instance.Status.Notification.LastErrorHash
-}
-
-func (comp *notificationComponent) joinSlackChannel(ctx *components.ComponentContext, slackAPIKey string, slackJoinChannelURL string) error {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-
-	rawPayload := Payload{
-		Name:     instance.Spec.SlackChannelName,
-		Validate: true,
+// Render the nofiication attachement for an error notification.
+func (comp *notificationComponent) formatErrorNotification(instance *summonv1beta1.SummonPlatform, errorMessage string) slack.Attachment {
+	return slack.Attachment{
+		Title:     fmt.Sprintf("%s Deployment", instance.Spec.Hostname),
+		TitleLink: fmt.Sprintf("https://%s/", instance.Spec.Hostname),
+		Color:     "danger",
+		Text:      fmt.Sprintf("<https://%s/|%s> has error: %s", instance.Spec.Hostname, instance.Spec.Hostname, errorMessage),
+		Fallback:  fmt.Sprintf("%s has error: %s", instance.Spec.Hostname, errorMessage),
 	}
-	payload, err := json.Marshal(rawPayload)
-	if err != nil {
-		return err
-	}
-
-	client := &http.Client{}
-	req, err := http.NewRequest("POST", slackJoinChannelURL, bytes.NewBuffer(payload))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", slackAPIKey))
-	req.Header.Add("Content-type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	responseBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	respBody := make(map[string]interface{})
-	json.Unmarshal(responseBody, &respBody)
-	respStatus, ok := respBody["ok"]
-	if !ok {
-		return errors.New(`unable to find "ok" in channel join request`)
-	}
-	respError := respBody["error"]
-	if respStatus == false {
-		return errors.Errorf("%s", respError)
-	}
-	return nil
-}
-
-func (comp *notificationComponent) formatPayload(ctx *components.ComponentContext) Payload {
-	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	var messageColor, messageText, messageTitle string
-	if instance.Status.Status == summonv1beta1.StatusError {
-		messageColor = "#FF0000"
-		messageText = instance.Status.Message
-		messageTitle = "Error"
-	} else {
-		messageColor = "#36a64f"
-		messageText = ""
-		messageTitle = "Deployed"
-	}
-
-	rawPayload := Payload{
-		Channel: instance.Spec.SlackChannelName,
-		Text:    messageText,
-		Attachments: []Attachments{
-			{
-				Color:      messageColor,
-				AuthorName: "Kubernetes Alert",
-				Title:      instance.Spec.Hostname,
-				TitleLink:  instance.Spec.Hostname,
-				Fields: []Fields{
-					{
-						Title: messageTitle,
-						Value: instance.Spec.Version,
-					},
-				},
-			},
-		},
-	}
-
-	return rawPayload
 }

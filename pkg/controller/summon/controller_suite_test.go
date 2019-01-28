@@ -18,6 +18,7 @@ package summon_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -38,5 +39,8 @@ var _ = ginkgo.BeforeSuite(func() {
 })
 
 var _ = ginkgo.AfterSuite(func() {
+	// Wait to make sure any running reconciles have finished.
+	time.Sleep(5 * time.Second)
+
 	testHelpers.Stop()
 })

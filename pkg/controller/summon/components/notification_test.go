@@ -17,300 +17,157 @@ limitations under the License.
 package components_test
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 
+	"github.com/nlopes/slack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	summoncomponents "github.com/Ridecell/ridecell-operator/pkg/controller/summon/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
-var _ = Describe("notifications Component", func() {
+var _ = Describe("SummonPlatform Notification Component", func() {
+	comp := summoncomponents.NewNotification()
+	var mockedSlackClient *summoncomponents.SlackClientMock
 
 	BeforeEach(func() {
-		instance.Spec.SlackChannelName = "test-channel"
-		instance.Spec.SlackAPIEndpoint = "foo"
+		comp = summoncomponents.NewNotification()
+		mockedSlackClient = &summoncomponents.SlackClientMock{
+			PostMessageFunc: func(_ string, _ slack.Attachment) (string, string, error) {
+				return "", "", nil
+			},
+		}
+		comp.InjectSlackClient(mockedSlackClient)
+
+		instance.Spec.Notifications.SlackChannel = "#test-channel"
 	})
 
-	Describe("isReconcilable", func() {
-		It("Check if reconcilable without SlackChannel set", func() {
-			instance.Spec.SlackChannelName = ""
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+	Describe("WatchTypes", func() {
+		It("has none", func() {
+			types := comp.WatchTypes()
+			Expect(types).To(BeEmpty())
+		})
+	})
+
+	Describe("IsReconcilable", func() {
+		It("reconciles if slack channel is set", func() {
+			ok := comp.IsReconcilable(ctx)
+			Expect(ok).To(BeTrue())
 		})
 
-		It("Check if reconcilable without SlackAPIEndpoint set", func() {
-			instance.Spec.SlackAPIEndpoint = ""
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+		It("does not reconcile if slack channel is not set", func() {
+			instance.Spec.Notifications.SlackChannel = ""
+			ok := comp.IsReconcilable(ctx)
+			Expect(ok).To(BeFalse())
+		})
+	})
+
+	Describe("Reconcile", func() {
+		It("does nothing if status is initializing", func() {
+			instance.Status.Status = summonv1beta1.StatusInitializing
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
 		})
 
-		It("Set StatusReady, match versions", func() {
+		It("does nothing if status is migrating", func() {
+			instance.Status.Status = summonv1beta1.StatusMigrating
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
+		})
+
+		It("does nothing if status is deploying", func() {
+			instance.Status.Status = summonv1beta1.StatusDeploying
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
+		})
+
+		It("sends a success notification on a new deployment", func() {
+			instance.Spec.Version = "1234-eb6b515-master"
+			instance.Status.Notification.NotifyVersion = ""
 			instance.Status.Status = summonv1beta1.StatusReady
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234-eb6b515-master successfully"))
+			Expect(post.In2.Fields[0].Value).To(Equal("<https://github.com/Ridecell/summon-platform/tree/eb6b515|eb6b515>"))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
 		})
 
-		It("Set StatusError, match versions, match errors", func() {
+		It("does not send a success notification on an existing deployment", func() {
+			instance.Spec.Version = "1234-eb6b515-master"
+			instance.Status.Notification.NotifyVersion = "1234-eb6b515-master"
+			instance.Status.Status = summonv1beta1.StatusReady
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(0))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234-eb6b515-master"))
+		})
+
+		It("does not set fields on a non-standard version", func() {
+			// More importantly, it doesn't choke.
+			instance.Spec.Version = "1234"
+			instance.Status.Notification.NotifyVersion = ""
+			instance.Status.Status = summonv1beta1.StatusReady
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us deployed version 1234 successfully"))
+			Expect(post.In2.Fields).To(HaveLen(0))
+			Expect(instance.Status.Notification.NotifyVersion).To(Equal("1234"))
+		})
+
+		It("sends an error notification on a new error", func() {
+			instance.Status.Message = "Someone set us up the bomb"
 			instance.Status.Status = summonv1beta1.StatusError
-			errorMessage := "testError"
-			instance.Status.Message = errorMessage
-
-			s := sha1.New()
-			hash := s.Sum([]byte(errorMessage))
-			encodedHash := hex.EncodeToString(hash)
-			instance.Status.Notification.LastErrorHash = encodedHash
-
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
 		})
 
-		It("Set StatusError, mismatch versions", func() {
+		It("does not send an error the second time for the same error", func() {
+			instance.Status.Message = "Someone set us up the bomb"
 			instance.Status.Status = summonv1beta1.StatusError
-			instance.Status.Message = "testError"
-			instance.Status.Notification.NotifyVersion = "v9000.1"
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
 		})
 
-		It("Set StatusError, match versions, mismatch errors", func() {
+		It("sends two error notifications for two different errors", func() {
+			instance.Status.Message = "Someone set us up the bomb"
 			instance.Status.Status = summonv1beta1.StatusError
-			instance.Status.Message = "testError"
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		})
-
-		It("Set StatusError, mismatch versions, match errors", func() {
-			instance.Status.Status = summonv1beta1.StatusError
-			instance.Status.Notification.NotifyVersion = "v9000.1"
-			errorMessage := "testError"
-			instance.Status.Message = errorMessage
-
-			s := sha1.New()
-			hash := s.Sum([]byte(errorMessage))
-			encodedHash := hex.EncodeToString(hash)
-			instance.Status.Notification.LastErrorHash = encodedHash
-			comp := summoncomponents.NewNotification()
-			Expect(comp.IsReconcilable(ctx)).To(Equal(false))
-			Expect(instance.Status.Notification.NotifyVersion).To(Equal("v9000.1"))
+			Expect(comp).To(ReconcileContext(ctx))
+			instance.Status.Message = "You have no chance to survive"
+			Expect(comp).To(ReconcileContext(ctx))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
 		})
 	})
 
-	It("Set StatusReady, mismatch versions, reconcile", func() {
-		instance.Status.Status = summonv1beta1.StatusReady
-		instance.Status.Notification.NotifyVersion = "v9000.1"
-		fakeAPIKey := "testAPIKey"
-		apiKeySecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
-			Data: map[string][]byte{
-				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
-			},
-		}
-		ctx.Client = fake.NewFakeClient(apiKeySecret)
+	Describe("ReconcileError", func() {
+		It("sends an error notification on a new error", func() {
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+			post := mockedSlackClient.PostMessageCalls()[0]
+			Expect(post.In1).To(Equal("#test-channel"))
+			Expect(post.In2.Title).To(Equal("foo.ridecell.us Deployment"))
+			Expect(post.In2.Fallback).To(Equal("foo.ridecell.us has error: Someone set us up the bomb"))
+		})
 
-		mockServer := getMockHTTPServer(fakeAPIKey, "", "#36a64f", "Deployed", instance.Spec.SlackChannelName, false)
-		defer mockServer.Close()
-		// Set SlackAPIEndpoint to the mock server we just created
-		instance.Spec.SlackAPIEndpoint = mockServer.URL
-		comp := summoncomponents.NewNotification()
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		Expect(comp).To(ReconcileContext(ctx))
+		It("does not send an error the second time for the same error", func() {
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(1))
+		})
 
-		Expect(instance.Spec.Version).To(Equal(instance.Status.Notification.NotifyVersion))
-	})
-
-	It("Set StatusError, match versions, mistmatch errors, reconcile", func() {
-		// Create an apikey
-		fakeAPIKey := "testAPIKey"
-		errorMessage := "testError"
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.Message = errorMessage
-		apiKeySecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
-			Data: map[string][]byte{
-				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
-			},
-		}
-		ctx.Client = fake.NewFakeClient(apiKeySecret)
-
-		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error", instance.Spec.SlackChannelName, false)
-		defer mockServer.Close()
-		// Set SlackAPIEndpoint to the mock server we just created
-		instance.Spec.SlackAPIEndpoint = mockServer.URL
-
-		comp := summoncomponents.NewNotification()
-
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		Expect(comp).To(ReconcileContext(ctx))
-
-		Expect(instance.Status.Notification.LastErrorHash).To(Equal("746573744572726f72da39a3ee5e6b4b0d3255bfef95601890afd80709"))
-	})
-
-	It("reconciles with invalid slack auth", func() {
-		// Create an apikey
-		fakeAPIKey := "testAPIKey"
-		errorMessage := "testError"
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.Message = errorMessage
-		apiKeySecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
-			Data: map[string][]byte{
-				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
-			},
-		}
-		ctx.Client = fake.NewFakeClient(apiKeySecret)
-
-		mockServer := getMockHTTPServer("mismatchedAPIKey", errorMessage, "#FF0000", "Error", "", false)
-		defer mockServer.Close()
-		// Set SlackAPIEndpoint to the mock server we just created
-		instance.Spec.SlackAPIEndpoint = mockServer.URL
-
-		comp := summoncomponents.NewNotification()
-
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("notifications: invalid auth token for slack request"))
-	})
-
-	It("reconcile joins slack channel that bot isnt in", func() {
-		// Create an apikey
-		fakeAPIKey := "testAPIKey"
-		errorMessage := "testError"
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.Message = errorMessage
-		instance.Spec.SlackChannelName = "testChannel"
-		apiKeySecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
-			Data: map[string][]byte{
-				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
-			},
-		}
-		ctx.Client = fake.NewFakeClient(apiKeySecret)
-
-		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error", "testChannel", true)
-		defer mockServer.Close()
-		// Set SlackAPIEndpoint to the mock server we just created
-		instance.Spec.SlackAPIEndpoint = mockServer.URL
-
-		comp := summoncomponents.NewNotification()
-
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		result, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(result.Requeue).To(Equal(true))
-		Expect(err.Error()).To(Equal("notifications: bot is not in slack channel, sent join request and requeued"))
-	})
-
-	It("reconcile joins slack channel that does not exist", func() {
-		// Create an apikey
-		fakeAPIKey := "testAPIKey"
-		errorMessage := "testError"
-		instance.Status.Status = summonv1beta1.StatusError
-		instance.Status.Message = errorMessage
-		instance.Spec.SlackChannelName = "testChannel"
-		apiKeySecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.NotificationSecretRef.Name, Namespace: "default"},
-			Data: map[string][]byte{
-				instance.Spec.NotificationSecretRef.Key: []byte(fakeAPIKey),
-			},
-		}
-		ctx.Client = fake.NewFakeClient(apiKeySecret)
-
-		mockServer := getMockHTTPServer(fakeAPIKey, errorMessage, "#FF0000", "Error", "mismatched channel", true)
-		defer mockServer.Close()
-		// Set SlackAPIEndpoint to the mock server we just created
-		instance.Spec.SlackAPIEndpoint = mockServer.URL
-
-		comp := summoncomponents.NewNotification()
-
-		Expect(comp.IsReconcilable(ctx)).To(Equal(true))
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("notifications: error in joinSlackChannel: channel_not_found"))
+		It("sends two error notifications for two different errors", func() {
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("Someone set us up the bomb")))
+			Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("You have no chance to survive")))
+			Expect(mockedSlackClient.PostMessageCalls()).To(HaveLen(2))
+		})
 	})
 })
-
-func getMockHTTPServer(fakeAPIKey string, messageText string, messageColor string, messageTitle string, expectedChannel string, notInChannel bool) *httptest.Server {
-	// Create HTTP test server
-	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// This was added so that ginkgo can catch a panic if the Expect() in this block fails
-		defer GinkgoRecover()
-		requestBody, err := ioutil.ReadAll(r.Body)
-		defer r.Body.Close()
-		var badRequest bool
-		if err != nil {
-			badRequest = true
-		}
-		expectedPayload := &summoncomponents.Payload{
-			Channel: expectedChannel,
-			Text:    messageText,
-			Attachments: []summoncomponents.Attachments{
-				{
-					Color:      messageColor,
-					AuthorName: "Kubernetes Alert",
-					Title:      instance.Spec.Hostname,
-					TitleLink:  instance.Spec.Hostname,
-					Fields: []summoncomponents.Fields{
-						{
-							Title: messageTitle,
-							Value: instance.Spec.Version,
-						},
-					},
-				},
-			},
-		}
-
-		var payload *summoncomponents.Payload
-		err = json.Unmarshal(requestBody, &payload)
-		if err != nil {
-			badRequest = true
-		}
-
-		Expect(r.Header.Get("Content-type")).To(Equal("application/json"))
-
-		mockResponse := make(map[string]interface{})
-		// Hacky mess ahead
-		if r.Header.Get("Authorization") != fmt.Sprintf("Bearer %s", fakeAPIKey) {
-			// simulate invalid_auth slack response
-			mockResponse["ok"] = false
-			mockResponse["error"] = "invalid_auth"
-		} else if payload.Channel != "" && payload.Name == "" && notInChannel {
-			// simulate not_in_channel slack response
-			mockResponse["ok"] = false
-			mockResponse["error"] = "not_in_channel"
-		} else if payload.Name != "" && payload.Name != expectedPayload.Channel {
-			// simulate slack channel not found
-			mockResponse["ok"] = false
-			mockResponse["error"] = "channel_not_found"
-		} else if payload.Name != "" && payload.Name == expectedPayload.Channel {
-			// simulate join slack channel
-			mockResponse["ok"] = true
-		} else {
-			Expect(payload).To(Equal(expectedPayload))
-			mockResponse["ok"] = true
-		}
-
-		if badRequest {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
-		mockBody, err := json.Marshal(mockResponse)
-		Expect(err).ToNot(HaveOccurred())
-		w.Write(mockBody)
-	}))
-	return testServer
-}

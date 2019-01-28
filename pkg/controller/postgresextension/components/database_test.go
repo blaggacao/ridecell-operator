@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	pecomponents "github.com/Ridecell/ridecell-operator/pkg/controller/postgresextension/components"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -51,7 +52,7 @@ var _ = Describe("PostgresExtension Database Component", func() {
 				Port:     5432,
 				Username: "admin",
 				Database: "summon",
-				PasswordSecretRef: dbv1beta1.SecretRef{
+				PasswordSecretRef: apihelpers.SecretRef{
 					Name: "admin.foo-database.credentials",
 					Key:  "password",
 				},

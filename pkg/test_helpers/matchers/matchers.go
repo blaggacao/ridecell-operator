@@ -33,9 +33,18 @@ func ReconcileContext(ctx *components.ComponentContext) types.GomegaMatcher {
 	return &reconcileContextMatcher{ctx: ctx}
 }
 
+// Gomega matcher for checking if a component reconciles an error correct.
+//
+//   comp := MyComponent()
+//   Expect(comp).To(ReconcileErrorContext(ctx, fmt.Errorf("...")))
+func ReconcileErrorContext(ctx *components.ComponentContext, inErr error) types.GomegaMatcher {
+	return &reconcileContextMatcher{ctx: ctx, inErr: inErr}
+}
+
 type reconcileContextMatcher struct {
-	ctx *components.ComponentContext
-	err error
+	ctx   *components.ComponentContext
+	inErr error
+	err   error
 }
 
 // Match implements GomegaMatcher
@@ -47,7 +56,13 @@ func (matcher *reconcileContextMatcher) Match(actual interface{}) (bool, error) 
 	}
 
 	// Run the reconcile.
-	result, err := comp.Reconcile(matcher.ctx)
+	var result components.Result
+	var err error
+	if matcher.inErr != nil {
+		result, err = comp.(components.ErrorHandler).ReconcileError(matcher.ctx, matcher.inErr)
+	} else {
+		result, err = comp.Reconcile(matcher.ctx)
+	}
 	if err != nil {
 		matcher.err = err
 		return false, nil

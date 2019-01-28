@@ -189,6 +189,14 @@
   version = "v0.2.0"
 
 [[projects]]
+  digest = "1:80f394537967d97fcc0da30762843805c8aaea7d208c43c99d1fe988a8888f0d"
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:4607fd19c69c3deee61840fca759fedb3908e4fcb09385e2f3783b93e0035c73"
   name = "github.com/gregjones/httpcache"
@@ -321,6 +329,17 @@
   pruneopts = "T"
   revision = "4b7aa43c6742a2c18fdef89dd197aaae7dac7ccd"
   version = "1.0.1"
+
+[[projects]]
+  digest = "1:97e501792fe756b2d2e16675622ba41c9d7cff50598ff3029da3d4d1efde55bd"
+  name = "github.com/nlopes/slack"
+  packages = [
+    ".",
+    "slackutilsx",
+  ]
+  pruneopts = "T"
+  revision = "a7deeca7935c178aa865249bab511daf816288ba"
+  version = "v0.5.0"
 
 [[projects]]
   digest = "1:99ec7b4370b05816679fe9ae77f1f8af4eae3df0abaeef8c3d2d42d86f55f549"
@@ -1029,6 +1048,7 @@
     "github.com/emicklei/go-restful",
     "github.com/golang/glog",
     "github.com/lib/pq",
+    "github.com/nlopes/slack",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
     "github.com/onsi/gomega/gstruct",

@@ -16,22 +16,20 @@ limitations under the License.
 
 package v1beta1
 
+import (
+	"github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
+)
+
 const (
 	StatusReady = "Ready"
 	StatusError = "Error"
 )
 
-// A reference to a value in a secret.
-type SecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
-}
-
 // Connection details for a Postgres database.
 type PostgresConnection struct {
-	Host              string    `json:"host"`
-	Port              uint16    `json:"port,omitempty"`
-	Username          string    `json:"username"`
-	PasswordSecretRef SecretRef `json:"passwordSecretRef"`
-	Database          string    `json:"database,omitempty"`
+	Host              string            `json:"host"`
+	Port              uint16            `json:"port,omitempty"`
+	Username          string            `json:"username"`
+	PasswordSecretRef helpers.SecretRef `json:"passwordSecretRef"`
+	Database          string            `json:"database,omitempty"`
 }

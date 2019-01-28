@@ -44,7 +44,8 @@ var _ = ginkgo.BeforeEach(func() {
 	instance = &summonv1beta1.SummonPlatform{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Spec: summonv1beta1.SummonPlatformSpec{
-			Version: "1.2.3",
+			Hostname: "foo.ridecell.us",
+			Version:  "1.2.3",
 		},
 		Status: summonv1beta1.SummonPlatformStatus{
 			Notification: summonv1beta1.NotificationStatus{NotifyVersion: "1.2.3"}},
