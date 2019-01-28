@@ -31,18 +31,11 @@ type ConfigValue struct {
 	String *string  `json:"string,omitempty"`
 }
 
-// NotificationSecretRef defines the spec for the slack API secret
-type NotificationSecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key,omitempty"`
-}
-
-// NotificationStatus defines the observed state of Notifications
-type NotificationStatus struct {
-	// Important: Run "make" to regenerate code after modifying this file
+// NotificationsSpec defines notificiations settings for this instance.
+type NotificationsSpec struct {
+	// Name of the slack channel for notifications. If not set, no notifications will be sent.
 	// +optional
-	NotifyVersion string `json:"notifyVersion,omitempty"`
-	LastErrorHash string `json:"lastErrorHash,omitempty"`
+	SlackChannel string `json:"slackChannel,omitempty"`
 }
 
 // SummonPlatformSpec defines the desired state of SummonPlatform
@@ -76,15 +69,9 @@ type SummonPlatformSpec struct {
 	// Number of caddy pods to run. Defaults to 1.
 	// +optional
 	StaticReplicas *int32 `json:"static_replicas,omitempty"`
-	// Slack API endpoint
+	// Settings for deploy and error notifications.
 	// +optional
-	SlackAPIEndpoint string `json:"slackApiEndpoint,omitempty"`
-	// Name of the slack channel for notifications. Defaults to "".
-	// +optional
-	SlackChannelName string `json:"slackChannelName,omitempty"`
-	// Slack API Key Secret Definition
-	// +optional
-	NotificationSecretRef NotificationSecretRef `json:"secretRef,omitempty"`
+	Notifications NotificationsSpec `json:"notifications,omitempty"`
 	// Fernet Key Rotation Time Setting
 	// +optional
 	FernetKeyLifetime time.Duration `json:"fernetKeyLifetime,omitempty"`
@@ -96,6 +83,13 @@ type SummonPlatformSpec struct {
 	// SQS queue setting
 	// +optional
 	SQSQueue string `json:"sqsQueue,omitempty"`
+}
+
+// NotificationStatus defines the observed state of Notifications
+type NotificationStatus struct {
+	// The last version we posted a deploy success notification for.
+	// +optional
+	NotifyVersion string `json:"notifyVersion,omitempty"`
 }
 
 // SummonPlatformStatus defines the observed state of SummonPlatform

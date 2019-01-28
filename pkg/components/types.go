@@ -23,7 +23,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // // A componentReconciler is the data for a single reconciler. These are our
@@ -64,6 +66,16 @@ type Component interface {
 	WatchTypes() []runtime.Object
 	IsReconcilable(*ComponentContext) bool
 	Reconcile(*ComponentContext) (Result, error)
+}
+
+// An optional interface for Components which want to receive errors.
+type ErrorHandler interface {
+	ReconcileError(*ComponentContext, error) (Result, error)
+}
+
+// An optional interface for Components which want to use EnqueueRequestsFromMapFunc instead of watching owned objects.
+type MapFuncWatcher interface {
+	WatchMap(handler.MapObject) []reconcile.Request
 }
 
 // Opaque type for some kind of status substruct.

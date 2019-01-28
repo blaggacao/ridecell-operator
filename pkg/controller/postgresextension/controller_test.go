@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	apihelpers "github.com/Ridecell/ridecell-operator/pkg/apis/helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/dbpool"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers/fake_sql"
@@ -66,7 +67,7 @@ var _ = Describe("PostgresExtension controller", func() {
 					Host:     "test-database",
 					Username: "root",
 					Database: "summon",
-					PasswordSecretRef: dbv1beta1.SecretRef{
+					PasswordSecretRef: apihelpers.SecretRef{
 						Name: "creds",
 						Key:  "passwd",
 					},
