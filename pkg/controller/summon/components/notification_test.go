@@ -44,6 +44,13 @@ var _ = FDescribe("SummonPlatform Notification Component", func() {
 		instance.Spec.Notifications.SlackChannel = "#test-channel"
 	})
 
+	Describe("WatchTypes", func() {
+		It("has none", func() {
+			types := comp.WatchTypes()
+			Expect(types).To(BeEmpty())
+		})
+	})
+
 	Describe("IsReconcilable", func() {
 		It("reconciles if slack channel is set", func() {
 			ok := comp.IsReconcilable(ctx)
