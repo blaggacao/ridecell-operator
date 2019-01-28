@@ -62,6 +62,7 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 			Name:      instance.Name,
 			Namespace: instance.Namespace,
 		},
+		Type: corev1.SecretTypeOpaque,
 		Data: make(map[string][]byte),
 	}
 
