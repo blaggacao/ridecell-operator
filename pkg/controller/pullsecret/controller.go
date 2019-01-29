@@ -14,22 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secrets
+package pullsecret
 
 import (
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
-	secretscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/secrets/components"
+	pscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/pullsecret/components"
 )
 
 // Add creates a new PullSecret Controller and adds it to the Manager with default RBAC. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	_, err := components.NewReconciler("pull-secrets-controller", mgr, &secretsv1beta1.PullSecret{}, nil, []components.Component{
-		secretscomponents.NewDefaults(),
-		secretscomponents.NewSecret(),
+		pscomponents.NewDefaults(),
+		pscomponents.NewSecret(),
 	})
 	return err
 }

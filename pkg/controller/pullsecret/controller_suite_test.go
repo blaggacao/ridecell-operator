@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package secrets_test
+package pullsecret_test
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
-	"github.com/Ridecell/ridecell-operator/pkg/controller/secrets"
+	"github.com/Ridecell/ridecell-operator/pkg/controller/pullsecret"
 	"github.com/Ridecell/ridecell-operator/pkg/test_helpers"
 )
 
@@ -34,7 +34,7 @@ func TestTemplates(t *testing.T) {
 }
 
 var _ = ginkgo.BeforeSuite(func() {
-	testHelpers = test_helpers.Start(secrets.Add, false)
+	testHelpers = test_helpers.Start(pullsecret.Add, false)
 })
 
 var _ = ginkgo.AfterSuite(func() {
