@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	secretsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/secrets/v1beta1"
-	secretscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/secrets/components"
+	pscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/pullsecret/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
@@ -40,12 +40,12 @@ var _ = Describe("pull_secret Component", func() {
 	})
 
 	It("Runs reconcile with no value set", func() {
-		comp := secretscomponents.NewSecret()
+		comp := pscomponents.NewSecret()
 		Expect(comp).NotTo(ReconcileContext(ctx))
 	})
 
 	It("Sets valid secret, runs reconcile", func() {
-		comp := secretscomponents.NewSecret()
+		comp := pscomponents.NewSecret()
 		newPullSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.PullSecretName, Namespace: "default"},
 			Data: map[string][]byte{
@@ -66,7 +66,7 @@ var _ = Describe("pull_secret Component", func() {
 			},
 		}
 		ctx.Client = fake.NewFakeClient(newPullSecret)
-		comp := secretscomponents.NewSecret()
+		comp := pscomponents.NewSecret()
 		Expect(comp).To(ReconcileContext(ctx))
 		target := &corev1.Secret{}
 		err := ctx.Get(context.TODO(), types.NamespacedName{Name: instance.Spec.PullSecretName, Namespace: "default"}, target)

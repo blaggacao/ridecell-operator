@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	secretscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/secrets/components"
+	pscomponents "github.com/Ridecell/ridecell-operator/pkg/controller/pullsecret/components"
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 )
 
@@ -28,13 +28,13 @@ var _ = Describe("PullSecret Defaults Component", func() {
 
 	It("does nothing on a filled out object", func() {
 		instance.Spec.PullSecretName = "foo-secret"
-		comp := secretscomponents.NewDefaults()
+		comp := pscomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.PullSecretName).To(Equal("foo-secret"))
 	})
 
 	It("sets a default secret", func() {
-		comp := secretscomponents.NewDefaults()
+		comp := pscomponents.NewDefaults()
 		Expect(comp).To(ReconcileContext(ctx))
 		Expect(instance.Spec.PullSecretName).To(Equal("pull-secret"))
 	})
