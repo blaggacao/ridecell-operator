@@ -25,7 +25,7 @@ spec:
           serviceName: {{ .Instance.Name }}-{{ block "componentName" . }}{{ end }}
           servicePort: 8000
   tls:
-  - secretName: {{ .Instance.Spec.Secret }}-tls
+  - secretName: {{ .Instance.Name }}-tls
     hosts:
     - {{ .Instance.Spec.Hostname }}
 {{ end }}

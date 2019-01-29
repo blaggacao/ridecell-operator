@@ -98,7 +98,7 @@ var _ = Describe("SummonPlatform types", func() {
 					},
 					"spec": map[string]interface{}{
 						"version": "1",
-						"secret":  "a",
+						"secrets": []string{"a"},
 						"config": map[string]interface{}{
 							"foo": "bar",
 						},
@@ -130,7 +130,7 @@ var _ = Describe("SummonPlatform types", func() {
 					},
 					"spec": map[string]interface{}{
 						"version": "1",
-						"secret":  "a",
+						"secrets": []string{"a"},
 						"config": map[string]interface{}{
 							"foo": 1234,
 						},
@@ -162,7 +162,7 @@ var _ = Describe("SummonPlatform types", func() {
 					},
 					"spec": map[string]interface{}{
 						"version": "1",
-						"secret":  "a",
+						"secrets": []string{"a"},
 						"config": map[string]interface{}{
 							"foo": false,
 						},
@@ -194,7 +194,7 @@ var _ = Describe("SummonPlatform types", func() {
 					},
 					"spec": map[string]interface{}{
 						"version": "1",
-						"secret":  "a",
+						"secrets": []string{"a"},
 						"config": map[string]interface{}{
 							"AMAZON_S3_USED":      true,
 							"AWS_REGION":          "eu-central-1",

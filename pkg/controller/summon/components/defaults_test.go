@@ -104,7 +104,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Secret).To(Equal("dev"))
+		Expect(instance.Spec.Secrets[0]).To(Equal("dev"))
 	})
 
 	It("Sets a default Secret for prod", func() {
@@ -113,6 +113,6 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		comp := summoncomponents.NewDefaults()
 		_, err := comp.Reconcile(ctx)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(instance.Spec.Secret).To(Equal("foo"))
+		Expect(instance.Spec.Secrets[0]).To(Equal("foo"))
 	})
 })

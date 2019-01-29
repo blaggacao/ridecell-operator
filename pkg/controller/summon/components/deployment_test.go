@@ -33,12 +33,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("app_secrets Component", func() {
+var _ = Describe("deployment Component", func() {
 
 	It("runs a basic reconcile", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
-
-		instance.Spec.Secret = "testsecret"
 
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
@@ -50,7 +48,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"filler": []byte("test"),
 				"test":   []byte("another_test"),
@@ -73,8 +71,6 @@ var _ = Describe("app_secrets Component", func() {
 	It("makes sure keys are sorted before hash", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
-		instance.Spec.Secret = "testsecret"
-
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
 		instance.Spec.StaticReplicas = &numReplicas
@@ -85,7 +81,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"test":   []byte("another_test"),
 				"filler": []byte("test"),
@@ -106,8 +102,6 @@ var _ = Describe("app_secrets Component", func() {
 	It("updates existing hashes", func() {
 		comp := summoncomponents.NewDeployment("static/deployment.yml.tpl")
 
-		instance.Spec.Secret = "testsecret"
-
 		// Set this value so created template does not contain a nil value
 		numReplicas := int32(1)
 		instance.Spec.StaticReplicas = &numReplicas
@@ -119,7 +113,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		appSecrets := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{"filler": []byte("test")},
 		}
 
@@ -133,7 +127,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		appSecrets = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: instance.Spec.Secret, Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace},
 			Data:       map[string][]byte{"filler": []byte("test2")},
 		}
 

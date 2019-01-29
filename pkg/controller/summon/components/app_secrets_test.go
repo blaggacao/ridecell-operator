@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -310,5 +311,56 @@ var _ = Describe("app_secrets Component", func() {
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
 		_, err := comp.Reconcile(ctx)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("overwrites values using multiple secrets", func() {
+		instance.Spec.Secrets = []string{"testsecret0", "testsecret1", "testsecret2"}
+		comp := summoncomponents.NewAppSecret()
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret0", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"test0": []byte("filler")},
+		}
+
+		newAppSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret1", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"test0": []byte("overwritten")},
+		}
+
+		thirdAppSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret2", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"test0": []byte("overwritten_again")},
+		}
+
+		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.fernet-keys", Namespace: instance.Namespace},
+			Data:       map[string][]byte{formattedTime: []byte("filler value")},
+		}
+
+		postgresSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.foo-database.credentials", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"password": []byte("postgresPassword")},
+		}
+
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.secret-key", Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey, newAppSecrets, thirdAppSecrets)
+		Expect(comp).To(ReconcileContext(ctx))
+
+		fetchSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: "summon.foo.app-secrets", Namespace: instance.Namespace}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		appSecretsData := map[string]interface{}{}
+
+		err = yaml.Unmarshal(fetchSecret.Data["summon-platform.yml"], &appSecretsData)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(appSecretsData["test0"].(string)).To(Equal("overwritten_again"))
+
 	})
 })

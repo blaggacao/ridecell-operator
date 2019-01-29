@@ -71,11 +71,11 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	if instance.Spec.StaticReplicas == nil {
 		instance.Spec.StaticReplicas = &defaultReplicas
 	}
-	if instance.Spec.Secret == "" {
+	if len(instance.Spec.Secrets) == 0 {
 		if instance.Namespace == "dev" || instance.Namespace == "qa" {
-			instance.Spec.Secret = instance.Namespace
+			instance.Spec.Secrets = []string{instance.Namespace}
 		} else {
-			instance.Spec.Secret = instance.Name
+			instance.Spec.Secrets = []string{instance.Name}
 		}
 	}
 	if instance.Spec.PullSecret == "" {
