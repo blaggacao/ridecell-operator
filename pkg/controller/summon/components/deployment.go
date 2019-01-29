@@ -70,18 +70,19 @@ func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext
 func (comp *deploymentComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	rawAppSecrets := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.Secret, Namespace: instance.Namespace}, rawAppSecrets)
+	rawAppSecret := &corev1.Secret{}
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, rawAppSecret)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "deployment: Failed to get appsecrets")
 	}
+
 	config := &corev1.ConfigMap{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-config", instance.Name), Namespace: instance.Namespace}, config)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "deployment: unable to get configmap")
 	}
 
-	appSecretsBytes, err := json.Marshal(rawAppSecrets.Data)
+	appSecretsBytes, err := json.Marshal(rawAppSecret.Data)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "deployment: unable to serialize appsecrets ")
 	}

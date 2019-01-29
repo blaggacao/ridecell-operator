@@ -54,9 +54,6 @@ spec:
         - name: config-volume
           configMap:
             name: {{ .Instance.Name }}-config
-        - name: secrets-orig
-          secret:
-            secretName: {{ .Instance.Spec.Secret }}
         - name: app-secrets
           secret:
             secretName: summon.{{ .Instance.Name }}.app-secrets

@@ -80,7 +80,7 @@ var _ = Describe("Summon controller", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "notifytest", Namespace: helpers.Namespace},
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "80813-eb6b515-master",
-				Secret:  "testsecret",
+				Secrets: []string{"testsecret"},
 				Notifications: summonv1beta1.NotificationsSpec{
 					SlackChannel: slackChannel,
 				},

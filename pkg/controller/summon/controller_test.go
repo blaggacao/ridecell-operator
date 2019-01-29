@@ -86,7 +86,7 @@ var _ = Describe("Summon controller", func() {
 		c := helpers.TestClient
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
-			Secret:  "testsecret",
+			Secrets: []string{"testsecret"},
 		}}
 
 		// Create the SummonPlatform object and expect the Reconcile to be created.
@@ -149,7 +149,7 @@ var _ = Describe("Summon controller", func() {
 		// Check the web Ingress object.
 		ingress := &extv1beta1.Ingress{}
 		c.EventuallyGet(helpers.Name("foo-web"), ingress)
-		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("testsecret-tls"))
+		Expect(ingress.Spec.TLS[0].SecretName).To(Equal("foo-tls"))
 
 		// Delete the Deployment and expect it to come back.
 		c.Delete(deploy)
@@ -160,7 +160,7 @@ var _ = Describe("Summon controller", func() {
 		c := helpers.Client
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
-			Secret:  "testsecret",
+			Secrets: []string{"testsecret"},
 		}, Status: summonv1beta1.SummonPlatformStatus{
 			MigrateVersion: "1.2.3",
 		}}
@@ -264,7 +264,7 @@ var _ = Describe("Summon controller", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: "statustester", Namespace: helpers.Namespace},
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1-abcdef1-master",
-				Secret:  "statustester",
+				Secrets: []string{"statustester"},
 			},
 		}
 		err := c.Create(context.TODO(), instance)

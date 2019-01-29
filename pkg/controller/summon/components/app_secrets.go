@@ -77,14 +77,18 @@ func (_ *appSecretComponent) IsReconcilable(ctx *components.ComponentContext) bo
 func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 
-	rawAppSecrets := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.Secret, Namespace: instance.Namespace}, rawAppSecrets)
-	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get existing app secrets")
+	var rawAppSecrets []*corev1.Secret
+	for _, secretName := range instance.Spec.Secrets {
+		rawAppSecret := &corev1.Secret{}
+		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, rawAppSecret)
+		if err != nil {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get existing app secrets")
+		}
+		rawAppSecrets = append(rawAppSecrets, rawAppSecret)
 	}
 
 	postgresSecret := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace}, postgresSecret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
 	}
@@ -126,8 +130,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
 
-	for k, v := range rawAppSecrets.Data {
-		appSecretsData[k] = string(v)
+	for _, rawAppSecretObj := range rawAppSecrets {
+		for k, v := range rawAppSecretObj.Data {
+			appSecretsData[k] = string(v)
+		}
 	}
 
 	parsedYaml, err := yaml.Marshal(appSecretsData)
@@ -140,7 +146,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		Data:       map[string][]byte{"summon-platform.yml": parsedYaml},
 	}
 
-	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret, func(existingObj runtime.Object) error {
+	_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, newSecret.DeepCopy(), func(existingObj runtime.Object) error {
 		existing := existingObj.(*corev1.Secret)
 		// Sync important fields.
 		err := controllerutil.SetControllerReference(instance, existing, ctx.Scheme)
