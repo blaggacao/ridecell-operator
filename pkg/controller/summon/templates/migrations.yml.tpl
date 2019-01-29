@@ -34,11 +34,11 @@ spec:
         - python manage.py migrate
         resources:
           requests:
-            memory: 512M
-            cpu: 200m
-          limits:
             memory: 1G
             cpu: 500m
+          limits:
+            memory: 2G
+            cpu: 2
         volumeMounts:
         - name: config-volume
           mountPath: /etc/config
