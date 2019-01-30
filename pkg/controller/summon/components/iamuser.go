@@ -17,6 +17,8 @@ limitations under the License.
 package components
 
 import (
+	"os"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
@@ -43,8 +45,14 @@ func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
 }
 
 func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
+
+	permissionsBoundaryArn := os.Getenv("PERMISSIONS_BOUNDARY_ARN")
+	// Data to be copied over to template
+	extra := map[string]interface{}{}
+	extra["permissionsBoundaryArn"] = permissionsBoundaryArn
+
 	var existing *awsv1beta1.IAMUser
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+	res, _, err := ctx.CreateOrUpdate(comp.templatePath, extra, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*awsv1beta1.IAMUser)
 		existing = existingObj.(*awsv1beta1.IAMUser)
 		// Copy the Spec over.
