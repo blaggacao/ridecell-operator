@@ -18,6 +18,7 @@ package components
 
 import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/kms/kmsiface"
@@ -67,7 +68,12 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 	}
 
 	for k, v := range instance.Data {
-		decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{CiphertextBlob: []byte(v)})
+		decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{
+			CiphertextBlob: []byte(v),
+			EncryptionContext: map[string]*string{
+				"RidecellOperator": aws.String("true"),
+			},
+		})
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "encryptedsecret: failed to decrypt secret")
 		}
