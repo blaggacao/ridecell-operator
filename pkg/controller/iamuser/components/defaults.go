@@ -17,8 +17,6 @@ limitations under the License.
 package components
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
@@ -45,7 +43,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 
 	// Fill in defaults.
 	if instance.Spec.UserName == "" {
-		instance.Spec.UserName = fmt.Sprintf("%s-k8s-summon", instance.Name)
+		instance.Spec.UserName = instance.Name
 	}
 	return components.Result{}, nil
 }
