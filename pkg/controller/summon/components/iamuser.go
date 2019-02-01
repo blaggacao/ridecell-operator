@@ -19,6 +19,7 @@ package components
 import (
 	"os"
 
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
@@ -47,6 +48,9 @@ func (_ *iamUserComponent) IsReconcilable(_ *components.ComponentContext) bool {
 func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 
 	permissionsBoundaryArn := os.Getenv("PERMISSIONS_BOUNDARY_ARN")
+	if permissionsBoundaryArn == "" {
+		return components.Result{}, errors.Errorf("iamuser: permissions_boundary_arn is blank")
+	}
 	// Data to be copied over to template
 	extra := map[string]interface{}{}
 	extra["permissionsBoundaryArn"] = permissionsBoundaryArn
