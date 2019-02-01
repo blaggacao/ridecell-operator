@@ -17,6 +17,9 @@ limitations under the License.
 package components
 
 import (
+	"encoding/base64"
+	"fmt"
+
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -68,8 +71,15 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 	}
 
 	for k, v := range instance.Data {
+		if v == "" {
+			return components.Result{}, errors.Errorf(fmt.Sprintf("encryptedsecret: secret[%s] does not have a value", k))
+		}
+		decodedValue, err := base64.StdEncoding.DecodeString(v)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "encryptedsecret: failed to base64 decode secret")
+		}
 		decryptedValue, err := comp.kmsAPI.Decrypt(&kms.DecryptInput{
-			CiphertextBlob: []byte(v),
+			CiphertextBlob: decodedValue,
 			EncryptionContext: map[string]*string{
 				"RidecellOperator": aws.String("true"),
 			},
