@@ -28,12 +28,16 @@ import (
 
 var _ = Describe("SummonPlatform Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
+		tempBool := true
 		instance.Spec = summonv1beta1.SummonPlatformSpec{
 			Hostname:              "foo.example.com",
 			WebReplicas:           intp(2),
 			DaphneReplicas:        intp(2),
 			ChannelWorkerReplicas: intp(2),
 			StaticReplicas:        intp(2),
+			DatabaseSpec: summonv1beta1.DatabaseSpec{
+				SharedDatabase: &tempBool,
+			},
 		}
 
 		comp := summoncomponents.NewDefaults()
@@ -43,6 +47,7 @@ var _ = Describe("SummonPlatform Defaults Component", func() {
 		Expect(instance.Spec.DaphneReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.ChannelWorkerReplicas).To(PointTo(BeEquivalentTo(2)))
 		Expect(instance.Spec.StaticReplicas).To(PointTo(BeEquivalentTo(2)))
+		Expect(*instance.Spec.DatabaseSpec.SharedDatabase).To(BeTrue())
 	})
 
 	It("sets a default hostname", func() {

@@ -17,20 +17,26 @@ limitations under the License.
 package components
 
 import (
-	"github.com/pkg/errors"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
+	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 )
 
 type postgresComponent struct {
-	templatePath string
+	postgresTemplatePath string
+	operatorTemplatePath string
 }
 
-func NewPostgres(templatePath string) *postgresComponent {
-	return &postgresComponent{templatePath: templatePath}
+func NewPostgres(postgresTemplatePath string, operatorTemplatePath string) *postgresComponent {
+	return &postgresComponent{
+		postgresTemplatePath: postgresTemplatePath,
+		operatorTemplatePath: operatorTemplatePath,
+	}
 }
 
 func (comp *postgresComponent) WatchTypes() []runtime.Object {
@@ -44,33 +50,59 @@ func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	var existing *postgresv1.Postgresql
-	res, _, err := ctx.CreateOrUpdate(comp.templatePath, nil, func(goalObj, existingObj runtime.Object) error {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	var existingOperator *dbv1beta1.PostgresOperatorDatabase
+	if *instance.Spec.DatabaseSpec.SharedDatabase == true {
+		res, _, err := ctx.CreateOrUpdate(comp.operatorTemplatePath, nil, func(goalObj, existingObj runtime.Object) error {
+			goal := goalObj.(*dbv1beta1.PostgresOperatorDatabase)
+			existingOperator = existingObj.(*dbv1beta1.PostgresOperatorDatabase)
+			// Copy the Spec over.
+			existingOperator.Spec = goal.Spec
+			return nil
+		})
+		if err != nil {
+			return res, errors.Wrapf(err, "postgres: failed to create or update postgresoperatordatabase object")
+		}
+
+		fetchPostgres := &postgresv1.Postgresql{}
+		err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseSpec.SharedDatabaseName, Namespace: instance.Namespace}, fetchPostgres)
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "postgres: failed to get shared database object")
+		}
+		res.StatusModifier = func(obj runtime.Object) error {
+			instance.Status.PostgresStatus = fetchPostgres.Status
+			return nil
+		}
+
+		return res, nil
+	}
+
+	var existingDatabase *postgresv1.Postgresql
+	res, _, err := ctx.CreateOrUpdate(comp.postgresTemplatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*postgresv1.Postgresql)
-		existing = existingObj.(*postgresv1.Postgresql)
+		existingDatabase = existingObj.(*postgresv1.Postgresql)
 		// Copy the Spec over.
-		existing.Spec = goal.Spec
+		existingDatabase.Spec = goal.Spec
 		return nil
 	})
 	setPostgresStatus := func(obj runtime.Object) error {
-		instance := obj.(*summonv1beta1.SummonPlatform)
-		instance.Status.PostgresStatus = existing.Status
+		instance.Status.PostgresStatus = existingDatabase.Status
 		return nil
 	}
 	if err != nil {
 		res.StatusModifier = setPostgresStatus
 		return res, err
 	}
-	if !existing.Status.Success() {
+	if !existingDatabase.Status.Success() {
 		// I honestly can't tell how this field works. I think it's just ignored by the CRD entirely. Trying to play both sides just in case.
-		if existing.Error == "" {
-			err = errors.Errorf("postgres: status is %s", existing.Status)
+		if existingDatabase.Error == "" {
+			err = errors.Errorf("postgres: status is %s", existingDatabase.Status)
 		} else {
-			err = errors.Errorf("postgres: status is %s: %s", existing.Status, existing.Error)
+			err = errors.Errorf("postgres: status is %s: %s", existingDatabase.Status, existingDatabase.Error)
 		}
 		return components.Result{StatusModifier: setPostgresStatus}, err
 	}
-	if existing.Status != postgresv1.ClusterStatusUnknown {
+	if existingDatabase.Status != postgresv1.ClusterStatusUnknown {
 		// DB creation was started, and we already checked if something went wrong so we are at least up to initializing.
 		res.StatusModifier = func(obj runtime.Object) error {
 			instance := obj.(*summonv1beta1.SummonPlatform)

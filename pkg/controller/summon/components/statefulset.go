@@ -56,7 +56,13 @@ func (comp *statefulsetComponent) IsReconcilable(ctx *components.ComponentContex
 		return false
 	}
 	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
-		return false
+		if instance.Spec.DatabaseSpec.SharedDatabase != nil {
+			if *instance.Spec.DatabaseSpec.SharedDatabase == false {
+				return false
+			}
+		} else {
+			return false
+		}
 	}
 	if instance.Status.MigrateVersion != instance.Spec.Version {
 		return false

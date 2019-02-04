@@ -45,6 +45,11 @@ func (_ *postgresExtensionsComponent) IsReconcilable(ctx *components.ComponentCo
 		// Database not ready yet.
 		return false
 	}
+	if instance.Spec.DatabaseSpec.SharedDatabase != nil {
+		if *instance.Spec.DatabaseSpec.SharedDatabase == true {
+			return false
+		}
+	}
 	return true
 }
 

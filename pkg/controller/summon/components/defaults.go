@@ -97,6 +97,10 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 		}
 	}
 
+	if instance.Spec.DatabaseSpec.SharedDatabase == nil {
+		defaultSharedDatabase := false
+		instance.Spec.DatabaseSpec.SharedDatabase = &defaultSharedDatabase
+	}
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}

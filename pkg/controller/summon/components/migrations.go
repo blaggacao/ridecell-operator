@@ -54,8 +54,13 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		return false
 	}
 	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady {
-		// Extensions not installed yet.
-		return false
+		if instance.Spec.DatabaseSpec.SharedDatabase != nil {
+			if *instance.Spec.DatabaseSpec.SharedDatabase == false {
+				return false
+			}
+		} else {
+			return false
+		}
 	}
 	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {
 		// Pull secret not ready yet.

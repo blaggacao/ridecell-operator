@@ -63,6 +63,8 @@ var _ = Describe("SummonPlatform Migrations Component", func() {
 
 			It("returns false", func() {
 				comp := summoncomponents.NewMigrations("migrations.yml.tpl")
+				tempBool := false
+				instance.Spec.DatabaseSpec.SharedDatabase = &tempBool
 				ok := comp.IsReconcilable(ctx)
 				Expect(ok).To(BeFalse())
 			})
