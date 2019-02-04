@@ -49,7 +49,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 
 	permissionsBoundaryArn := os.Getenv("PERMISSIONS_BOUNDARY_ARN")
 	if permissionsBoundaryArn == "" {
-		return components.Result{}, errors.Errorf("iamuser: permissions_boundary_arn is blank")
+		return components.Result{}, errors.Errorf("iamuser: permissions_boundary_arn is empty")
 	}
 	// Data to be copied over to template
 	extra := map[string]interface{}{}
