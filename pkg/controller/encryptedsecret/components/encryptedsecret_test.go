@@ -53,10 +53,10 @@ var _ = Describe("encryptedsecret Component", func() {
 		comp.InjectKMSAPI(mockKMS)
 
 		instance.Data = map[string]string{
-			"TEST_VALUE0": "test0",
-			"TEST_VALUE1": "test1",
-			"TEST_VALUE2": "test2",
-			"test_value3": "TEST3",
+			"TEST_VALUE0": "dGVzdDA=",
+			"TEST_VALUE1": "dGVzdDE=",
+			"TEST_VALUE2": "dGVzdDI=",
+			"test_value3": "VEVTVDM=",
 		}
 
 		Expect(comp).To(ReconcileContext(ctx))
@@ -88,7 +88,7 @@ var _ = Describe("encryptedsecret Component", func() {
 		err := ctx.Create(context.TODO(), newSecret)
 		Expect(err).ToNot(HaveOccurred())
 		// Overwrite that secret with new one
-		instance.Data = map[string]string{"new_value": "test1"}
+		instance.Data = map[string]string{"new_value": "dGVzdDE="}
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
