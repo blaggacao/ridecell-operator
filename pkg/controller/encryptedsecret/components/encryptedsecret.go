@@ -18,7 +18,6 @@ package components
 
 import (
 	"encoding/base64"
-	"fmt"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
@@ -72,7 +71,7 @@ func (comp *EncryptedSecretComponent) Reconcile(ctx *components.ComponentContext
 
 	for k, v := range instance.Data {
 		if v == "" {
-			return components.Result{}, errors.Errorf(fmt.Sprintf("encryptedsecret: secret[%s] does not have a value", k))
+			return components.Result{}, errors.Errorf("encryptedsecret: secret[%s] does not have a value", k)
 		}
 		decodedValue, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
