@@ -34,3 +34,4 @@ spec:
                 "Resource": "arn:aws:sqs:{{ .Instance.Spec.AwsRegion }}::{{ .Instance.Spec.SQSQueue }}"
               }
             }
+ permissionsBoundaryArn: {{ .Extra.permissionsBoundaryArn }}
