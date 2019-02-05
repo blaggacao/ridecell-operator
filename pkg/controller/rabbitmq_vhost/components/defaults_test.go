@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,24 +20,16 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	iamusercomponents "github.com/Ridecell/ridecell-operator/pkg/controller/iamuser/components"
-	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
+	rmqvcomponents "github.com/Ridecell/ridecell-operator/pkg/controller/rabbitmq_vhost/components"
 )
 
-var _ = Describe("iamuser Defaults Component", func() {
+var _ = Describe("RabbitmqVhost Defaults Component", func() {
 	It("does nothing on a filled out object", func() {
-		comp := iamusercomponents.NewDefaults()
-		instance.Spec.UserName = "test"
-
-		Expect(comp).To(ReconcileContext(ctx))
-		Expect(instance.Spec.UserName).To(Equal("test"))
+		comp := rmqvcomponents.NewDefaults()
+		_, err := comp.Reconcile(ctx)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(instance.Spec.VhostName).To(Equal(instance.Name))
+		Expect(instance.Spec.Connection.Username).To(Equal("guest"))
+		Expect(instance.Spec.Connection.InsecureSkip).To(Equal(false))
 	})
-
-	It("sets defaults", func() {
-		comp := iamusercomponents.NewDefaults()
-		Expect(comp).To(ReconcileContext(ctx))
-
-		Expect(instance.Spec.UserName).To(Equal("foo.example.com"))
-	})
-
 })

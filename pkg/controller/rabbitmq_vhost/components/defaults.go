@@ -1,5 +1,5 @@
 /*
-Copyright 2019 Ridecell, Inc.
+Copyright 2018 Ridecell, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,14 +17,12 @@ limitations under the License.
 package components
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-
-	awsv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/aws/v1beta1"
+	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	"github.com/Ridecell/ridecell-operator/pkg/components"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type defaultsComponent struct {
-}
+type defaultsComponent struct{}
 
 func NewDefaults() *defaultsComponent {
 	return &defaultsComponent{}
@@ -39,11 +37,16 @@ func (_ *defaultsComponent) IsReconcilable(_ *components.ComponentContext) bool 
 }
 
 func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
-	instance := ctx.Top.(*awsv1beta1.IAMUser)
+	instance := ctx.Top.(*dbv1beta1.RabbitmqVhost)
 
 	// Fill in defaults.
-	if instance.Spec.UserName == "" {
-		instance.Spec.UserName = instance.Name
+	if instance.Spec.VhostName == "" {
+		// Default extension name is just the name of the resource.
+		instance.Spec.VhostName = instance.Name
+	}
+	if instance.Spec.Connection.Username == "" {
+		// Use "guest" as the default username.
+		instance.Spec.Connection.Username = "guest"
 	}
 	return components.Result{}, nil
 }
