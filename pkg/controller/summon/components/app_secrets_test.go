@@ -60,6 +60,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile without a postgres password", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(HaveOccurred())
 	})
@@ -67,6 +68,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile with a blank postgres password", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -98,6 +100,7 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -145,6 +148,8 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("copies data from the input secret", func() {
 		comp := summoncomponents.NewAppSecret()
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
+
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
 			Data:       map[string][]byte{"ZIP_TAX_API_KEY": []byte("taxessss")},
@@ -187,6 +192,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("reconciles with existing fernet keys", func() {
 		comp := summoncomponents.NewAppSecret()
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		// Is there a way I could write this setup in not such a verbose way?
 		now := time.Now().UTC()
@@ -259,6 +265,7 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -285,6 +292,7 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("runs reconcile with all values set", func() {
 		comp := summoncomponents.NewAppSecret()
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
 		fernetKeys := &corev1.Secret{
@@ -316,6 +324,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("overwrites values using multiple secrets", func() {
 		instance.Spec.Secrets = []string{"testsecret0", "testsecret1", "testsecret2"}
 		comp := summoncomponents.NewAppSecret()
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret0", Namespace: instance.Namespace},
@@ -362,5 +371,55 @@ var _ = Describe("app_secrets Component", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(appSecretsData["test0"].(string)).To(Equal("overwritten_again"))
 
+	})
+
+	It("reconciles with shared database config", func() {
+		comp := summoncomponents.NewAppSecret()
+		//Set status so that IsReconcileable returns true
+		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = false
+
+		appSecrets := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
+			Data:       map[string][]byte{"filler": []byte("test")},
+		}
+
+		postgresSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Namespace), Namespace: instance.Namespace},
+			Data:       map[string][]byte{"password": []byte("postgresPassword")},
+		}
+
+		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
+
+		fernetKeys := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace},
+			Data:       map[string][]byte{formattedTime: []byte("lorem ipsum")},
+		}
+
+		secretKey := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace},
+			Data: map[string][]byte{
+				"SECRET_KEY": []byte("testkey"),
+			},
+		}
+
+		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
+		_, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		fetchSecret := &corev1.Secret{}
+		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		byteData := fetchSecret.Data["summon-platform.yml"]
+		var parsedYaml testAppSecretData
+		err = yaml.Unmarshal(byteData, &parsedYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://summon:postgresPassword@default-database/summon"))
+		Expect(string(parsedYaml.OUTBOUNDSMS_URL)).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
+		Expect(string(parsedYaml.SMS_WEBHOOK_URL)).To(Equal("https://foo.ridecell.us/sms/receive/"))
+		Expect(string(parsedYaml.CELERY_BROKER_URL)).To(Equal("redis://foo-redis/2"))
+		Expect(string(parsedYaml.ZIP_TAX_API_KEY)).To(Equal(""))
 	})
 })

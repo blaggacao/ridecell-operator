@@ -87,8 +87,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		rawAppSecrets = append(rawAppSecrets, rawAppSecret)
 	}
 
+	var databaseName string
+	if instance.Spec.DatabaseSpec.ExclusiveDatabase {
+		databaseName = instance.Name
+	} else {
+		databaseName = instance.Namespace
+	}
+
 	postgresSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Name), Namespace: instance.Namespace}, postgresSecret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s-database.credentials", databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
 	}
@@ -123,7 +130,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	appSecretsData := map[string]interface{}{}
 
-	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, instance.Name)
+	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, databaseName)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
