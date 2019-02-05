@@ -71,7 +71,10 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 				return components.Result{}, errors.Wrapf(aerr, "iam_user: failed to get user")
 			}
 			// If user does not exist create it
-			createUserOutput, err := comp.iamAPI.CreateUser(&iam.CreateUserInput{UserName: aws.String(instance.Spec.UserName)})
+			createUserOutput, err := comp.iamAPI.CreateUser(&iam.CreateUserInput{
+				UserName:            aws.String(instance.Spec.UserName),
+				PermissionsBoundary: aws.String(instance.Spec.PermissionsBoundaryArn),
+			})
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "iam_user: failed to create user")
 			}
