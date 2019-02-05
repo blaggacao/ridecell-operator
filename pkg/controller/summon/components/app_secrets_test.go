@@ -46,6 +46,10 @@ type testAppSecretData struct {
 
 var _ = Describe("app_secrets Component", func() {
 
+	BeforeEach(func() {
+		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
+	})
+
 	It("Unreconcilable when db not ready", func() {
 		comp := summoncomponents.NewAppSecret()
 		Expect(comp.IsReconcilable(ctx)).To(Equal(false))
@@ -60,7 +64,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile without a postgres password", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
+
 		_, err := comp.Reconcile(ctx)
 		Expect(err).To(HaveOccurred())
 	})
@@ -68,7 +72,6 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile with a blank postgres password", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -100,7 +103,6 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -148,7 +150,6 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("copies data from the input secret", func() {
 		comp := summoncomponents.NewAppSecret()
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -192,7 +193,6 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("reconciles with existing fernet keys", func() {
 		comp := summoncomponents.NewAppSecret()
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		// Is there a way I could write this setup in not such a verbose way?
 		now := time.Now().UTC()
@@ -265,7 +265,6 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -292,7 +291,6 @@ var _ = Describe("app_secrets Component", func() {
 
 	It("runs reconcile with all values set", func() {
 		comp := summoncomponents.NewAppSecret()
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		formattedTime := time.Time.Format(time.Now().UTC(), summoncomponents.CustomTimeLayout)
 		fernetKeys := &corev1.Secret{
@@ -324,7 +322,6 @@ var _ = Describe("app_secrets Component", func() {
 	It("overwrites values using multiple secrets", func() {
 		instance.Spec.Secrets = []string{"testsecret0", "testsecret1", "testsecret2"}
 		comp := summoncomponents.NewAppSecret()
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret0", Namespace: instance.Namespace},
@@ -378,6 +375,7 @@ var _ = Describe("app_secrets Component", func() {
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
 		instance.Spec.DatabaseSpec.ExclusiveDatabase = false
+		instance.Spec.DatabaseSpec.SharedDatabaseName = "shareddb"
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -416,7 +414,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://summon:postgresPassword@default-database/summon"))
+		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://summon:postgresPassword@shareddb-database/summon"))
 		Expect(string(parsedYaml.OUTBOUNDSMS_URL)).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(string(parsedYaml.SMS_WEBHOOK_URL)).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(string(parsedYaml.CELERY_BROKER_URL)).To(Equal("redis://foo-redis/2"))
