@@ -64,9 +64,7 @@ var _ = Describe("app_secrets Component", func() {
 	It("Run reconcile without a postgres password", func() {
 		comp := summoncomponents.NewAppSecret()
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
+		Expect(comp).ToNot(ReconcileContext(ctx))
 	})
 
 	It("Run reconcile with a blank postgres password", func() {
@@ -129,11 +127,10 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
@@ -176,11 +173,10 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
@@ -242,11 +238,10 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
@@ -315,8 +310,7 @@ var _ = Describe("app_secrets Component", func() {
 			},
 		}
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 	})
 
 	It("overwrites values using multiple secrets", func() {
@@ -402,11 +396,10 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys, secretKey)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).ToNot(HaveOccurred())
+		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchSecret := &corev1.Secret{}
-		err = ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s.app-secrets", instance.Name), Namespace: instance.Namespace}, fetchSecret)
 		Expect(err).ToNot(HaveOccurred())
 
 		byteData := fetchSecret.Data["summon-platform.yml"]
