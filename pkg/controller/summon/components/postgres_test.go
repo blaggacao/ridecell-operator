@@ -50,7 +50,7 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 	Describe("Reconcile", func() {
 		It("creates a postgres object by default", func() {
 			comp := summoncomponents.NewPostgres("postgres.yml.tpl", "postgres_operator/postgresoperator.yml.tpl")
-			instance.Spec.DatabaseSpec.ExclusiveDatabase = true
+			instance.Spec.Database.ExclusiveDatabase = true
 			Expect(comp).To(ReconcileContext(ctx))
 
 			fetchPostgres := &postgresv1.Postgresql{}
@@ -60,8 +60,8 @@ var _ = Describe("SummonPlatform Notification Component", func() {
 
 		It("creates a postgresoperator object if shareddatabase is true", func() {
 			comp := summoncomponents.NewPostgres("postgres.yml.tpl", "postgres_operator/postgresoperator.yml.tpl")
-			instance.Spec.DatabaseSpec.SharedDatabaseName = "foobar"
-			instance.Spec.DatabaseSpec.ExclusiveDatabase = false
+			instance.Spec.Database.SharedDatabaseName = "foobar"
+			instance.Spec.Database.ExclusiveDatabase = false
 
 			fakePostgresql := &postgresv1.Postgresql{
 				ObjectMeta: metav1.ObjectMeta{

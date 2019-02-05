@@ -47,7 +47,7 @@ type testAppSecretData struct {
 var _ = Describe("app_secrets Component", func() {
 
 	BeforeEach(func() {
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = true
+		instance.Spec.Database.ExclusiveDatabase = true
 	})
 
 	It("Unreconcilable when db not ready", func() {
@@ -374,8 +374,8 @@ var _ = Describe("app_secrets Component", func() {
 		comp := summoncomponents.NewAppSecret()
 		//Set status so that IsReconcileable returns true
 		instance.Status.PostgresStatus = postgresv1.ClusterStatusRunning
-		instance.Spec.DatabaseSpec.ExclusiveDatabase = false
-		instance.Spec.DatabaseSpec.SharedDatabaseName = "shareddb"
+		instance.Spec.Database.ExclusiveDatabase = false
+		instance.Spec.Database.SharedDatabaseName = "shareddb"
 
 		appSecrets := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "testsecret", Namespace: instance.Namespace},
@@ -383,7 +383,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		postgresSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("summon.%s-database.credentials", instance.Namespace), Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "summon.shareddb-database.credentials", Namespace: instance.Namespace},
 			Data:       map[string][]byte{"password": []byte("postgresPassword")},
 		}
 

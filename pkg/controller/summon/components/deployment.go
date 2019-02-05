@@ -58,7 +58,7 @@ func (comp *deploymentComponent) IsReconcilable(ctx *components.ComponentContext
 	if instance.Status.PostgresStatus != postgresv1.ClusterStatusRunning {
 		return false
 	}
-	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady && instance.Spec.DatabaseSpec.ExclusiveDatabase {
+	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady && instance.Spec.Database.ExclusiveDatabase {
 		return false
 	}
 	if instance.Status.MigrateVersion != instance.Spec.Version {

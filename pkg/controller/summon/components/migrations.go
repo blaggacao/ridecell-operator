@@ -53,7 +53,7 @@ func (_ *migrationComponent) IsReconcilable(ctx *components.ComponentContext) bo
 		// Database not ready yet.
 		return false
 	}
-	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady && instance.Spec.DatabaseSpec.ExclusiveDatabase {
+	if instance.Status.PostgresExtensionStatus != summonv1beta1.StatusReady && instance.Spec.Database.ExclusiveDatabase {
 		return false
 	}
 	if instance.Status.PullSecretStatus != secretsv1beta1.StatusReady {

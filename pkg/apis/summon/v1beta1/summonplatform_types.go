@@ -39,7 +39,7 @@ type NotificationsSpec struct {
 }
 
 // DatabaseSpec is used to specify whether we are using a shared database or not.
-type DatabaseSpec struct {
+type Database struct {
 	// +optional
 	ExclusiveDatabase bool `json:"exclusiveDatabase,omitempty"`
 	// +optional
@@ -93,7 +93,7 @@ type SummonPlatformSpec struct {
 	SQSQueue string `json:"sqsQueue,omitempty"`
 	// Database spec
 	// +optional
-	DatabaseSpec DatabaseSpec `json:"databaseSpec,omitempty"`
+	Database Database `json:"database,omitempty"`
 }
 
 // NotificationStatus defines the observed state of Notifications

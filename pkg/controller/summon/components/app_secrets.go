@@ -88,10 +88,10 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	var databaseName string
-	if instance.Spec.DatabaseSpec.ExclusiveDatabase {
+	if instance.Spec.Database.ExclusiveDatabase {
 		databaseName = instance.Name
 	} else {
-		databaseName = instance.Spec.DatabaseSpec.SharedDatabaseName
+		databaseName = instance.Spec.Database.SharedDatabaseName
 	}
 
 	postgresSecret := &corev1.Secret{}

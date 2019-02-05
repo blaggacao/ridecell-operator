@@ -45,7 +45,7 @@ func (_ *postgresExtensionsComponent) IsReconcilable(ctx *components.ComponentCo
 		// Database not ready yet.
 		return false
 	}
-	if !instance.Spec.DatabaseSpec.ExclusiveDatabase {
+	if !instance.Spec.Database.ExclusiveDatabase {
 		return false
 	}
 	return true

@@ -51,7 +51,7 @@ func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
-	if instance.Spec.DatabaseSpec.ExclusiveDatabase {
+	if instance.Spec.Database.ExclusiveDatabase {
 		res, err := comp.reconcileExclusiveDatabase(ctx)
 		return res, err
 	}
@@ -75,7 +75,7 @@ func (comp *postgresComponent) reconcileOperatorDatabase(ctx *components.Compone
 	}
 
 	fetchPostgres := &postgresv1.Postgresql{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseSpec.SharedDatabaseName, Namespace: instance.Namespace}, fetchPostgres)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.Database.SharedDatabaseName, Namespace: instance.Namespace}, fetchPostgres)
 	if err != nil {
 		return components.Result{}, errors.Wrapf(err, "postgres: failed to get shared database object")
 	}
