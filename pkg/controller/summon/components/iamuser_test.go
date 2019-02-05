@@ -18,6 +18,7 @@ package components_test
 
 import (
 	"context"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,6 +31,10 @@ import (
 )
 
 var _ = Describe("SummonPlatform iamuser Component", func() {
+
+	BeforeEach(func() {
+		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn:::test*")
+	})
 
 	It("creates an IAMUser object", func() {
 		comp := summoncomponents.NewIAMUser("aws/iamuser.yml.tpl")

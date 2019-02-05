@@ -22,8 +22,9 @@ import (
 
 // IAMUserSpec defines the desired state of IAMUser
 type IAMUserSpec struct {
-	UserName       string            `json:"username,omitempty"`
-	InlinePolicies map[string]string `json:"inlinePolicies,omitempty"`
+	UserName               string            `json:"username,omitempty"`
+	InlinePolicies         map[string]string `json:"inlinePolicies,omitempty"`
+	PermissionsBoundaryArn string            `json:"permissionsBoundaryArn"`
 }
 
 // IAMUserStatus defines the observed state of IAMUser
