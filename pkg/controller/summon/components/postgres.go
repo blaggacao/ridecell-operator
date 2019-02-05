@@ -51,32 +51,43 @@ func (_ *postgresComponent) IsReconcilable(_ *components.ComponentContext) bool 
 
 func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (components.Result, error) {
 	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
+	if instance.Spec.DatabaseSpec.ExclusiveDatabase {
+		res, err := comp.reconcileExclusiveDatabase(ctx)
+		return res, err
+	}
+	res, err := comp.reconcileOperatorDatabase(ctx)
+	return res, err
+}
+
+func (comp *postgresComponent) reconcileOperatorDatabase(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	var existingOperator *dbv1beta1.PostgresOperatorDatabase
-	if *instance.Spec.DatabaseSpec.SharedDatabase == true {
-		res, _, err := ctx.CreateOrUpdate(comp.operatorTemplatePath, nil, func(goalObj, existingObj runtime.Object) error {
-			goal := goalObj.(*dbv1beta1.PostgresOperatorDatabase)
-			existingOperator = existingObj.(*dbv1beta1.PostgresOperatorDatabase)
-			// Copy the Spec over.
-			existingOperator.Spec = goal.Spec
-			return nil
-		})
-		if err != nil {
-			return res, errors.Wrapf(err, "postgres: failed to create or update postgresoperatordatabase object")
-		}
 
-		fetchPostgres := &postgresv1.Postgresql{}
-		err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseSpec.SharedDatabaseName, Namespace: instance.Namespace}, fetchPostgres)
-		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "postgres: failed to get shared database object")
-		}
-		res.StatusModifier = func(obj runtime.Object) error {
-			instance.Status.PostgresStatus = fetchPostgres.Status
-			return nil
-		}
-
-		return res, nil
+	res, _, err := ctx.CreateOrUpdate(comp.operatorTemplatePath, nil, func(goalObj, existingObj runtime.Object) error {
+		goal := goalObj.(*dbv1beta1.PostgresOperatorDatabase)
+		existingOperator = existingObj.(*dbv1beta1.PostgresOperatorDatabase)
+		// Copy the Spec over.
+		existingOperator.Spec = goal.Spec
+		return nil
+	})
+	if err != nil {
+		return res, errors.Wrapf(err, "postgres: failed to create or update postgresoperatordatabase object")
 	}
 
+	fetchPostgres := &postgresv1.Postgresql{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: instance.Spec.DatabaseSpec.SharedDatabaseName, Namespace: instance.Namespace}, fetchPostgres)
+	if err != nil {
+		return components.Result{}, errors.Wrapf(err, "postgres: failed to get shared database object")
+	}
+	res.StatusModifier = func(obj runtime.Object) error {
+		instance.Status.PostgresStatus = fetchPostgres.Status
+		return nil
+	}
+	return res, nil
+}
+
+func (comp *postgresComponent) reconcileExclusiveDatabase(ctx *components.ComponentContext) (components.Result, error) {
+	instance := ctx.Top.(*summonv1beta1.SummonPlatform)
 	var existingDatabase *postgresv1.Postgresql
 	res, _, err := ctx.CreateOrUpdate(comp.postgresTemplatePath, nil, func(goalObj, existingObj runtime.Object) error {
 		goal := goalObj.(*postgresv1.Postgresql)
@@ -110,5 +121,5 @@ func (comp *postgresComponent) Reconcile(ctx *components.ComponentContext) (comp
 			return setPostgresStatus(obj)
 		}
 	}
-	return res, err
+	return res, nil
 }
