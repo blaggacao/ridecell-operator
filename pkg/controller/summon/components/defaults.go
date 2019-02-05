@@ -96,6 +96,9 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 			instance.Spec.SQSQueue = "master-data-pipeline"
 		}
 	}
+	if instance.Spec.Database.SharedDatabaseName == "" {
+		instance.Spec.Database.SharedDatabaseName = instance.Namespace
+	}
 	// Fill in static default config values.
 	if instance.Spec.Config == nil {
 		instance.Spec.Config = map[string]summonv1beta1.ConfigValue{}
