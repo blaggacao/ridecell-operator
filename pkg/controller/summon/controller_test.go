@@ -64,7 +64,14 @@ var _ = Describe("Summon controller", func() {
 	// Minimal test, service component has no deps so it should always immediately get created.
 	It("creates a service", func() {
 		c := helpers.Client
-		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}}
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				DatabaseSpec: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
+			},
+		}
 		depKey := types.NamespacedName{Name: "foo-web", Namespace: helpers.Namespace}
 
 		// Create the Summon object and expect the Reconcile and Service to be created
@@ -87,6 +94,9 @@ var _ = Describe("Summon controller", func() {
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
 			Secrets: []string{"testsecret"},
+			DatabaseSpec: summonv1beta1.DatabaseSpec{
+				ExclusiveDatabase: true,
+			},
 		}}
 
 		// Create the SummonPlatform object and expect the Reconcile to be created.
@@ -158,12 +168,18 @@ var _ = Describe("Summon controller", func() {
 
 	It("reconciles labels", func() {
 		c := helpers.Client
-		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
-			Version: "1.2.3",
-			Secrets: []string{"testsecret"},
-		}, Status: summonv1beta1.SummonPlatformStatus{
-			MigrateVersion: "1.2.3",
-		}}
+		instance := &summonv1beta1.SummonPlatform{
+			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
+			Spec: summonv1beta1.SummonPlatformSpec{
+				Version: "1.2.3",
+				Secrets: []string{"testsecret"},
+				DatabaseSpec: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
+			},
+			Status: summonv1beta1.SummonPlatformStatus{
+				MigrateVersion: "1.2.3",
+			}}
 
 		// Create the SummonPlatform object.
 		err := c.Create(context.TODO(), instance)
@@ -265,6 +281,9 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1-abcdef1-master",
 				Secrets: []string{"statustester"},
+				DatabaseSpec: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
 			},
 		}
 		err := c.Create(context.TODO(), instance)

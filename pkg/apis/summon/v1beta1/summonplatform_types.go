@@ -41,7 +41,7 @@ type NotificationsSpec struct {
 // DatabaseSpec is used to specify whether we are using a shared database or not.
 type DatabaseSpec struct {
 	// +optional
-	SharedDatabase *bool `json:"sharedDatabase,omitempty"`
+	ExclusiveDatabase bool `json:"exclusiveDatabase,omitempty"`
 	// +optional
 	SharedDatabaseName string `json:"sharedDatabaseName,omitempty"`
 }
