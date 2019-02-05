@@ -56,19 +56,19 @@ type SummonPlatformSpec struct {
 	Config map[string]ConfigValue `json:"config,omitempty"`
 	// Number of gunicorn pods to run. Defaults to 1.
 	// +optional
-	WebReplicas *int32 `json:"web_replicas,omitempty"`
+	WebReplicas *int32 `json:"webReplicas,omitempty"`
 	// Number of daphne pods to run. Defaults to 1.
 	// +optional
-	DaphneReplicas *int32 `json:"daphne_replicas,omitempty"`
+	DaphneReplicas *int32 `json:"daphneReplicas,omitempty"`
 	// Number of celeryd pods to run. Defaults to 1.
 	// +optional
-	WorkerReplicas *int32 `json:"worker_replicas,omitempty"`
+	WorkerReplicas *int32 `json:"workerReplicas,omitempty"`
 	// Number of channelworker pods to run. Defaults to 1.
 	// +optional
-	ChannelWorkerReplicas *int32 `json:"channel_worker_replicas,omitempty"`
+	ChannelWorkerReplicas *int32 `json:"channelWorkerReplicas,omitempty"`
 	// Number of caddy pods to run. Defaults to 1.
 	// +optional
-	StaticReplicas *int32 `json:"static_replicas,omitempty"`
+	StaticReplicas *int32 `json:"staticReplicas,omitempty"`
 	// Settings for deploy and error notifications.
 	// +optional
 	Notifications NotificationsSpec `json:"notifications,omitempty"`
