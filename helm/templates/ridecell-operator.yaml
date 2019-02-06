@@ -79,4 +79,25 @@ spec:
           requests:
             cpu: 100m
             memory: 20Mi
+        env:
+          - name: SLACK_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: ridecell-operator
+                key: slackApiKey
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: ridecell-operator
+                key: operaterAwsAccessKeyId
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: ridecell-operator
+                key: operatorAwsSecretAccessKey
+          - name: AWS_DEFAULT_REGION
+            valueFrom:
+              secretKeyRef:
+                name: ridecell-operator
+                key: awsDefaultRegion
       terminationGracePeriodSeconds: 10
