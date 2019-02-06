@@ -89,7 +89,7 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: ridecell-operator
-                key: operaterAwsAccessKeyId
+                key: operatorAwsAccessKeyId
           - name: AWS_SECRET_ACCESS_KEY
             valueFrom:
               secretKeyRef:
