@@ -95,9 +95,14 @@ spec:
               secretKeyRef:
                 name: ridecell-operator
                 key: operatorAwsSecretAccessKey
-          - name: AWS_DEFAULT_REGION
+          - name: AWS_REGION
             valueFrom:
               secretKeyRef:
                 name: ridecell-operator
-                key: awsDefaultRegion
+                key: awsRegion
+          - name: PERMISSIONS_BOUNDARY_ARN
+            valueFrom:
+              secretKeyRef:
+                name: ridecell-operator
+                key: permissionsBoundaryArn
       terminationGracePeriodSeconds: 10
