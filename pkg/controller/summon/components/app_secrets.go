@@ -87,15 +87,15 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		rawAppSecrets = append(rawAppSecrets, rawAppSecret)
 	}
 
-	var databaseName string
+	databaseName := instance.Spec.Database.SharedDatabaseName
+	databaseUser := instance.Name
 	if instance.Spec.Database.ExclusiveDatabase {
 		databaseName = instance.Name
-	} else {
-		databaseName = instance.Spec.Database.SharedDatabaseName
+		databaseUser = "summon"
 	}
 
 	postgresSecret := &corev1.Secret{}
-	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("summon.%s-database.credentials", databaseName), Namespace: instance.Namespace}, postgresSecret)
+	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", databaseUser, databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
 		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
 	}

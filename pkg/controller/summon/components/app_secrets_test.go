@@ -377,7 +377,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		postgresSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "summon.shareddb-database.credentials", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.shareddb-database.credentials", Namespace: instance.Namespace},
 			Data:       map[string][]byte{"password": []byte("postgresPassword")},
 		}
 
