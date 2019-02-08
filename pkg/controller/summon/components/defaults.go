@@ -73,7 +73,7 @@ func (comp *defaultsComponent) Reconcile(ctx *components.ComponentContext) (comp
 	}
 	if len(instance.Spec.Secrets) == 0 {
 		if instance.Namespace == "dev" || instance.Namespace == "qa" {
-			instance.Spec.Secrets = []string{instance.Namespace}
+			instance.Spec.Secrets = []string{instance.Namespace, instance.Name}
 		} else {
 			instance.Spec.Secrets = []string{instance.Name}
 		}
