@@ -81,6 +81,9 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "80813-eb6b515-master",
 				Secrets: []string{"testsecret"},
+				Database: summonv1beta1.DatabaseSpec{
+					ExclusiveDatabase: true,
+				},
 				Notifications: summonv1beta1.NotificationsSpec{
 					SlackChannel: slackChannel,
 				},
