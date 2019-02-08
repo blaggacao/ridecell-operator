@@ -100,7 +100,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			UserName:   user.UserName,
 		})
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get user policy")
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get user policy %s", aws.StringValue(userPolicyName))
 		}
 		userPolicies[aws.StringValue(getUserPolicy.PolicyName)] = aws.StringValue(getUserPolicy.PolicyDocument)
 	}
@@ -114,7 +114,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 				UserName:   user.UserName,
 			})
 			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "iam_user: failed to delete user policy")
+				return components.Result{}, errors.Wrapf(err, "iam_user: failed to delete user policy %s", userPolicyName)
 			}
 		}
 	}
