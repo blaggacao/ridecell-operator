@@ -69,7 +69,7 @@ var _ = Describe("Summon controller", func() {
 		instance := &summonv1beta1.SummonPlatform{
 			ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace},
 			Spec: summonv1beta1.SummonPlatformSpec{
-				Database: summonv1beta1.Database{
+				Database: summonv1beta1.DatabaseSpec{
 					ExclusiveDatabase: true,
 				},
 			},
@@ -96,7 +96,7 @@ var _ = Describe("Summon controller", func() {
 		instance := &summonv1beta1.SummonPlatform{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: helpers.Namespace}, Spec: summonv1beta1.SummonPlatformSpec{
 			Version: "1.2.3",
 			Secrets: []string{"testsecret"},
-			Database: summonv1beta1.Database{
+			Database: summonv1beta1.DatabaseSpec{
 				ExclusiveDatabase: true,
 			},
 		}}
@@ -175,7 +175,7 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1.2.3",
 				Secrets: []string{"testsecret"},
-				Database: summonv1beta1.Database{
+				Database: summonv1beta1.DatabaseSpec{
 					ExclusiveDatabase: true,
 				},
 			},
@@ -283,7 +283,7 @@ var _ = Describe("Summon controller", func() {
 			Spec: summonv1beta1.SummonPlatformSpec{
 				Version: "1-abcdef1-master",
 				Secrets: []string{"statustester"},
-				Database: summonv1beta1.Database{
+				Database: summonv1beta1.DatabaseSpec{
 					ExclusiveDatabase: true,
 				},
 			},
