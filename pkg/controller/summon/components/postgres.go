@@ -17,14 +17,14 @@ limitations under the License.
 package components
 
 import (
-	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
+	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
 	dbv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/db/v1beta1"
 	summonv1beta1 "github.com/Ridecell/ridecell-operator/pkg/apis/summon/v1beta1"
-	postgresv1 "github.com/zalando-incubator/postgres-operator/pkg/apis/acid.zalan.do/v1"
+	"github.com/Ridecell/ridecell-operator/pkg/components"
 )
 
 type postgresComponent struct {
