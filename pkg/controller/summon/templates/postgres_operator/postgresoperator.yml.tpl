@@ -5,5 +5,5 @@ metadata:
  namespace: {{ .Instance.Namespace }}
 spec:
   databaseRef:
-    name: {{ .Instance.Spec.Database.SharedDatabaseName }}
+    name: {{ .Instance.Spec.Database.SharedDatabaseName }}-database
   database: {{ .Instance.Name }}
