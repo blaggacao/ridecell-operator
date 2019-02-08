@@ -65,8 +65,11 @@ var _ = Describe("SummonPlatform Postgres Component", func() {
 
 			fakePostgresql := &postgresv1.Postgresql{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foobar",
+					Name:      "foobar-database",
 					Namespace: instance.Namespace,
+				},
+				Spec: postgresv1.PostgresSpec{
+					TeamID: "foobar",
 				},
 			}
 
