@@ -18,7 +18,6 @@ package summon_test
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -56,7 +55,6 @@ var _ = Describe("Summon controller", func() {
 				"filler": []byte{}}}
 		err = helpers.Client.Create(context.TODO(), appSecrets)
 		Expect(err).NotTo(HaveOccurred())
-		os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn:::test")
 	})
 
 	AfterEach(func() {

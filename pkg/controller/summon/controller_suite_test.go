@@ -17,6 +17,7 @@ limitations under the License.
 package summon_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -36,6 +37,7 @@ func TestTemplates(t *testing.T) {
 
 var _ = ginkgo.BeforeSuite(func() {
 	testHelpers = test_helpers.Start(summon.Add, true)
+	os.Setenv("PERMISSIONS_BOUNDARY_ARN", "arn:::test")
 })
 
 var _ = ginkgo.AfterSuite(func() {
