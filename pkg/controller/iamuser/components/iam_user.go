@@ -131,6 +131,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			UserName:       user.UserName,
 		})
 		if err != nil {
+			glog.Errorf("[%s/%s] iamuser: error putting user policy: %#v %#v %#v", *user.UserName, policyName, inputUserPolicyDocument)
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to put user policy")
 		}
 	}
