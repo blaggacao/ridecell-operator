@@ -18,7 +18,6 @@ package components_test
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	. "github.com/Ridecell/ridecell-operator/pkg/test_helpers/matchers"
@@ -70,6 +69,10 @@ var _ = Describe("iam_user aws Component", func() {
 		mockIAM.mockUserExists = true
 		mockIAM.mockhasUserPolicies = true
 
+		instance.Spec.InlinePolicies = map[string]string{
+			"test_all": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
+		}
+
 		accessKey := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-user-aws-credentials", Namespace: "default"},
 			Data: map[string][]byte{
@@ -111,17 +114,7 @@ var _ = Describe("iam_user aws Component", func() {
 
 	It("creates new user with policies", func() {
 		instance.Spec.InlinePolicies = map[string]string{
-			"test": `{
-								"Version": "2012-10-17",
-								"Statement": {
-									"Sid": "",
-									"Effect": "Allow",
-									"Action": [
-										"s3:*"
-									],
-									"Resource": "*"
-								}
-								}`,
+			"test777": `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": "s3:*", "Resource": "*"}}`,
 		}
 
 		Expect(comp).To(ReconcileContext(ctx))
@@ -137,7 +130,7 @@ var _ = Describe("iam_user aws Component", func() {
 		}
 
 		_, err := comp.Reconcile(ctx)
-		Expect(err).To(MatchError("iam_user: user policy test has invalid JSON: invalid character 'n' looking for beginning of object key string"))
+		Expect(err).To(MatchError("iam_user: user policy from spec test has invalid JSON: invalid character 'n' looking for beginning of object key string"))
 	})
 })
 
@@ -188,22 +181,14 @@ func (m *mockIAMClient) GetUserPolicy(input *iam.GetUserPolicyInput) (*iam.GetUs
 	}
 	if m.mockhasUserPolicies {
 		inputPolicy := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
-		inputPolicyBytes, err := json.Marshal(inputPolicy)
-		if err != nil {
-			return &iam.GetUserPolicyOutput{}, errors.New("awsmock_getuserpolicy: unable to unmarshal json")
-		}
-		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(string(inputPolicyBytes))}, nil
+		return &iam.GetUserPolicyOutput{PolicyName: input.PolicyName, PolicyDocument: aws.String(inputPolicy)}, nil
 	}
 	if m.mockExtraUserPolicy {
 		inputPolicy, ok := instance.Spec.InlinePolicies[aws.StringValue(input.PolicyName)]
 		if !ok {
 			inputPolicy = `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": ["s3:*"] "Resource": "*"}}`
 		}
-		inputPolicyBytes, err := json.Marshal(inputPolicy)
-		if err != nil {
-			return &iam.GetUserPolicyOutput{}, errors.New("awsmock_getuserpolicy: unable to unmarshal json")
-		}
-		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(string(inputPolicyBytes))}, nil
+		return &iam.GetUserPolicyOutput{PolicyName: input.PolicyName, PolicyDocument: aws.String(inputPolicy)}, nil
 	}
 	return &iam.GetUserPolicyOutput{}, nil
 }
