@@ -450,7 +450,7 @@ var _ = Describe("app_secrets Component", func() {
 		err = yaml.Unmarshal(byteData, &parsedYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://foo:postgresPassword@shareddb-database/summon"))
+		Expect(string(parsedYaml.DATABASE_URL)).To(Equal("postgis://foo:postgresPassword@shareddb-database/foo"))
 		Expect(string(parsedYaml.OUTBOUNDSMS_URL)).To(Equal("https://foo.prod.ridecell.io/outbound-sms"))
 		Expect(string(parsedYaml.SMS_WEBHOOK_URL)).To(Equal("https://foo.ridecell.us/sms/receive/"))
 		Expect(string(parsedYaml.CELERY_BROKER_URL)).To(Equal("redis://foo-redis/2"))
