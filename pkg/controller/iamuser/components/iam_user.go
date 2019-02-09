@@ -19,6 +19,7 @@ package components
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
@@ -103,7 +104,12 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get user policy %s", aws.StringValue(userPolicyName))
 		}
-		userPolicies[aws.StringValue(getUserPolicy.PolicyName)] = aws.StringValue(getUserPolicy.PolicyDocument)
+		// No really, PolicyDocument is URL-encoded. I have no idea why. https://docs.aws.amazon.com/IAM/latest/APIReference/API_GetUserPolicy.html
+		decoded, err := url.PathUnescape(aws.StringValue(getUserPolicy.PolicyDocument))
+		if err != nil {
+			return components.Result{}, errors.Wrapf(err, "iam_user: error URL-decoding existing user policy %s", aws.StringValue(userPolicyName))
+		}
+		userPolicies[aws.StringValue(getUserPolicy.PolicyName)] = decoded
 	}
 
 	// If there is an inline policy that is not in the spec delete it
