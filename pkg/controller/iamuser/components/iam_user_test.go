@@ -62,8 +62,8 @@ var _ = Describe("iam_user aws Component", func() {
 		fetchAccessKey := &corev1.Secret{}
 		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user-access-key", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(fetchAccessKey.Data["access_key_id"])).To(Equal("1234567890123456"))
-		Expect(string(fetchAccessKey.Data["secret_access_key"])).To(Equal("FakeSecretKey00123"))
+		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("1234567890123456"))
+		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("FakeSecretKey00123"))
 	})
 
 	It("reconciles with existing user and credentials", func() {
@@ -73,8 +73,8 @@ var _ = Describe("iam_user aws Component", func() {
 		accessKey := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-user-access-key", Namespace: "default"},
 			Data: map[string][]byte{
-				"access_key_id":     []byte("test_access_key"),
-				"secret_access_key": []byte("test_secret_key"),
+				"AWS_ACCESS_KEY_ID":     []byte("test_access_key"),
+				"AWS_SECRET_ACCESS_KEY": []byte("test_secret_key"),
 			},
 		}
 		ctx.Client = fake.NewFakeClient(accessKey)
@@ -83,8 +83,8 @@ var _ = Describe("iam_user aws Component", func() {
 		fetchAccessKey := &corev1.Secret{}
 		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user-access-key", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(fetchAccessKey.Data["access_key_id"])).To(Equal("test_access_key"))
-		Expect(string(fetchAccessKey.Data["secret_access_key"])).To(Equal("test_secret_key"))
+		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("test_access_key"))
+		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("test_secret_key"))
 	})
 
 	It("has extra items attached to user", func() {

@@ -173,8 +173,8 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to create new access key")
 		}
 		fetchAccessKey.Data = make(map[string][]byte)
-		fetchAccessKey.Data["access_key_id"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
-		fetchAccessKey.Data["secret_access_key"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
+		fetchAccessKey.Data["AWS_ACCESS_KEY_ID"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
+		fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
 
 		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey, func(existingObj runtime.Object) error {
 			existing := existingObj.(*corev1.Secret)
