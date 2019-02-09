@@ -147,8 +147,8 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}}
 	}
 
-	_, ok0 := fetchAccessKey.Data["access_key_id"]
-	_, ok1 := fetchAccessKey.Data["secret_access_key"]
+	_, ok0 := fetchAccessKey.Data["AWS_ACCESS_KEY_ID"]
+	_, ok1 := fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"]
 
 	if !ok0 || !ok1 {
 		// Find any access keys related attached to this user

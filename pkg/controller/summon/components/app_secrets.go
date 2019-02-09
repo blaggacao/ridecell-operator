@@ -128,6 +128,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		return components.Result{Requeue: true}, errors.Errorf("app_secrets: Invalid data in SECRET_KEY secret: %s", val)
 	}
 
+	accessKey := &corev1.Secret{}
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, accessKey)
+	if err != nil {
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials key")
+	}
+
 	appSecretsData := map[string]interface{}{}
 
 	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, databaseName)
@@ -136,6 +142,8 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
 	appSecretsData["FERNET_KEYS"] = formattedFernetKeys
 	appSecretsData["SECRET_KEY"] = string(secretKey.Data["SECRET_KEY"])
+	appSecretsData["AWS_ACCESS_KEY_ID"] = string(accessKey.Data["AWS_SECRET_ACCESS_KEY"])
+	appSecretsData["AWS_SECRET_ACCESS_KEY"] = string(accessKey.Data["AWS_SECRET_ACCESS_KEY"])
 
 	for _, rawAppSecretObj := range rawAppSecrets {
 		for k, v := range rawAppSecretObj.Data {
