@@ -188,7 +188,7 @@ func (m *mockIAMClient) GetUserPolicy(input *iam.GetUserPolicyInput) (*iam.GetUs
 		if !ok {
 			inputPolicy = `{"Version": "2012-10-17", "Statement": {"Effect": "Allow", "Action": ["s3:*"] "Resource": "*"}}`
 		}
-		return &iam.GetUserPolicyOutput{PolicyDocument: aws.String(inputPolicy)}, nil
+		return &iam.GetUserPolicyOutput{PolicyName: input.PolicyName, PolicyDocument: aws.String(inputPolicy)}, nil
 	}
 	return &iam.GetUserPolicyOutput{}, nil
 }
