@@ -125,7 +125,7 @@ var _ = Describe("Summon controller", func() {
 
 		// Create fake aws creds from iam_user controller
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -209,7 +209,7 @@ var _ = Describe("Summon controller", func() {
 
 		// Create fake aws creds from iam_user controller
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo.aws-credentials", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -319,7 +319,7 @@ var _ = Describe("Summon controller", func() {
 		Expect(err).NotTo(HaveOccurred())
 		// Create fake aws creds from iam_user controller
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "statustester-aws-credentials", Namespace: helpers.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "statustester.aws-credentials", Namespace: helpers.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),

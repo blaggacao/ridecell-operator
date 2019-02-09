@@ -161,12 +161,12 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 
 	fetchAccessKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get aws-credentials secret")
 		}
-		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}}
+		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}}
 	}
 
 	_, ok0 := fetchAccessKey.Data["AWS_ACCESS_KEY_ID"]

@@ -145,7 +145,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	accessKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			// Don't trigger an error on notfound so it doesn't notify. Just try again.

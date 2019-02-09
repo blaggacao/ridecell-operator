@@ -59,7 +59,7 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user-aws-credentials", Namespace: "default"}, fetchAccessKey)
+		err := ctx.Client.Get(ctx.Context, types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("1234567890123456"))
 		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("FakeSecretKey00123"))
@@ -74,7 +74,7 @@ var _ = Describe("iam_user aws Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-user-aws-credentials", Namespace: "default"},
+			ObjectMeta: metav1.ObjectMeta{Name: "test-user.aws-credentials", Namespace: "default"},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test_access_key"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test_secret_key"),
@@ -84,7 +84,7 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user-aws-credentials", Namespace: "default"}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(fetchAccessKey.Data["AWS_ACCESS_KEY_ID"])).To(Equal("test_access_key"))
 		Expect(string(fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"])).To(Equal("test_secret_key"))
@@ -97,7 +97,7 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user-aws-credentials", Namespace: "default"}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -108,7 +108,7 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user-aws-credentials", Namespace: "default"}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -120,7 +120,7 @@ var _ = Describe("iam_user aws Component", func() {
 		Expect(comp).To(ReconcileContext(ctx))
 
 		fetchAccessKey := &corev1.Secret{}
-		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user-aws-credentials", Namespace: "default"}, fetchAccessKey)
+		err := ctx.Client.Get(context.TODO(), types.NamespacedName{Name: "test-user.aws-credentials", Namespace: "default"}, fetchAccessKey)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
