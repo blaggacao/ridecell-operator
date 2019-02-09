@@ -139,16 +139,16 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 
 	fetchAccessKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}, fetchAccessKey)
 	if err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get access-key secret")
+			return components.Result{}, errors.Wrapf(err, "iam_user: failed to get aws-credentials secret")
 		}
-		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}}
+		fetchAccessKey = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}}
 	}
 
-	_, ok0 := fetchAccessKey.Data["access_key_id"]
-	_, ok1 := fetchAccessKey.Data["secret_access_key"]
+	_, ok0 := fetchAccessKey.Data["AWS_ACCESS_KEY_ID"]
+	_, ok1 := fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"]
 
 	if !ok0 || !ok1 {
 		// Find any access keys related attached to this user
@@ -173,8 +173,8 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to create new access key")
 		}
 		fetchAccessKey.Data = make(map[string][]byte)
-		fetchAccessKey.Data["access_key_id"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
-		fetchAccessKey.Data["secret_access_key"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
+		fetchAccessKey.Data["AWS_ACCESS_KEY_ID"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.AccessKeyId))
+		fetchAccessKey.Data["AWS_SECRET_ACCESS_KEY"] = []byte(aws.StringValue(createAccessKeyOutput.AccessKey.SecretAccessKey))
 
 		_, err = controllerutil.CreateOrUpdate(ctx.Context, ctx, fetchAccessKey, func(existingObj runtime.Object) error {
 			existing := existingObj.(*corev1.Secret)
