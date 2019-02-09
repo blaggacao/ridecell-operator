@@ -136,7 +136,7 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 			// Compare current policy to policy in spec
 			err = json.Unmarshal([]byte(existingPolicy), &existingPolicyObj)
 			if err != nil {
-				return components.Result{}, errors.Wrapf(err, "iam_user: user policy %s has invalid JSON", policyName)
+				return components.Result{}, errors.Wrapf(err, "iam_user: existing user policy %s has invalid JSON (%v)", policyName, existingPolicy)
 			}
 			if reflect.DeepEqual(existingPolicyObj, specPolicyObj) {
 				continue
