@@ -157,7 +157,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 
 	appSecretsData := map[string]interface{}{}
 
-	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://summon:%s@%s-database/summon", postgresPassword, databaseName)
+	appSecretsData["DATABASE_URL"] = fmt.Sprintf("postgis://%s:%s@%s-database/summon", databaseUser, postgresPassword, databaseName)
 	appSecretsData["OUTBOUNDSMS_URL"] = fmt.Sprintf("https://%s.prod.ridecell.io/outbound-sms", instance.Name)
 	appSecretsData["SMS_WEBHOOK_URL"] = fmt.Sprintf("https://%s.ridecell.us/sms/receive/", instance.Name)
 	appSecretsData["CELERY_BROKER_URL"] = fmt.Sprintf("redis://%s-redis/2", instance.Name)
