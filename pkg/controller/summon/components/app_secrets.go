@@ -129,9 +129,9 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	}
 
 	accessKey := &corev1.Secret{}
-	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-access-key", instance.Name), Namespace: instance.Namespace}, accessKey)
+	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials key")
+		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
 	}
 
 	appSecretsData := map[string]interface{}{}
