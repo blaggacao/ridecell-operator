@@ -118,7 +118,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-access-key", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -174,7 +174,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-access-key", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -247,7 +247,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-access-key", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -296,9 +296,9 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		ctx.Client = fake.NewFakeClient(appSecrets, postgresSecret, fernetKeys)
-		_, err := comp.Reconcile(ctx)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal(`app_secrets: Unable to get SECRET_KEY: secrets "foo.secret-key" not found`))
+		res, err := comp.Reconcile(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(res.Requeue).To(BeTrue())
 	})
 
 	It("runs reconcile with all values set", func() {
@@ -328,7 +328,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-access-key", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -377,7 +377,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-access-key", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
@@ -431,7 +431,7 @@ var _ = Describe("app_secrets Component", func() {
 		}
 
 		accessKey := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "foo-access-key", Namespace: instance.Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: "foo-aws-credentials", Namespace: instance.Namespace},
 			Data: map[string][]byte{
 				"AWS_ACCESS_KEY_ID":     []byte("test"),
 				"AWS_SECRET_ACCESS_KEY": []byte("test"),
