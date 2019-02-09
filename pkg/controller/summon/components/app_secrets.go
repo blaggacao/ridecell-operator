@@ -24,6 +24,7 @@ import (
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -97,7 +98,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	postgresSecret := &corev1.Secret{}
 	err := ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.%s-database.credentials", databaseUser, databaseName), Namespace: instance.Namespace}, postgresSecret)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Postgres password not found")
+		}
 	}
 	postgresPassword, ok := postgresSecret.Data["password"]
 	if !ok {
@@ -107,7 +113,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	fernetKeys := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.fernet-keys", instance.Name), Namespace: instance.Namespace}, fernetKeys)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Fernet keys secret not found")
+		}
 	}
 	if len(fernetKeys.Data) == 0 {
 		return components.Result{}, errors.New("app_secrets: Fernet keys map is empty")
@@ -121,7 +132,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	secretKey := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s.secret-key", instance.Name), Namespace: instance.Namespace}, secretKey)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get SECRET_KEY")
+		}
 	}
 	val, ok := secretKey.Data["SECRET_KEY"]
 	if !ok || len(val) == 0 {
@@ -131,7 +147,12 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 	accessKey := &corev1.Secret{}
 	err = ctx.Get(ctx.Context, types.NamespacedName{Name: fmt.Sprintf("%s-aws-credentials", instance.Name), Namespace: instance.Namespace}, accessKey)
 	if err != nil {
-		return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
+		if kerrors.IsNotFound(err) {
+			// Don't trigger an error on notfound so it doesn't notify. Just try again.
+			return components.Result{Requeue: true}, nil
+		} else {
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Unable to get aws credentials secret")
+		}
 	}
 
 	appSecretsData := map[string]interface{}{}
