@@ -82,7 +82,7 @@ func (comp *appSecretComponent) Reconcile(ctx *components.ComponentContext) (com
 		rawAppSecret := &corev1.Secret{}
 		err := ctx.Get(ctx.Context, types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, rawAppSecret)
 		if err != nil {
-			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get existing app secrets")
+			return components.Result{Requeue: true}, errors.Wrapf(err, "app_secrets: Failed to get input app secrets %s", secretName)
 		}
 		rawAppSecrets = append(rawAppSecrets, rawAppSecret)
 	}
