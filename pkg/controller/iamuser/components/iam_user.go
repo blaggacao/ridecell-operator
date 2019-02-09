@@ -19,6 +19,7 @@ package components
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/Ridecell/ridecell-operator/pkg/components"
 	"github.com/aws/aws-sdk-go/aws"
@@ -120,20 +121,35 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	}
 
 	// Update our user policies
-	for policyName, policyJson := range instance.Spec.InlinePolicies {
+	for policyName, policyJSON := range instance.Spec.InlinePolicies {
 		// Check for malformed JSON before we even try sending it.
-		var ignored interface{}
-		err := json.Unmarshal([]byte(policyJson), &ignored)
+		var specUserPolicyInterface interface{}
+		err := json.Unmarshal([]byte(policyJSON), &specUserPolicyInterface)
 		if err != nil {
-			return components.Result{}, errors.Wrapf(err, "iam_user: user policy %s has invalid JSON", policyName)
+			return components.Result{}, errors.Wrapf(err, "iam_user: user policy from spec %s has invalid JSON", policyName)
 		}
+
+		// If a policy with the same name was returned compare it to our spec
+		val, ok := userPolicies[policyName]
+		if ok {
+			var userPolicyInterface interface{}
+			// Compare current policy to policy in spec
+			err = json.Unmarshal([]byte(val), &userPolicyInterface)
+			if err != nil {
+				return components.Result{}, errors.Wrapf(err, "iam_user: user policy %s has invalid JSON", policyName)
+			}
+			if reflect.DeepEqual(userPolicyInterface, specUserPolicyInterface) {
+				continue
+			}
+		}
+
 		_, err = comp.iamAPI.PutUserPolicy(&iam.PutUserPolicyInput{
-			PolicyDocument: aws.String(policyJson),
+			PolicyDocument: aws.String(policyJSON),
 			PolicyName:     aws.String(policyName),
 			UserName:       user.UserName,
 		})
 		if err != nil {
-			glog.Errorf("[%s/%s] iamuser: error putting user policy: %#v %#v %#v", instance.Namespace, instance.Name, *user.UserName, policyName, policyJson)
+			glog.Errorf("[%s/%s] iamuser: error putting user policy: %#v %#v %#v", instance.Namespace, instance.Name, *user.UserName, policyName, policyJSON)
 			return components.Result{}, errors.Wrapf(err, "iam_user: failed to put user policy %s", policyName)
 		}
 	}
