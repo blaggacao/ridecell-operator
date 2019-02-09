@@ -123,22 +123,22 @@ func (comp *iamUserComponent) Reconcile(ctx *components.ComponentContext) (compo
 	// Update our user policies
 	for policyName, policyJSON := range instance.Spec.InlinePolicies {
 		// Check for malformed JSON before we even try sending it.
-		var specUserPolicyInterface interface{}
-		err := json.Unmarshal([]byte(policyJSON), &specUserPolicyInterface)
+		var specPolicyObj interface{}
+		err := json.Unmarshal([]byte(policyJSON), &specPolicyObj)
 		if err != nil {
 			return components.Result{}, errors.Wrapf(err, "iam_user: user policy from spec %s has invalid JSON", policyName)
 		}
 
 		// If a policy with the same name was returned compare it to our spec
-		val, ok := userPolicies[policyName]
+		existingPolicy, ok := userPolicies[policyName]
 		if ok {
-			var userPolicyInterface interface{}
+			var existingPolicyObj interface{}
 			// Compare current policy to policy in spec
-			err = json.Unmarshal([]byte(val), &userPolicyInterface)
+			err = json.Unmarshal([]byte(existingPolicy), &existingPolicyObj)
 			if err != nil {
 				return components.Result{}, errors.Wrapf(err, "iam_user: user policy %s has invalid JSON", policyName)
 			}
-			if reflect.DeepEqual(userPolicyInterface, specUserPolicyInterface) {
+			if reflect.DeepEqual(existingPolicyObj, specPolicyObj) {
 				continue
 			}
 		}
