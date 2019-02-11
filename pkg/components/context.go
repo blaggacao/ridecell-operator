@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/runtime/inject"
 
-	"github.com/Ridecell/ridecell-operator/pkg/templates"
+	"github.com/blaggacao/ridecell-operator/pkg/templates"
 )
 
 func (ctx *ComponentContext) GetTemplate(path string, extraData map[string]interface{}) (runtime.Object, error) {
